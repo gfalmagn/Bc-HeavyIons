@@ -1,0 +1,29 @@
+imax 4
+jmax 3
+kmax 6
+---------------
+shapes data_obs   * InputForCombine_PbPb.root $CHANNEL/$PROCESS/BcM 
+shapes BcSig      * InputForCombine_PbPb.root $CHANNEL/$PROCESS/BcM 
+shapes FakeJpsi   * InputForCombine_PbPb.root $CHANNEL/$PROCESS/BcM $CHANNEL/$PROCESS_$SYSTEMATIC/BcM
+shapes NPJpsi     * InputForCombine_PbPb.root $CHANNEL/$PROCESS/BcM $CHANNEL/$PROCESS_$SYSTEMATIC/BcM
+shapes PromptJpsi * InputForCombine_PbPb.root $CHANNEL/$PROCESS/BcM $CHANNEL/$PROCESS_$SYSTEMATIC/BcM
+---------------
+bin	    BDT1  BDT2  BDT3  BDT4
+observation -1    -1	-1    -1
+------------------------------
+bin			BDT1       BDT1       BDT1       BDT1       BDT2       BDT2       BDT2       BDT2       BDT3       BDT3       BDT3       BDT3       BDT4       BDT4       BDT4       BDT4
+process         	BcSig      FakeJpsi   NPJpsi     PromptJpsi BcSig      FakeJpsi   NPJpsi     PromptJpsi BcSig      FakeJpsi   NPJpsi     PromptJpsi BcSig      FakeJpsi   NPJpsi     PromptJpsi
+process         	0          1	      2		 3          0          1          2	     3		0	   1	      2		 3	    0	       1	  2	     3
+rate            	-1         -1         -1         -1         -1         -1         -1         -1         -1         -1         -1         -1	    -1	       -1	  -1	     -1
+--------------------------------
+lumi          lnN	1.019	   1.019      -          -         1.019       1.019      -          -          1.019      1.019      -          -          1.019      1.019      -          -
+PromptOrFlipJ shape     -          -          1.       	 1.        -           -          1.         1.       	-          -          1.       	 1.	    -          -          1.         1.
+bJpsiFrac     shape     -          -          1.         1.        -           -          1.         1.         -          -          1.         1.         -          -          1.         1.
+JpsiSB        shape     -          0.5        -          -         -           0.5        -          -          -          0.5        -          -          -          0.5        -          -
+
+misID		rateParam * NPJpsi  1.5
+misIDPrompt	rateParam * PromptJpsi 1.5
+misID		param 1.5 0.5
+misIDPrompt	param 1.5 0.5
+
+* autoMCStats 13 #Poisson threshold on typical number of events in binomial

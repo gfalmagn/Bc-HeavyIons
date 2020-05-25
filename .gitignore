@@ -1,0 +1,14 @@
+gen/
+nonPromptJpsiMC/
+acceptance/figs/
+efficiency/figs/
+templateFit/figs*/
+BDT/figs/
+hadronicChan/
+MCmultiplicity/
+CompMCdata/
+eventMixing/
+*~
+*.root
+*.pdf
+*.png
