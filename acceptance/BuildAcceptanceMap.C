@@ -100,15 +100,15 @@ void BuildAcceptanceMap(bool withTM = false, bool cutP=false){
       TLorentzVector *genBc_mumi = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mumi_idx[QQidx]);
       TLorentzVector *genBc_mupl = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mupl_idx[QQidx]);
 
-      h_all->Fill(gen3mu->Rapidity(),gen3mu->Pt());
-      hp_all->Fill(gen3mu->Rapidity(),gen3mu->Pt());
+      h_all->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt());
+      hp_all->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt());
       hPt_all->Fill(gen3mu->Pt());
-      hY_all->Fill(gen3mu->Rapidity());
+      hY_all->Fill(fabs(gen3mu->Rapidity()));
       nall +=1;
 
       if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM)){ 
-	h_acc->Fill(gen3mu->Rapidity(),gen3mu->Pt());
-	hp_acc->Fill(gen3mu->Rapidity(),gen3mu->Pt());
+	h_acc->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt());
+	hp_acc->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt());
       }
 
       if(fabs(gen3mu->Rapidity())<2.3 ){ //Y cut for pt distro
@@ -117,12 +117,12 @@ void BuildAcceptanceMap(bool withTM = false, bool cutP=false){
 	  hPt_acc->Fill(gen3mu->Pt());
       }
       if(gen3mu->Pt()>4){ //pt cut for Y distro
-	hY_fid->Fill(gen3mu->Rapidity());	
+	hY_fid->Fill(fabs(gen3mu->Rapidity()));	
 	if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM))
-	  hY_acc->Fill(gen3mu->Rapidity());
+	  hY_acc->Fill(fabs(gen3mu->Rapidity()));
       }
       if(fabs(gen3mu->Rapidity())<2.3 && gen3mu->Pt()>6 && (fabs(gen3mu->Rapidity())>1.3 || gen3mu->Pt()>11) ){
-	h_fid->Fill(gen3mu->Rapidity(),gen3mu->Pt());
+	h_fid->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt());
 	nfid += 1;
 	if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM))
 	  nacc += 1;
@@ -202,7 +202,7 @@ void BuildAcceptanceMap(bool withTM = false, bool cutP=false){
   TH2Poly* hp_acceptance = (TH2Poly*)hp_acc->Clone("hp_acceptance"); 
   c2->cd(1);
   gPad->SetLogz();
-  hp_acc->GetZaxis()->SetRangeUser(0.25,150);
+  hp_acc->GetZaxis()->SetRangeUser(1,220);
   hp_acc->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
   hp_acc->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
   hp_acc->SetTitle("Accepted B_{c}'s");

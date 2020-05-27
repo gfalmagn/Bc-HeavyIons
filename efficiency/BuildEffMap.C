@@ -321,7 +321,7 @@ void BuildEffMap(bool ispp = true){
       
       ntot += weight;      
       TLorentzVector *gen3mu = (TLorentzVector*) Gen_3mu_4mom->At(igen);
-      hp_all->Fill(gen3mu->Rapidity(),gen3mu->Pt(), weight);
+      hp_all->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight);
       
       int genQQidx = Gen_Bc_QQ_idx[igen];
       TLorentzVector *genQQ = (TLorentzVector*) Gen_QQ_4mom->At(genQQidx);
@@ -329,11 +329,11 @@ void BuildEffMap(bool ispp = true){
       TLorentzVector *genBc_mumi = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mumi_idx[genQQidx]);
       TLorentzVector *genBc_mupl = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mupl_idx[genQQidx]);
       
-      if(gen3mu->Rapidity()<2.3 && gen3mu->Pt()>6 && (gen3mu->Rapidity()>1.3 || gen3mu->Pt()>11)) nfid += 1;
+      if(fabs(gen3mu->Rapidity())<2.3 && gen3mu->Pt()>6 && (fabs(gen3mu->Rapidity())>1.3 || gen3mu->Pt()>11)) nfid += 1;
       //      else continue; //forget Bc's outside fiducial cuts
       if(!InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM)) continue;
-      if(gen3mu->Rapidity()<2.3 && gen3mu->Pt()>6 && (gen3mu->Rapidity()>1.3 || gen3mu->Pt()>11)) nacc += weight;
-      hp_acc->Fill(gen3mu->Rapidity(),gen3mu->Pt(), weight);
+      if(fabs(gen3mu->Rapidity())<2.3 && gen3mu->Pt()>6 && (fabs(gen3mu->Rapidity())>1.3 || gen3mu->Pt()>11)) nacc += weight;
+      hp_acc->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight);
       
       int irec = Gen_3mu_whichRec[igen];
 
@@ -451,8 +451,8 @@ void BuildEffMap(bool ispp = true){
 	    if(inJpsiMassRange(QQM, maxEta<1.5) && inJpsiMassSB(QQ2_M, maxEta<1.5) && Reco_QQ_dca[QQ2idx]<0.3) weightJpsiChoice = (1-(ispp?0.213:0.662)); //if QQ1 passes all SIGNAL sample cuts, check if the other dimuon QQ2 passes the jpsi mass sidebands cuts. If yes, apply a weight corresponding to the integrated proba of a data event to contain a true Jpsi
 	    weight *= weightJpsiChoice;
 
-	    if(gen3mu->Rapidity()<2.3 && gen3mu->Pt()>6 && (gen3mu->Rapidity()>1.3 || gen3mu->Pt()>11)) nsel += weight;
-	    hp_sel->Fill(gen3mu->Rapidity(),gen3mu->Pt(), weight);
+	    if(fabs(gen3mu->Rapidity())<2.3 && gen3mu->Pt()>6 && (fabs(gen3mu->Rapidity())>1.3 || gen3mu->Pt()>11)) nsel += weight;
+	    hp_sel->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight);
 	  } //end if passes full selection
 	      
 	} //end if(QQ_isValid)
