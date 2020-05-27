@@ -121,7 +121,7 @@ void BuildAcceptanceMap(bool withTM = false, bool cutP=false){
 	if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM))
 	  hY_acc->Fill(gen3mu->Rapidity());
       }
-      if(fabs(gen3mu->Rapidity())<2.3 && gen3mu->Pt()>4 && (fabs(gen3mu->Rapidity())>1.2 || gen3mu->Pt()>8) ){
+      if(fabs(gen3mu->Rapidity())<2.3 && gen3mu->Pt()>6 && (fabs(gen3mu->Rapidity())>1.3 || gen3mu->Pt()>11) ){
 	h_fid->Fill(gen3mu->Rapidity(),gen3mu->Pt());
 	nfid += 1;
 	if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM))

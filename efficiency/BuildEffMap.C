@@ -329,10 +329,10 @@ void BuildEffMap(bool ispp = true){
       TLorentzVector *genBc_mumi = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mumi_idx[genQQidx]);
       TLorentzVector *genBc_mupl = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mupl_idx[genQQidx]);
       
-      if(gen3mu->Rapidity()<2.3 && gen3mu->Pt()>4 && (gen3mu->Rapidity()>1.2 || gen3mu->Pt()>8)) nfid += 1;
+      if(gen3mu->Rapidity()<2.3 && gen3mu->Pt()>6 && (gen3mu->Rapidity()>1.3 || gen3mu->Pt()>11)) nfid += 1;
       //      else continue; //forget Bc's outside fiducial cuts
       if(!InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM)) continue;
-      if(gen3mu->Rapidity()<2.3 && gen3mu->Pt()>4 && (gen3mu->Rapidity()>1.2 || gen3mu->Pt()>8)) nacc += weight;
+      if(gen3mu->Rapidity()<2.3 && gen3mu->Pt()>6 && (gen3mu->Rapidity()>1.3 || gen3mu->Pt()>11)) nacc += weight;
       hp_acc->Fill(gen3mu->Rapidity(),gen3mu->Pt(), weight);
       
       int irec = Gen_3mu_whichRec[igen];
@@ -427,12 +427,12 @@ void BuildEffMap(bool ispp = true){
 	     && muW_isSoft
 	     && mumi_isSoft
 	     && mupl_isSoft
-	     && withTM?( (muW_isGlb && muW_inLooseAcc && mupl_isGlb && mupl_inLooseAcc) || //only one muon can be tracker and out of LooseAcceptance
-			 (muW_isGlb && muW_inLooseAcc && mumi_isGlb && mumi_inLooseAcc) || 
-			 (mumi_isGlb && mumi_inLooseAcc && mupl_isGlb && mupl_inLooseAcc)
-			 ):(
-			    mumi_isGlb && mupl_isGlb && muW_isGlb
-			    )
+	     && (withTM?( (muW_isGlb && muW_inLooseAcc && mupl_isGlb && mupl_inLooseAcc) || //only one muon can be tracker and out of LooseAcceptance
+			  (muW_isGlb && muW_inLooseAcc && mumi_isGlb && mumi_inLooseAcc) || 
+			  (mumi_isGlb && mumi_inLooseAcc && mupl_isGlb && mupl_inLooseAcc)
+			  ):(
+			     mumi_isGlb && mupl_isGlb && muW_isGlb
+			     ))
 	     && ( ( muW_trig && mupl_trig && muW_inTightAcc && mupl_inTightAcc ) || //two muons among three must trigger //BEWARE ! Not sure if TightAcceptance should be put there
 		  ( muW_trig && mumi_trig && muW_inTightAcc && mumi_inTightAcc ) ||
 		  ( mumi_trig && mupl_trig && mumi_inTightAcc && mupl_inTightAcc ) //only this last option can be true for dimuon+trk
@@ -451,7 +451,7 @@ void BuildEffMap(bool ispp = true){
 	    if(inJpsiMassRange(QQM, maxEta<1.5) && inJpsiMassSB(QQ2_M, maxEta<1.5) && Reco_QQ_dca[QQ2idx]<0.3) weightJpsiChoice = (1-(ispp?0.213:0.662)); //if QQ1 passes all SIGNAL sample cuts, check if the other dimuon QQ2 passes the jpsi mass sidebands cuts. If yes, apply a weight corresponding to the integrated proba of a data event to contain a true Jpsi
 	    weight *= weightJpsiChoice;
 
-	    if(gen3mu->Rapidity()<2.3 && gen3mu->Pt()>4 && (gen3mu->Rapidity()>1.2 || gen3mu->Pt()>8)) nsel += weight;
+	    if(gen3mu->Rapidity()<2.3 && gen3mu->Pt()>6 && (gen3mu->Rapidity()>1.3 || gen3mu->Pt()>11)) nsel += weight;
 	    hp_sel->Fill(gen3mu->Rapidity(),gen3mu->Pt(), weight);
 	  } //end if passes full selection
 	      

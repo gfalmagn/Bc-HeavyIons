@@ -14,9 +14,10 @@
 #include "TROOT.h"
 #include "TLatex.h"
 #include "TGaxis.h"
-#include "Definitions.h"
+#include "../helpers/Definitions.h"
+#include "../helpers/Cuts.h"
 
-void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<double> BDTcuts = vector<double>()){
+void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts = vector<float>()){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -109,7 +110,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<double> BDTcut
   //*******************************************
   //Fill the QQ_M histograms
   for(int iT=1; iT<(int)T.size(); iT++){
-    if(iT==0 || iT==7) continue; //forget WRONGSIGN and dimuon+track and MCs
+    if(iT!=1 && iT!=3) continue;//consider ONLY DATA unambiguous events    //if(iT==0 || iT==7) continue; //forget WRONGSIGN and dimuon+track and MCs
     for(int j=0; j<T[iT]->GetEntries(); j++){//T[iT]->GetEntries()
 
       T[iT]->GetEntry(j);
@@ -161,7 +162,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<double> BDTcut
       weight[iT] = w_simple[iT];
       if(!ispp && iT==3 && BDT[iT]<-0.2) weight[iT] = w_unblind[iT]; //unblind data events in the low-BDT CR
 
-      if(iT!=0 && iT!=7) { //forget WRONGSIGN and dimuon+track and MCs
+      if(iT!=0 && iT!=7) { //forget WRONGSIGN and dimuon+track 
 
 	float maxEta = max(fabs(muW_eta[iT]),max(fabs(mumi_eta[iT]),fabs(mupl_eta[iT])));
 	int kbin = nBDTb; //kbin 0 is for all BDT values
@@ -175,7 +176,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<double> BDTcut
 	       && QQ2_VtxProb[iT]>_QQvtxProb_cut && QQ2_dca[iT]<_QQdca_cut && QQ2_dca[iT]>0)
 	   ){
 	   
-	  int ihist = (iT==1)?3:iT;
+	  int ihist = 3;//consider ONLY DATA unambiguous events //(iT==1)?3:iT;
 	  //*** loose SB
 	  float binc_QQ1 = h_QQM[kbin][ihist]->GetBinContent(h_QQM[kbin][ihist]->FindBin(QQ_M[iT]));
 	  float binc_QQ2 = h_QQM[kbin][ihist]->GetBinContent(h_QQM[kbin][ihist]->FindBin(QQ2_M[iT]));
@@ -270,12 +271,13 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<double> BDTcut
   
 }
 
-void addJpsiChoiceWeight(bool ispp=true, bool useBDTbins=false, vector<double> BDTcuts_ = vector<double>()){
+void addJpsiChoiceWeight(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts_ = vector<float>()){
   if (useBDTbins && BDTcuts_.size()<2){
-    BDTcuts_.push_back(-0.6);
-    BDTcuts_.push_back(0.);
-    BDTcuts_.push_back(ispp?0.15:0.20);
-    BDTcuts_.push_back(0.6);
+    BDTcuts_ = _BDTcuts(ispp);
+    // BDTcuts_.push_back(-0.6);
+    // BDTcuts_.push_back(0.);
+    // BDTcuts_.push_back(ispp?0.15:0.20);
+    // BDTcuts_.push_back(0.6);
   }
   
   addJpsiChoiceW(ispp,useBDTbins,BDTcuts_);

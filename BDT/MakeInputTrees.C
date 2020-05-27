@@ -11,9 +11,11 @@
 #include "Math/PdfFuncMathMore.h"
 #include <TVirtualFitter.h>
 #include "../PbPb18/Utilities/EVENTUTILS.h"
-#include "Definitions.h"
+#include "../helpers/Definitions.h"
+#include "../helpers/Cuts.h"
+#include "../acceptance/SgMuonAcceptanceCuts.h"
 
-void MakeInputTrees(bool ispp = true){
+void MakeInputTrees(bool ispp = true, bool withTM = false){
 
   //**************************************************************  
   //Create Tree and branches
@@ -364,7 +366,7 @@ void MakeInputTrees(bool ispp = true){
 
   //**************************************************************
   //Create the output file and trees
-  TFile out_file( "BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root","RECREATE");
+  TFile out_file( "BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+(TString)(withTM?"_withTM":"")+".root","RECREATE");
   std::vector<TTree*> out_trees;
   out_trees.push_back(new TTree("bkgWRONGSIGN","tree with wrongsign background"));
   out_trees.push_back(new TTree("bkgBCMASS","tree with background from Jpsi mass sidebands"));
@@ -832,6 +834,9 @@ void MakeInputTrees(bool ispp = true){
 	      float muW_dz = (iIpt==4)?(Reco_trk_dz[iIpt][muWidx]):( (ispp || iIpt==5)?(Reco_3mu_muW_dz_muonlessVtx[iIpt][BcNb]):(Reco_mu_dz[iIpt][muWidx]) );
 	      float mumi_dz = (ispp || iIpt==5)?(Reco_3mu_mumi_dz_muonlessVtx[iIpt][BcNb]):(Reco_mu_dz[iIpt][mumiidx]);
 	      float mupl_dz = (ispp || iIpt==5)?(Reco_3mu_mupl_dz_muonlessVtx[iIpt][BcNb]):(Reco_mu_dz[iIpt][muplidx]);
+	      muW_Pt[i] = recBc_muW->Pt();
+	      mumi_Pt[i] = recBc_mumi->Pt();
+	      mupl_Pt[i] = recBc_mupl->Pt();
 
 	      //cout<<(Bc_ctauSignif[i]>1.5)<<" "<<(Bc_alpha[i]<0.8)<<" "<<(Bc_alpha3D[i]<0.8)<<" "<<(Bc_VtxProb[i]>0.01)<<" "<<(QQ_dca[i]<0.3)<<" "<<(muW_isSoft[i])<<" "<<( mumi_isSoft[i])<<" "<<(mupl_isSoft[i])<<" "<<( (muW_isGlb[i] && muW_inLooseAcc[i] && mupl_isGlb[i] && mupl_inLooseAcc[i]) || (muW_isGlb[i] && muW_inLooseAcc[i] && mumi_isGlb[i] && mumi_inLooseAcc[i]) || (mumi_isGlb[i] && mumi_inLooseAcc[i] && mupl_isGlb[i] && mupl_inLooseAcc[i]) )<<" "<<((muW_trig[i] && mupl_trig[i] && muW_inTightAcc[i] && mupl_inTightAcc[i] ) ||(muW_trig[i] && mumi_trig[i] && muW_inTightAcc[i] && mumi_inTightAcc[i] ) || (mumi_trig[i] && mupl_trig[i] && mumi_inTightAcc[i] && mupl_inTightAcc[i] ))<<" "<<(fabs(muW_dz)<(ispp?0.6:0.8) && fabs(mumi_dz)<(ispp?0.6:0.8) && fabs(mupl_dz)<(ispp?0.6:0.8))<<" "<<((HLTriggers[iIpt]&((ispp || i>=4)?8:4096))>0)<<endl;
 	      if(
@@ -848,10 +853,13 @@ void MakeInputTrees(bool ispp = true){
 		 && mumi_isSoft[i]
 		 && mupl_isSoft[i]
 		 && (iIpt!=4 || muW_inLooseAcc[i]) //force track inLooseAcceptance in case of dimuon+trk
-		 && ( (muW_isGlb[i] && muW_inLooseAcc[i] && mupl_isGlb[i] && mupl_inLooseAcc[i]) || //only one muon can be tracker and out of LooseAcceptance
-		      (muW_isGlb[i] && muW_inLooseAcc[i] && mumi_isGlb[i] && mumi_inLooseAcc[i]) || 
-		      (mumi_isGlb[i] && mumi_inLooseAcc[i] && mupl_isGlb[i] && mupl_inLooseAcc[i])
-		      )
+		 && (withTM?( (muW_isGlb[i] && muW_inLooseAcc[i] && mupl_isGlb[i] && mupl_inLooseAcc[i] && looseAcc(mumi_Pt[i],mumi_eta[i],true) ) || //only one muon can be tracker and out of LooseAcceptance     
+			      (muW_isGlb[i] && muW_inLooseAcc[i] && mumi_isGlb[i] && mumi_inLooseAcc[i] && looseAcc(mupl_Pt[i],mupl_eta[i],true) ) ||
+			      (mumi_isGlb[i] && mumi_inLooseAcc[i] && mupl_isGlb[i] && mupl_inLooseAcc[i] && looseAcc(muW_Pt[i],muW_eta[i],true) )
+			      ):(
+				 mumi_isGlb[i] && mupl_isGlb[i] && muW_isGlb[i]
+				 && mumi_inLooseAcc[i] && mupl_inLooseAcc[i] && muW_inLooseAcc[i]
+				 ))
 		 && ( ( muW_trig[i] && mupl_trig[i] && muW_inTightAcc[i] && mupl_inTightAcc[i] ) || //two muons among three must trigger //BEWARE ! Not sure if TightAcceptance should be put there
 		      ( muW_trig[i] && mumi_trig[i] && muW_inTightAcc[i] && mumi_inTightAcc[i] ) ||
 		      ( mumi_trig[i] && mupl_trig[i] && mumi_inTightAcc[i] && mupl_inTightAcc[i] ) //only this last option can be true for dimuon+trk
@@ -860,13 +868,13 @@ void MakeInputTrees(bool ispp = true){
 		 && (!ispp || (HLTriggers[iIpt]&((ispp || i>=4)?8:4096))>0) //the event must fire the trigger as well //BEWARE ! this should be re-established for PbPb when samples are re-run
 		 //!!!!!!!!!!!!!!!!!!!!!! Here, should reject the tracks that are global muons, for dimuon+track
 		 ){
-
+		
 		QQ_M[i] = QQCandM;
 		if(iIpt!=4){
 		  QQ2_M[i] = (Reco_mu_charge[iIpt][muWidx]>0)?((*recBc_mumi+*recBc_muW).M()):((*recBc_mupl+*recBc_muW).M()); //QQ2 is the second OS pair
 		  QQ3_M[i] = (Reco_mu_charge[iIpt][muWidx]>0)?((*recBc_mupl+*recBc_muW).M()):((*recBc_mumi+*recBc_muW).M()); //QQ3 is the SS pair
 		}
-
+		
 		//**** Deal with the Jpsi dimuon choice
 		//		weightJpsiChoice[i] = 1;
 		if((i==0 || i==2 || i==3) && inJpsiMassRange(QQ_M[i], maxEta<1.5) && inJpsiMassRange(QQ2_M[i], maxEta<1.5) 
@@ -978,13 +986,10 @@ void MakeInputTrees(bool ispp = true){
 		muW_normChi2_glb[i] = (iIpt==4)?0:Reco_mu_normChi2_global[iIpt][muWidx];
 
 		muW_P[i] = recBc_muW->P();
-		muW_Pt[i] = recBc_muW->Pt();
 		muW_phi[i] = recBc_muW->Phi();
 		mumi_P[i] = recBc_mumi->P();
-		mumi_Pt[i] = recBc_mumi->Pt();
 		mumi_phi[i] = recBc_mumi->Phi();
 		mupl_P[i] = recBc_mupl->P();
-		mupl_Pt[i] = recBc_mupl->Pt();
 		mupl_phi[i] = recBc_mupl->Phi();
 
 		muW_dxySignif[i] = fabs( muW_dxy / ((iIpt==4)?(Reco_trk_dxyError[iIpt][muWidx]):(Reco_mu_dxyErr[iIpt][muWidx]) ) );
