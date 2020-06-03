@@ -1,3 +1,4 @@
+bool _withTM = false; //Whether to allow one muon to be non-global in the pre-selection
 
 float m_Jpsi = 3.096916;
 float m_Bc = 6.2749;
@@ -5,8 +6,8 @@ float m_mu = 0.10566;
 float m_K = 0.493677;
 float m_Pi = 0.13957;
 
-int _nbinMSR(bool ispp){return ispp?25:16;}
-int _nbinMCR(bool ispp){return ispp?5:4;}
+int _nbinMSR(bool ispp){return _withTM?(ispp?25:16):(ispp?16:10);}
+int _nbinMCR(bool ispp){return _withTM?(ispp?5:4):(ispp?4:2);}
 int _nbinM(bool ispp){return _nbinMSR(ispp) + 1 + _nbinMCR(ispp);}
 
 float Mbins[100];//max number of mass bins = 100
@@ -25,21 +26,21 @@ float* _Mbinning(bool ispp){
 
 std::vector<float> _BDTcuts(bool ispp){
   vector<float> res;
-  res.push_back(-0.5);
-  res.push_back(-0.2);
+  res.push_back(_withTM?-0.5:-1);
+  if(_withTM) res.push_back(-0.2);
   res.push_back(0.);
-  res.push_back(0.15);//ispp?0.15:0.2);
-  res.push_back(0.4);
+  res.push_back(_withTM?0.15:0.4);//ispp?0.15:0.2);
+  res.push_back(_withTM?0.4:1);
   return res;
 }
 
 std::vector<float> _corrBDTcuts(bool ispp){
   vector<float> res;
-  res.push_back(ispp?-0.35:-0.26);
-  res.push_back(ispp?-0.05:0.05);
-  res.push_back(ispp?0.1:0.23);
-  res.push_back(ispp?0.23:0.42);
-  res.push_back(ispp?0.45:0.64);
+  res.push_back(_withTM?(ispp?-0.35:-0.26):(ispp?-1:-0.8));
+  if(_withTM) res.push_back(ispp?-0.05:0.05);
+  res.push_back(_withTM?(ispp?0.1:0.23):(ispp?0.:0.32));
+  res.push_back(_withTM?(ispp?0.23:0.42):(ispp?0.3:0.73));
+  res.push_back(_withTM?(ispp?0.45:0.64):(ispp?1.:1.4));
   return res;
 }
 

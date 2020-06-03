@@ -1,4 +1,4 @@
-#include "TFile.h"
+1;5202;0c#include "TFile.h"
 #include "TTree.h"
 #include "TH1.h"
 #include "TF1.h"
@@ -15,7 +15,7 @@
 #include "../helpers/Cuts.h"
 #include "../acceptance/SgMuonAcceptanceCuts.h"
 
-void MakeInputTrees(bool ispp = true, bool withTM = false){
+void MakeInputTrees(bool ispp = true){
 
   //**************************************************************  
   //Create Tree and branches
@@ -366,7 +366,7 @@ void MakeInputTrees(bool ispp = true, bool withTM = false){
 
   //**************************************************************
   //Create the output file and trees
-  TFile out_file( "BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+(TString)(withTM?"_withTM":"")+".root","RECREATE");
+  TFile out_file( "BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+(TString)(_withTM?"_withTM":"")+".root","RECREATE");
   std::vector<TTree*> out_trees;
   out_trees.push_back(new TTree("bkgWRONGSIGN","tree with wrongsign background"));
   out_trees.push_back(new TTree("bkgBCMASS","tree with background from Jpsi mass sidebands"));
@@ -853,7 +853,7 @@ void MakeInputTrees(bool ispp = true, bool withTM = false){
 		 && mumi_isSoft[i]
 		 && mupl_isSoft[i]
 		 && (iIpt!=4 || muW_inLooseAcc[i]) //force track inLooseAcceptance in case of dimuon+trk
-		 && (withTM?( (muW_isGlb[i] && muW_inLooseAcc[i] && mupl_isGlb[i] && mupl_inLooseAcc[i] && looseAcc(mumi_Pt[i],mumi_eta[i],true) ) || //only one muon can be tracker and out of LooseAcceptance     
+		 && (_withTM?( (muW_isGlb[i] && muW_inLooseAcc[i] && mupl_isGlb[i] && mupl_inLooseAcc[i] && looseAcc(mumi_Pt[i],mumi_eta[i],true) ) || //only one muon can be tracker and out of LooseAcceptance     
 			      (muW_isGlb[i] && muW_inLooseAcc[i] && mumi_isGlb[i] && mumi_inLooseAcc[i] && looseAcc(mupl_Pt[i],mupl_eta[i],true) ) ||
 			      (mumi_isGlb[i] && mumi_inLooseAcc[i] && mupl_isGlb[i] && mupl_inLooseAcc[i] && looseAcc(muW_Pt[i],muW_eta[i],true) )
 			      ):(

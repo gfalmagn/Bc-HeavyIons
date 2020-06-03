@@ -12,10 +12,12 @@
 #include "TSystem.h"
 #include "TROOT.h"
 #include "TLatex.h"
+#include "../../helpers/Definitions.h"
+#include "../../helpers/Cuts.h"
 
   //flipJ: 0=nominal, 1=flipSameSide, 2=flipOppSide, 3=PromptJpsi
   //JpsiMC: what to add to flipJpsi (or subtract from data, depending on AddMCtoFlipJ) after SB-subtraction from data? 0=bToJpsi, 1=NonPromptJpsi(-bToJpsi), 2=fullJpsiMC(-bToJpsi), 3=NonPromptJpsi(-bToJpsi x3), 4=NonPromptJpsi(-bToJpsi x0.33)
-void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1.){
+void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., int bin=-1){
 
   bool AddMCtoFlipJ = true; //whether to include the Jpsi MC (uncorrelated part) to the flipJpsi sample whose BDT distro is weighted
   auto h_test = new TH1F();
@@ -55,6 +57,7 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1.){
   float QQmuW_ptImbal[ntrees];
   float Bc_M[ntrees];
   float Bc_Pt[ntrees];
+  float Bc_Y[ntrees];
   float QQ_M[ntrees];
   float QQ2_M[ntrees];
   float QQ3_M[ntrees];
@@ -90,8 +93,8 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1.){
     else{
       TString idx_s = (TString)(to_string(iT)); 
       h_bdt.push_back((vector<TH1F*>){
-	                              new TH1F("bdtSR"+idx_s,"bdtSR"+idx_s,(ispp?20:13),-0.48,0.3),
-				      new TH1F("bdtCR"+idx_s,"bdtCR"+idx_s,(ispp?20:13),-0.48,0.3)
+	                              new TH1F("bdtSR"+idx_s,"bdtSR"+idx_s,(ispp?20:13),_withTM?-0.48:-1,_withTM?0.3:1.),
+				      new TH1F("bdtCR"+idx_s,"bdtCR"+idx_s,(ispp?20:13),_withTM?-0.48:-1,_withTM?0.3:1.)
 					});
     }
     h_bdt[iT][0]->SetDirectory(0);
@@ -130,7 +133,8 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1.){
     // T[iT]->SetBranchAddress("MuonDxySignif_sum", &MuonDxySignif_sum[iT]);
     // T[iT]->SetBranchAddress("MuonDzSignif_sum", &MuonDzSignif_sum[iT]);
     T[iT]->SetBranchAddress("Bc_M", &Bc_M[iT]);
-    //T[iT]->SetBranchAddress("Bc_Pt", &Bc_Pt[iT]);
+    T[iT]->SetBranchAddress("Bc_Pt", &Bc_Pt[iT]);
+    T[iT]->SetBranchAddress("Bc_Y", &Bc_Y[iT]);
     //T[iT]->SetBranchAddress("QQ_M", &QQ_M[iT]);
     T[iT]->SetBranchAddress("muW_isJpsiBro", &muW_isJpsiBro[iT]);
     //    T[iT]->SetBranchAddress("muW_trueId", &muW_trueId[iT]);
@@ -144,7 +148,13 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1.){
     for(int j=0; j<T[iT]->GetEntries(); j++){//T[iT]->GetEntries()
 
       T[iT]->GetEntry(j);
-      
+      if(bin>-1 && !( Bc_Pt[iT]>_BcPtmin[bin] && Bc_Pt[iT]<_BcPtmax[bin] && fabs(Bc_Y[iT])>_BcYmin[bin] && fabs(Bc_Y[iT])<_BcYmax[bin])) continue;
+      if(bin==-1){//integrated bin
+	bool inFidCuts = Bc_Pt[iT]>_BcPtmin[0] && Bc_Pt[iT]<_BcPtmax[0] && fabs(Bc_Y[iT])>_BcYmin[0] && fabs(Bc_Y[iT])<_BcYmax[0];
+	inFidCuts = inFidCuts || (Bc_Pt[iT]>_BcPtmin[1] && Bc_Pt[iT]<_BcPtmax[1] && fabs(Bc_Y[iT])>_BcYmin[1] && fabs(Bc_Y[iT])<_BcYmax[1]);
+	if(!inFidCuts) continue;
+      }
+
       int ifill = iT;
       float w = weight[iT];
 
@@ -240,7 +250,7 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1.){
     leg->DrawClone("same");
   }
 
-  c1->SaveAs("BDTdistributions_SRandCR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
+  c1->SaveAs("BDTdistributions_SRandCR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"")+(TString)((bin>-1)?("_kinBin"+(TString)to_string(bin)):"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
 
   //*******************************************
   //Get ratios of flipJpsi to data for weights, in CR and SR
@@ -304,13 +314,13 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1.){
   leg2->AddEntry(dataOverFlipJ[1], "CR");
   leg2->DrawClone("same");
 
-  c2->SaveAs("BDTdistributions_ratioDataFlipJ_SRandCR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
+  c2->SaveAs("BDTdistributions_ratioDataFlipJ_SRandCR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"")+(TString)((bin>-1)?("_kinBin"+(TString)to_string(bin)):"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
 
 
   TFile* weightF = new TFile("flipJpsiWeights_fromBDTinCR_"+(TString)(ispp?"pp":"PbPb")+".root","UPDATE");
   
-  dataOverFlipJ[0]->Write("flipJpsiWeights_fromBDTinSR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"") );
-  dataOverFlipJ[1]->Write("flipJpsiWeights_fromBDTinCR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"") );
+  dataOverFlipJ[0]->Write("flipJpsiWeights_fromBDTinSR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"")+(TString)((bin>-1)?("_kinBin"+(TString)to_string(bin)):"") );
+  dataOverFlipJ[1]->Write("flipJpsiWeights_fromBDTinCR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"")+(TString)((bin>-1)?("_kinBin"+(TString)to_string(bin)):"") );
   weightF->Close();
 
 }
@@ -318,12 +328,15 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1.){
 void BDTweighting(bool ispp=true){
   float scaleJMCpp = 1.5;
 
-  //in PbPb: replace flipJpsi by PromptMC
-  BDTweight(ispp, (ispp?0:3) , (ispp?0:3) , (ispp?scaleJMCpp:1.5)); 
-  BDTweight(ispp, (ispp?0:3) , (ispp?2:4) , (ispp?scaleJMCpp:1.5));
-  BDTweight(ispp, (ispp?0:3) ,1, (ispp?scaleJMCpp:1.5)); //NonPromptMC - bToJpsi
+  //  for(int b=0;b<_NanaBins;b++){
+  for(int b=-1;b<0;b++){
+    //in PbPb: replace flipJpsi by PromptMC
+    BDTweight(ispp, (ispp?0:3) , (ispp?0:3) , (ispp?scaleJMCpp:1.5), b); 
+    BDTweight(ispp, (ispp?0:3) , (ispp?2:4) , (ispp?scaleJMCpp:1.5), b);
+    BDTweight(ispp, (ispp?0:3) ,1, (ispp?scaleJMCpp:1.5), b); //NonPromptMC - bToJpsi
 
-  BDTweight(ispp, 1, 1, (ispp?scaleJMCpp:1.5)); //flipJpsi method variation: nonpromptMC-bToJpsi is nominal in pp and PbPb
-  BDTweight(ispp, 2, 1, (ispp?scaleJMCpp:1.5));
+    BDTweight(ispp, 1, 1, (ispp?scaleJMCpp:1.5), b); //flipJpsi method variation: nonpromptMC-bToJpsi is nominal in pp and PbPb
+    BDTweight(ispp, 2, 1, (ispp?scaleJMCpp:1.5), b);
+  }
 
 }

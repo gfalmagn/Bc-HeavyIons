@@ -547,7 +547,7 @@ void BuildEffMap(bool ispp = true){
   hp_acceff->SetTitle("Acceptance #times  Efficiency");
   gPad->SetLogz();
   gPad->SetRightMargin(0.15);
-  hp_acceff->GetZaxis()->SetRangeUser(3e-5,0.7);
+  hp_acceff->GetZaxis()->SetRangeUser(3e-5,0.4);
 
   TPaletteAxis *palette2 = (TPaletteAxis*)hp_acceff->GetListOfFunctions()->FindObject("palette");
   // the following lines moe the paletter. Choose the values you need for the position.

@@ -14,7 +14,8 @@
 #include "TLatex.h"
 #include "TGaxis.h"
 #include "TDirectory.h"
-#include "../BDT/Definitions.h"
+#include "../helpers/Definitions.h"
+#include "../helpers/Cuts.h"
 
 void MakePositive(TH1F* h){
   for(int b=0;b<=h->GetNbinsX();b++){
@@ -24,7 +25,7 @@ void MakePositive(TH1F* h){
   return;
 }
 
-void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM){
+void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBin){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -62,6 +63,7 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM){
   float QQmuW_ptImbal[ntrees];
   float Bc_M[ntrees];
   float Bc_Pt[ntrees];
+  float Bc_Y[ntrees];
   float QQ_M[ntrees];
   float QQ2_M[ntrees];
   float QQ3_M[ntrees];
@@ -141,17 +143,19 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM){
   //Fetch the BDT weights to be applied to flipJpsi
   TFile* flipJWfile = new TFile("../BDT/weightingCR/flipJpsiWeights_fromBDTinCR_"+(TString)(ispp?"pp":"PbPb")+".root","READ");
   vector<TH1F*> flipJBdtWeight;
-  flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinCR_flipJpsi"+(TString)(ispp?"0":"3")+"_JpsiMC"+(TString)(to_string(JMCcontent[0]))+"_AddMCtoFlipJ"));
-  flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinCR_flipJpsi1_JpsiMC"+(TString)(to_string(JMCcontent[1]))+"_AddMCtoFlipJ"));//flipJpsiSameSide
-  flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinCR_flipJpsi2_JpsiMC"+(TString)(to_string(JMCcontent[2]))+"_AddMCtoFlipJ"));//flipJpsiOppSide
-  flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinCR_flipJpsi"+(TString)(ispp?"0":"3")+"_JpsiMC"+(TString)(to_string(JMCcontent[3]))+"_AddMCtoFlipJ"));//wPromptMCUp
-  flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinCR_flipJpsi"+(TString)(ispp?"0":"3")+"_JpsiMC"+(TString)(to_string(JMCcontent[4]))+"_AddMCtoFlipJ"));//wPromptMCDown
+  if(_withTM){
+    flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinCR_flipJpsi"+(TString)(ispp?"0":"3")+"_JpsiMC"+(TString)(to_string(JMCcontent[0]))+"_AddMCtoFlipJ"));
+    flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinCR_flipJpsi1_JpsiMC"+(TString)(to_string(JMCcontent[1]))+"_AddMCtoFlipJ"));//flipJpsiSameSide
+    flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinCR_flipJpsi2_JpsiMC"+(TString)(to_string(JMCcontent[2]))+"_AddMCtoFlipJ"));//flipJpsiOppSide
+    flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinCR_flipJpsi"+(TString)(ispp?"0":"3")+"_JpsiMC"+(TString)(to_string(JMCcontent[3]))+"_AddMCtoFlipJ"));//wPromptMCUp
+    flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinCR_flipJpsi"+(TString)(ispp?"0":"3")+"_JpsiMC"+(TString)(to_string(JMCcontent[4]))+"_AddMCtoFlipJ"));//wPromptMCDown
 
-  flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinSR_flipJpsi"+(TString)(ispp?"0":"3")+"_JpsiMC"+(TString)(to_string(JMCcontent[0]))+"_AddMCtoFlipJ"));
-  flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinSR_flipJpsi1_JpsiMC"+(TString)(to_string(JMCcontent[1]))+"_AddMCtoFlipJ"));//flipJpsiSameSide
-  flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinSR_flipJpsi2_JpsiMC"+(TString)(to_string(JMCcontent[2]))+"_AddMCtoFlipJ"));//flipJpsiOppSide
-  flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinSR_flipJpsi"+(TString)(ispp?"0":"3")+"_JpsiMC"+(TString)(to_string(JMCcontent[3]))+"_AddMCtoFlipJ"));//wPromptMCUp
-  flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinSR_flipJpsi"+(TString)(ispp?"0":"3")+"_JpsiMC"+(TString)(to_string(JMCcontent[4]))+"_AddMCtoFlipJ"));//wPromptMCDown
+    flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinSR_flipJpsi"+(TString)(ispp?"0":"3")+"_JpsiMC"+(TString)(to_string(JMCcontent[0]))+"_AddMCtoFlipJ"));
+    flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinSR_flipJpsi1_JpsiMC"+(TString)(to_string(JMCcontent[1]))+"_AddMCtoFlipJ"));//flipJpsiSameSide
+    flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinSR_flipJpsi2_JpsiMC"+(TString)(to_string(JMCcontent[2]))+"_AddMCtoFlipJ"));//flipJpsiOppSide
+    flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinSR_flipJpsi"+(TString)(ispp?"0":"3")+"_JpsiMC"+(TString)(to_string(JMCcontent[3]))+"_AddMCtoFlipJ"));//wPromptMCUp
+    flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinSR_flipJpsi"+(TString)(ispp?"0":"3")+"_JpsiMC"+(TString)(to_string(JMCcontent[4]))+"_AddMCtoFlipJ"));//wPromptMCDown
+  }
 
   //*******************************************
   //Fetch BDT correction = f(M) to be subtracted from BDT, to uncorrelate it from mass
@@ -166,6 +170,7 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM){
     T[iT]->SetBranchAddress("BDT", &BDTv[iT]);
     T[iT]->SetBranchAddress("Bc_M", &Bc_M[iT]);
     T[iT]->SetBranchAddress("Bc_Pt", &Bc_Pt[iT]);
+    T[iT]->SetBranchAddress("Bc_Y", &Bc_Y[iT]);
     T[iT]->SetBranchAddress("QQ_M", &QQ_M[iT]);
     T[iT]->SetBranchAddress("muW_isJpsiBro", &muW_isJpsiBro[iT]);
     if(iT==7) T[iT]->SetBranchAddress("flipJpsi", &flipJpsi[iT]);
@@ -175,6 +180,14 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM){
     //BEGIN event loop on the analyzed tree
     for(int j=0; j<T[iT]->GetEntries(); j++){//T[iT]->GetEntries() 
       T[iT]->GetEntry(j);
+
+      //Keep events from the wanted analysis bin
+      if(kinBin>-1 && !( Bc_Pt[iT]>_BcPtmin[kinBin] && Bc_Pt[iT]<_BcPtmax[kinBin] && fabs(Bc_Y[iT])>_BcYmin[kinBin] && fabs(Bc_Y[iT])<_BcYmax[kinBin])) continue;
+      if(kinBin==-1){//integrated bin
+	bool inFidCuts = Bc_Pt[iT]>_BcPtmin[0] && Bc_Pt[iT]<_BcPtmax[0] && fabs(Bc_Y[iT])>_BcYmin[0] && fabs(Bc_Y[iT])<_BcYmax[0];
+	inFidCuts = inFidCuts || (Bc_Pt[iT]>_BcPtmin[1] && Bc_Pt[iT]<_BcPtmax[1] && fabs(Bc_Y[iT])>_BcYmin[1] && fabs(Bc_Y[iT])<_BcYmax[1]);
+	if(!inFidCuts) continue;
+      }
 
       vector<int> iProc;
       iProc.push_back(iT);
@@ -241,16 +254,16 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM){
 	  if(iproc==16) w *= 7/4. *(ispp?1.:0.4);	
 	  //BDT weights for flipJpsi
 	  for(int flipMeth=0; flipMeth<5;flipMeth++){
-	    if(iproc==(14+flipMeth)){
-	      if(BDTv[iT]<-0.2 && Bc_M[iT]<5.5) w *= flipJBdtWeight[5+flipMeth]->GetBinContent(flipJBdtWeight[5+flipMeth]->FindBin(BDTv[iT])); //weights from SR
+	    if(iproc==(14+flipMeth) && _withTM){
+	      if(BDTv[iT]<(_withTM?-0.2:-0.3) && Bc_M[iT]<5.5) w *= flipJBdtWeight[5+flipMeth]->GetBinContent(flipJBdtWeight[5+flipMeth]->FindBin(BDTv[iT])); //weights from SR
 	      else                              w *= flipJBdtWeight[0+flipMeth]->GetBinContent(flipJBdtWeight[0+flipMeth]->FindBin(BDTv[iT])); //from CR
 	    }
 	  }
 	  //BDT weights for JpsiMC (uncorrelated part)
 	  if(!muW_isJpsiBro[iT]){
 	    for(int flipMeth=0; flipMeth<5;flipMeth++){
-	      if(iproc==(9+flipMeth)){
-		if(BDTv[iT]<-0.2 && Bc_M[iT]<5.5) w *= flipJBdtWeight[5+flipMeth]->GetBinContent(flipJBdtWeight[5+flipMeth]->FindBin(BDTv[iT]));
+	      if(iproc==(9+flipMeth) && _withTM){
+		if(BDTv[iT]<(_withTM?-0.2:-0.3) && Bc_M[iT]<5.5) w *= flipJBdtWeight[5+flipMeth]->GetBinContent(flipJBdtWeight[5+flipMeth]->FindBin(BDTv[iT]));
 		else                              w *= flipJBdtWeight[0+flipMeth]->GetBinContent(flipJBdtWeight[0+flipMeth]->FindBin(BDTv[iT]));
 	      }
 	    }
@@ -284,13 +297,13 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM){
   //********************************************************
   //Recording mass histos intended for combine
   //********************************************************
-  TFile *f = new TFile("InputForCombine_"+(TString)(BDTuncorrFromM?"BDTuncorrFromM_":"")+(TString)(ispp?"pp":"PbPb")+".root", "recreate");  
+  TFile *f = new TFile("InputForCombine_"+(TString)(BDTuncorrFromM?"BDTuncorrFromM_":"")+(TString)(ispp?"pp":"PbPb")+".root", (kinBin<1)?"recreate":"update");  
   TDirectory *dir1[nCuts];
   TDirectory *dir2[nProc];
   for(int k=0;k<nCuts;k++){
     
     f->cd();
-    dir1[k] = f->mkdir("BDT"+(TString)(to_string(k+1)));
+    dir1[k] = f->mkdir("BDT"+(TString)(to_string(k+1))+(TString)((kinBin>-1)?("Kin"+to_string(kinBin)):""));
     for(int i=0; i<nProc; i++){
       dir1[k]->cd();
       dir2[k] = dir1[k]->mkdir(procName[i]);
@@ -307,11 +320,14 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM){
       h_QQM[i][k]->Write("JpsiM");
     }
   }
+  f->Close();
 
 }
 
 void HistsForCombine(bool ispp = true, bool BDTuncorrFromM=false){
 
-  application(BDTuncorrFromM?(_corrBDTcuts(ispp)):(_BDTcuts(ispp)), ispp, BDTuncorrFromM);
+  //  application(BDTuncorrFromM?(_corrBDTcuts(ispp)):(_BDTcuts(ispp)), ispp, BDTuncorrFromM, -1); //integrated bin
+  application(BDTuncorrFromM?(_corrBDTcuts(ispp)):(_BDTcuts(ispp)), ispp, BDTuncorrFromM, 0); //run bin0 before bin1
+  application(BDTuncorrFromM?(_corrBDTcuts(ispp)):(_BDTcuts(ispp)), ispp, BDTuncorrFromM, 1);
 
 }

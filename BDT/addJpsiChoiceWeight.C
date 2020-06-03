@@ -32,6 +32,8 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
   float muW_eta[ntrees];
   float mumi_eta[ntrees];
   float mupl_eta[ntrees];
+  float Bc_Pt[ntrees];
+  float Bc_Y[ntrees];
   float QQ_M[ntrees];
   float QQ2_M[ntrees];
   float QQ2_dca[ntrees];
@@ -88,6 +90,8 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
     T[iT]->SetBranchAddress("muW_eta", &muW_eta[iT]);
     T[iT]->SetBranchAddress("mumi_eta", &mumi_eta[iT]);
     T[iT]->SetBranchAddress("mupl_eta", &mupl_eta[iT]);
+    T[iT]->SetBranchAddress("Bc_Pt", &Bc_Pt[iT]);
+    T[iT]->SetBranchAddress("Bc_Y", &Bc_Y[iT]);
     T[iT]->SetBranchAddress("QQ_M", &QQ_M[iT]);
     T[iT]->SetBranchAddress("QQ2_M", &QQ2_M[iT]);
     T[iT]->SetBranchAddress("QQ2_dca", &QQ2_dca[iT]);
@@ -114,6 +118,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
     for(int j=0; j<T[iT]->GetEntries(); j++){//T[iT]->GetEntries()
 
       T[iT]->GetEntry(j);
+      if(!(Bc_Pt[iT]>_BcPtmin[0] && Bc_Pt[iT]<_BcPtmax[1] && fabs(Bc_Y[iT])<_BcYmax[0] && (Bc_Pt[iT]>_BcPtmin[1] || fabs(Bc_Y[iT])>_BcYmin[0]) )) continue; //fiducial cuts
 
       float maxEta = max(fabs(muW_eta[iT]),max(fabs(mumi_eta[iT]),fabs(mupl_eta[iT])));
       int kbin = nBDTb; //kbin 0 is for all BDT values
@@ -126,13 +131,14 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
 	 || (inJpsiMassSB(QQ_M[iT], maxEta<1.5) && !(inJpsiMassRange(QQ2_M[iT], maxEta<1.5)
 						     && QQ2_VtxProb[iT]>_QQvtxProb_cut && QQ2_dca[iT]<_QQdca_cut && QQ2_dca[iT]>0) )
 	 ){
+	float w = (!ispp && iT==3)?w_unblind[iT]:w_simple[iT];
 	if(maxEta<1.5) {
 	  float norm = inJpsiMassRange(QQ_M[iT],true)?1:((float)nbinsPeakT/2.);
-	  if(useBDTbins) h_QQM_tight[kbin][iT]->Fill(QQ_M[iT], fabs(w_simple[iT])/norm );//not considering the weight of Jpsi SB subtraction
+	  if(useBDTbins) h_QQM_tight[kbin][iT]->Fill(QQ_M[iT], fabs(w)/norm );//not considering the weight of Jpsi SB subtraction
 	  h_QQM_tight[0][iT]->Fill(QQ_M[iT], fabs(w_simple[iT])/norm );
 	}
 	else {float norm = inJpsiMassRange(QQ_M[iT],false)?1:((float)nbinsPeak/2.);
-	  if(useBDTbins) h_QQM[kbin][iT]->Fill(QQ_M[iT], fabs(w_simple[iT])/norm );//not considering the weight of Jpsi SB subtraction
+	  if(useBDTbins) h_QQM[kbin][iT]->Fill(QQ_M[iT], fabs(w)/norm );//not considering the weight of Jpsi SB subtraction
 	  h_QQM[0][iT]->Fill(QQ_M[iT], fabs(w_simple[iT])/norm );
 	} 
       }
@@ -160,7 +166,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
       T[iT]->GetEntry(j);
 
       weight[iT] = w_simple[iT];
-      if(!ispp && iT==3 && BDT[iT]<-0.2) weight[iT] = w_unblind[iT]; //unblind data events in the low-BDT CR
+      if(!ispp && iT==3 && BDT[iT]<(_withTM?-0.2:-0.3)) weight[iT] = w_unblind[iT]; //unblind data events in the low-BDT CR
 
       if(iT!=0 && iT!=7) { //forget WRONGSIGN and dimuon+track 
 
@@ -232,42 +238,55 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
     //END event loop
 
     //T[iT]->Print(); 
-    T[iT]->Write("",TObject::kOverwrite); //overwrite, or two versions of the trees are saved 
+    //T[iT]->Write("",TObject::kOverwrite); //overwrite, or two versions of the trees are saved 
   } 
   //END loop on trees
   
-  TCanvas *c1 = new TCanvas("c1","c1",2000,1000);
-  c1->Divide(3,2);
+  TCanvas *c1 = new TCanvas("c1","c1",1000,1000);
+  TLegend *leg1 = new TLegend(0.7,0.7,0.9,0.9);
+  //  c1->Divide(3,2);
   int ic=1;
   for(int iT=1; iT<(int)T.size(); iT++){
-    if(iT<2 || iT==7) continue; //forget WRONGSIGN and dimuon+track and MCs
-    c1->cd(ic);
+    if(iT!=3) continue;
+    //if(iT<2 || iT==7) continue; //forget WRONGSIGN and dimuon+track and MCs
+    //c1->cd(ic);
+    h_QQM[useBDTbins?1:0][iT]->GetXaxis()->SetTitle("M(#mu#mu) [GeV]");
+    h_QQM[useBDTbins?1:0][iT]->SetTitle("Dimuon mass of unambiguous candidates");
     if(!useBDTbins) h_QQM[0][iT]->Draw();
     else{
       for(int k=1; k<=nBDTb; k++){
 	h_QQM[k][iT]->SetLineColor(k);
 	h_QQM[k][iT]->Draw((k==1)?"":"same");
+	leg1->AddEntry(h_QQM[k][iT],"BDT bin"+(TString)to_string(k));
       }
+      leg1->Draw("same");
     }
     ic+=1;
   }
-  
-  TCanvas *c2 = new TCanvas("c2","c2",2000,1000);
-  c2->Divide(3,2);
+  c1->SaveAs("figs/JpsiMassUnambiguousCands_looseRange_"+(TString)(ispp?"pp":"PbPb")+(TString)(useBDTbins?"_inBDTbins":"")+".pdf");
+
+  TCanvas *c2 = new TCanvas("c2","c2",1000,1000);
+  TLegend *leg2 = new TLegend(0.7,0.7,0.9,0.9);
+  //c2->Divide(3,2);
   int ic2=1;
   for(int iT=1; iT<(int)T.size(); iT++){
-    if(iT<2 || iT==7) continue; //forget WRONGSIGN and dimuon+track and MCs
-    c2->cd(ic2);
-    h_QQM_tight[0][iT]->Draw();
+    if(iT!=3) continue;
+    //if(iT<2 || iT==7) continue; //forget WRONGSIGN and dimuon+track and MCs
+    //c2->cd(ic2);
+    h_QQM_tight[useBDTbins?1:0][iT]->GetXaxis()->SetTitle("M(#mu#mu) [GeV]");
+    h_QQM_tight[useBDTbins?1:0][iT]->SetTitle("Dimuon mass of unambiguous candidates");
     if(!useBDTbins) h_QQM_tight[0][iT]->Draw();
     else{
       for(int k=1; k<=nBDTb; k++){
 	h_QQM_tight[k][iT]->SetLineColor(k);
-	h_QQM_tight[k][iT]->Draw((k==1)?"":"same");
+	h_QQM_tight[k][iT]->Draw((k==1)?"":"same"); 
+	leg2->AddEntry(h_QQM_tight[k][iT],"BDT bin"+(TString)to_string(k));
       }
+      leg1->Draw("same");
     }
     ic2+=1;
   }
+  c1->SaveAs("figs/JpsiMassUnambiguousCands_tightRange_"+(TString)(ispp?"pp":"PbPb")+(TString)(useBDTbins?"_inBDTbins":"")+".pdf");
   
 }
 

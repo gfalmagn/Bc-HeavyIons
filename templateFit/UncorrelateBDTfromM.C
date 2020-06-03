@@ -16,7 +16,8 @@
 #include "TGaxis.h"
 #include "TCanvas.h"
 #include "TPad.h"
-#include "../BDT/Definitions.h"
+#include "../helpers/Definitions.h"
+#include "../helpers/Cuts.h"
 
 void UncorrelateBDTfromM(bool ispp=true){
 
@@ -143,8 +144,8 @@ void UncorrelateBDTfromM(bool ispp=true){
   for(int bx=0;bx<=_nbinM(ispp);bx++){ 
     mbins[bx] = _Mbinning(ispp)[bx];
   }
-  double bdtlo = -0.47, bdthi = ispp?0.31:0.39;
-  int nbdt = ispp?50:40;
+  double bdtlo = _withTM?-0.47:-1, bdthi = _withTM?(ispp?0.31:0.39):1;
+  int nbdt = _withTM?(ispp?50:40):35;
   TH2F* h_BDTM_bkg = new TH2F("Bc_BDTM_bkg", "BDT vs M(B_{c}) background", _nbinM(ispp), mbins, nbdt,bdtlo,bdthi);
   TH2F* h_BDTM_sig = new TH2F("Bc_BDTM_sig", "BDT vs M(B_{c}) signal", _nbinM(ispp), mbins, nbdt,bdtlo,bdthi);
   TH2F* h_BDTM_data = new TH2F("Bc_BDTM_data", "BDT vs M(B_{c}) data", _nbinM(ispp), mbins, nbdt,bdtlo,bdthi);
@@ -230,7 +231,7 @@ void UncorrelateBDTfromM(bool ispp=true){
   c2->Divide(3,1);
   c2->cd(1);
   avBDTvsM_bkg->GetYaxis()->SetTitle("mean BDT value");
-  if(!ispp) avBDTvsM_bkg->GetYaxis()->SetRangeUser(-0.35, -0.15);
+  if(!ispp && _withTM) avBDTvsM_bkg->GetYaxis()->SetRangeUser(-0.35, -0.15);
   gPad->SetLeftMargin(0.15);
   gPad->SetRightMargin(0.05);
   avBDTvsM_bkg->Draw();
@@ -242,7 +243,7 @@ void UncorrelateBDTfromM(bool ispp=true){
   avBDTvsM_sig->Draw();
   c2->cd(3);
   avBDTvsM_data->GetYaxis()->SetTitle("mean BDT value");
-  if(!ispp) avBDTvsM_data->GetYaxis()->SetRangeUser(-0.35, -0.15);
+  if(!ispp && _withTM) avBDTvsM_data->GetYaxis()->SetRangeUser(-0.35, -0.15);
   gPad->SetLeftMargin(0.15);
   gPad->SetRightMargin(0.05);
   avBDTvsM_data->Draw();
@@ -253,9 +254,9 @@ void UncorrelateBDTfromM(bool ispp=true){
   //********************************************************
   //Get BDT vs M histograms
   //********************************************************
-  TH2F* h_corrBDT_bkg = new TH2F("Bc_corrBDT_bkg", "corrected BDT vs M(B_{c}) background", _nbinM(ispp), mbins, nbdt,ispp?-0.31:-0.26,ispp?0.44:0.63);
-  TH2F* h_corrBDT_sig = new TH2F("Bc_corrBDT_sig", "corrected BDT vs M(B_{c}) signal", _nbinM(ispp), mbins, nbdt,    ispp?-0.31:-0.26,ispp?0.44:0.63);
-  TH2F* h_corrBDT_data = new TH2F("Bc_corrBDT_data", "corrected BDT vs M(B_{c}) data", _nbinM(ispp), mbins, nbdt,    ispp?-0.31:-0.26,ispp?0.44:0.63);
+  TH2F* h_corrBDT_bkg = new TH2F("Bc_corrBDT_bkg", "corrected BDT vs M(B_{c}) background", _nbinM(ispp), mbins, nbdt,_withTM?(ispp?-0.31:-0.26):-0.8,_withTM?(ispp?0.44:0.63):(ispp?1:1.4));
+  TH2F* h_corrBDT_sig = new TH2F("Bc_corrBDT_sig", "corrected BDT vs M(B_{c}) signal", _nbinM(ispp), mbins, nbdt,    _withTM?(ispp?-0.31:-0.26):-0.8,_withTM?(ispp?0.44:0.63):(ispp?1:1.4));
+  TH2F* h_corrBDT_data = new TH2F("Bc_corrBDT_data", "corrected BDT vs M(B_{c}) data", _nbinM(ispp), mbins, nbdt,    _withTM?(ispp?-0.31:-0.26):-0.8,_withTM?(ispp?0.44:0.63):(ispp?1:1.4));
 
   //tree and event loop
   for(int iT=0; iT<(int)T.size(); iT++){
@@ -331,7 +332,7 @@ void UncorrelateBDTfromM(bool ispp=true){
   avcorrBDTvsM_bkg->Draw();
   c4->cd(2);
   avcorrBDTvsM_sig->GetYaxis()->SetTitle("mean corrected BDT");
-  if(!ispp) avcorrBDTvsM_sig->GetYaxis()->SetRangeUser(0.1,0.5);
+  if(!ispp && _withTM) avcorrBDTvsM_sig->GetYaxis()->SetRangeUser(0.1,0.5);
   gPad->SetLeftMargin(0.15);
   gPad->SetRightMargin(0.05);
   avcorrBDTvsM_sig->Draw();
@@ -387,6 +388,12 @@ void UncorrelateBDTfromM(bool ispp=true){
   cout<<"poportion of signal MC with corrBDT<0.45 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.45)) / nsig <<endl;
   cout<<"poportion of signal MC with corrBDT<0.5 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.5)) / nsig <<endl;
   cout<<"poportion of signal MC with corrBDT<0.55 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.55)) / nsig <<endl;
+  cout<<"poportion of signal MC with corrBDT<0.65 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.65)) / nsig <<endl;
+  cout<<"poportion of signal MC with corrBDT<0.7 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.7)) / nsig <<endl;
+  cout<<"poportion of signal MC with corrBDT<0.75 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.75)) / nsig <<endl;
+  cout<<"poportion of signal MC with corrBDT<0.8 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.8)) / nsig <<endl;
+  cout<<"poportion of signal MC with corrBDT<0.85 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.85)) / nsig <<endl;
+  cout<<"poportion of signal MC with corrBDT<0.9 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.9)) / nsig <<endl;
 
   TFile *outf = new TFile("BDTuncorrFromM_"+(TString)(ispp?"pp":"PbPb")+".root","RECREATE"); 
   avBDTvsM_bkg->Write();
