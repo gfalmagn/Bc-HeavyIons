@@ -143,13 +143,14 @@ void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0){
   else{
     factory.BookMethod(&loader,TMVA::Types::kBDT, 
 		       "BDT"+(TString)(ispp?"":"_PbPb") +(TString)(addMCjpsi?"_withJpsiMC":"") +(TString)(useVar_CorrWMass?"":"_dropVarCorrWMass")+"_kinBin"+(TString)to_string(kinBin)+(TString)(firstHalf?"_1stHalf":"_2ndHalf"),
-		       "!V:NTrees=120:MinNodeSize=10%:MaxDepth=2:BoostType=AdaBoost:AdaBoostBeta=0.2:UseBaggedBoost:BaggedSampleFraction=0.6:SeparationType=GiniIndex:nCuts=15:CreateMVAPdfs" );
+		       (TString)(ispp?"!V:NTrees=120:MinNodeSize=10%:MaxDepth=2:BoostType=AdaBoost:AdaBoostBeta=0.2:UseBaggedBoost:BaggedSampleFraction=0.6:SeparationType=GiniIndex:nCuts=15:CreateMVAPdfs":"!V:NTrees=120:MinNodeSize=10%:MaxDepth=2:BoostType=AdaBoost:AdaBoostBeta=0.2:UseBaggedBoost:BaggedSampleFraction=0.6:SeparationType=GiniIndex:nCuts=20:CreateMVAPdfs") );
     factory.BookMethod(&loader,TMVA::Types::kBDT, 
 		       "BDTfiner"+(TString)(ispp?"":"_PbPb") +(TString)(addMCjpsi?"_withJpsiMC":"")+(TString)(useVar_CorrWMass?"":"_dropVarCorrWMass")+"_kinBin"+(TString)to_string(kinBin)+(TString)(firstHalf?"_1stHalf":"_2ndHalf"),
-		       "!V:NTrees=350:MinNodeSize=10%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=10:CreateMVAPdfs");
+		       (TString)(ispp?"!V:NTrees=350:MinNodeSize=10%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=10:CreateMVAPdfs":"!V:NTrees=350:MinNodeSize=10%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:UseBaggedBoost:BaggedSampleFraction=0.6:SeparationType=GiniIndex:nCuts=20:CreateMVAPdfs"));
     auto method = factory.BookMethod(&loader,TMVA::Types::kBDT, 
 				     "BDTfinerShallow"+(TString)(ispp?"":"_PbPb") +(TString)(addMCjpsi?"_withJpsiMC":"")+(TString)(useVar_CorrWMass?"":"_dropVarCorrWMass")+"_kinBin"+(TString)to_string(kinBin)+(TString)(firstHalf?"_1stHalf":"_2ndHalf"),
-				     "!V:NTrees=600:MinNodeSize=7%:MaxDepth=2:BoostType=AdaBoost:AdaBoostBeta=0.2:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=40:CreateMVAPdfs" );
+				     (TString)(ispp?"!V:NTrees=600:MinNodeSize=7%:MaxDepth=2:BoostType=AdaBoost:AdaBoostBeta=0.2:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=40:CreateMVAPdfs":"!V:NTrees=600:MinNodeSize=7%:MaxDepth=2:BoostType=AdaBoost:AdaBoostBeta=0.2:UseBaggedBoost:BaggedSampleFrac\
+tion=0.5:SeparationType=GiniIndex:nCuts=15:CreateMVAPdfs"));
 				     }
   
 
