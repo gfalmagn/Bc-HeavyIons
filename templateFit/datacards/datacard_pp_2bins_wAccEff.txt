@@ -1,0 +1,31 @@
+imax 6
+jmax 3
+kmax 6
+---------------
+shapes data_obs * InputForCombine_pp.root $CHANNEL/$PROCESS/BcM_AccEffWeighted 
+shapes BcSig    * InputForCombine_pp.root $CHANNEL/$PROCESS/BcM_AccEffWeighted 
+shapes FakeJpsi * InputForCombine_pp.root $CHANNEL/$PROCESS/BcM_AccEffWeighted $CHANNEL/$PROCESS_$SYSTEMATIC/BcM_AccEffWeighted 
+shapes JpsiMC   * InputForCombine_pp.root $CHANNEL/$PROCESS/BcM_AccEffWeighted $CHANNEL/$PROCESS_$SYSTEMATIC/BcM_AccEffWeighted 
+shapes flipJpsi * InputForCombine_pp.root $CHANNEL/$PROCESS/BcM_AccEffWeighted $CHANNEL/$PROCESS_$SYSTEMATIC/BcM_AccEffWeighted 
+---------------
+bin         BDT1Kin1  BDT2Kin1  BDT3Kin1  BDT1Kin2  BDT2Kin2  BDT3Kin2
+observation -1        -1  	-1    	  -1  	    -1	      -1
+------------------------------
+bin	             BDT1Kin1  BDT1Kin1  BDT1Kin1  BDT1Kin1  BDT2Kin1  BDT2Kin1  BDT2Kin1  BDT2Kin1  BDT3Kin1  BDT3Kin1  BDT3Kin1  BDT3Kin1  BDT1Kin2  BDT1Kin2  BDT1Kin2  BDT1Kin2  BDT2Kin2  BDT2Kin2  BDT2Kin2  BDT2Kin2  BDT3Kin2  BDT3Kin2  BDT3Kin2  BDT3Kin2
+process  	     BcSig     FakeJpsi  JpsiMC    flipJpsi  BcSig     FakeJpsi  JpsiMC    flipJpsi  BcSig     FakeJpsi  JpsiMC    flipJpsi  BcSig     FakeJpsi  JpsiMC    flipJpsi  BcSig     FakeJpsi  JpsiMC    flipJpsi  BcSig     FakeJpsi  JpsiMC    flipJpsi
+process  	     0         1	 2	   3         0         1	 2	   3         0         1	 2	   3         0         1	 2	   3         0         1	 2	   3         0         1	 2	   3         
+rate	             -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        
+--------------------------------
+lumi	      lnN    1.015     1.015     -	   -         1.015     1.015     -	   -         1.015     1.015     -	   -         1.015     1.015     -	   -         1.015     1.015     -	   -         1.015     1.015     -	   -         
+wPromptMC     shape  -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     
+flipJSameSide shape  -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     
+JpsiSB	      shape  -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     #2 sigma variation
+
+#wPromptMC: the same nuisance param makes flipJpsi vary, concerning how the BDT weights are calculated
+
+misID		rateParam *     JpsiMC   2.
+highMassControl	rateParam *   	flipJpsi 3.7
+misID		param 2. 0.5
+highMassControl	param 3.7 0.3
+
+* autoMCStats 8 #Poisson threshold on typical number of events in binomial

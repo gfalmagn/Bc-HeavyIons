@@ -293,15 +293,35 @@ void BuildEffMap(bool ispp = true){
                         //Assuming R_AA(Bc)=1
 
   //counters, histos
-  float ntot = 0, nfid = 0, nacc = 0, nsel = 0;
+  float ntot = 0, nfid = 0, nacc = 0, nsel = 0, nsel2 = 0, nBDT23 = 0, nBDT3 = 0;
   TH2Poly *hp = _hp();
+  TH2Poly *hp_coarser = _hp_coarser();
   TH2Poly *hp_all = (TH2Poly*) hp->Clone("hp_all");
   TH2Poly *hp_acc = (TH2Poly*) hp->Clone("hp_acc");
   TH2Poly *hp_sel = (TH2Poly*) hp->Clone("hp_sel");
+  TH2Poly *hpcoarse_sel = (TH2Poly*) hp_coarser->Clone("hpcoarse_sel");
+  TH2Poly *hpcoarse_inBDT23 = (TH2Poly*) hp_coarser->Clone("hpcoarse_inBDT23");
+  TH2Poly *hpcoarse_inBDT3 = (TH2Poly*) hp_coarser->Clone("hpcoarse_inBDT3");
+  TH1F *BDT23effVsPt = new TH1F("BDT23effVsPt","BDT23effVsPt",22,6,50);
+  TH1F *BDT3effVsPt = new TH1F("BDT3effVsPt","BDT3effVsPt",22,6,50);
+  TH1F *selectedVsPt = new TH1F("selectecVsPt","selectedVsPt",22,6,50);
+  vector<float> passing_oneBinned(_NanaBins+1,0);
+  vector<float> accepted_oneBinned(_NanaBins+1,0);
+  vector<float> eff_oneBinned(_NanaBins+1,1);
+
+  //Jpsi mass histo for JpsiChoiceWeight
+  vector<TH1F*> JpsiM(_nChan(ispp)+1);
+  vector<TH1F*> JpsiM_tight(_nChan(ispp)+1);
+  TFile *f_JpsiM = TFile::Open("../BDT/JpsiMassDistr.root","READ");
+  for(int k=0;k<=_nChan(ispp);k++){
+    JpsiM[k] = (TH1F*)f_JpsiM->Get("JpsiMass_data_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)))+(TString)(ispp?"_pp":"_PbPb"));
+    JpsiM_tight[k] = (TH1F*)f_JpsiM->Get("JpsiMassCentralEta_data_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)))+(TString)(ispp?"_pp":"_PbPb"));
+  }
+  
 
   //**************************************************************
   //loop on events
-  for(int j=0; j<nentries; j++){
+  for(int j=0; j<nentries; j++){//nentries
     if(j%100000==0){ cout<<"Scanned "<<100.*(double)j/nentries<<"% of entries"<<endl; }
     
     Reco_3mu_4mom->Clear();
@@ -329,10 +349,17 @@ void BuildEffMap(bool ispp = true){
       TLorentzVector *genBc_mumi = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mumi_idx[genQQidx]);
       TLorentzVector *genBc_mupl = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mupl_idx[genQQidx]);
       
-      if(fabs(gen3mu->Rapidity())<2.3 && gen3mu->Pt()>6 && (fabs(gen3mu->Rapidity())>1.3 || gen3mu->Pt()>11)) nfid += 1;
-      //      else continue; //forget Bc's outside fiducial cuts
+      for(int b=1;b<=_NanaBins;b++)
+	if(fabs(gen3mu->Rapidity())>_BcYmin[b] && fabs(gen3mu->Rapidity())<_BcYmax[b] && gen3mu->Pt()>_BcPtmin[b] && gen3mu->Pt()<_BcPtmax[b] ) nfid += weight;
+
       if(!InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM)) continue;
-      if(fabs(gen3mu->Rapidity())<2.3 && gen3mu->Pt()>6 && (fabs(gen3mu->Rapidity())>1.3 || gen3mu->Pt()>11)) nacc += weight;
+      for(int b=1;b<=_NanaBins;b++){
+	if(fabs(gen3mu->Rapidity())>_BcYmin[b] && fabs(gen3mu->Rapidity())<_BcYmax[b] && gen3mu->Pt()>_BcPtmin[b] && gen3mu->Pt()<_BcPtmax[b] ){
+	  accepted_oneBinned[b] += weight;
+	  accepted_oneBinned[0] += weight;
+	}
+      }
+
       hp_acc->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight);
       
       int irec = Gen_3mu_whichRec[igen];
@@ -368,7 +395,7 @@ void BuildEffMap(bool ispp = true){
 	  float maxEta = max(fabs(muW_eta),max(fabs(mumi_eta),fabs(mupl_eta)));
 	  
 	  bool goodTree = fabs(Reco_3mu_charge[irec])==1 && Reco_QQ_sign[QQidx]==0 && inLooseMassRange(QQM) // in Jpsi mass region
-	    && (BcCandM < m_Bc + 1.0) && (BcCandM > 3.3) // in Bc mass region
+	    && (BcCandM < m_Bc + 1.0) && (BcCandM > 3.5) // in Bc mass region
 	    && Reco_3mu_whichGen[irec]>-1
 	    && Reco_QQ_whichGen[QQidx]>-1;
 	  if(inJpsiMassSB(QQM, maxEta<1.5)) {weight *= -1;}
@@ -445,14 +472,28 @@ void BuildEffMap(bool ispp = true){
 	    float QQ3_M = (Reco_mu_charge[muWidx]>0)?((*recBc_mupl+*recBc_muW).M()):((*recBc_mumi+*recBc_muW).M()); //QQ3 is the SS pair
 		
 	    //**** Deal with the Jpsi dimuon choice
-	    float weightJpsiChoice = 1;
+	    if((inJpsiMassRange(QQM, maxEta<1.5) && inJpsiMassSB(QQ2_M, maxEta<1.5)
+		&& Reco_QQ_VtxProb[QQ2idx]>_QQvtxProb_cut && Reco_QQ_dca[QQ2idx]<_QQdca_cut && Reco_QQ_dca[QQ2idx]>0)
+	       || (inJpsiMassSB(QQM, maxEta<1.5) && inJpsiMassRange(QQ2_M, maxEta<1.5)
+		   && Reco_QQ_VtxProb[QQ2idx]>_QQvtxProb_cut && Reco_QQ_dca[QQ2idx]<_QQdca_cut && Reco_QQ_dca[QQ2idx]>0)
+	       ){
+	      
+	      float binc_QQ1 = ( (maxEta<1.5)?JpsiM_tight:JpsiM )[0]->GetBinContent(( (maxEta<1.5)?JpsiM_tight:JpsiM )[0]->FindBin(QQM));
+	      float binc_QQ2 = ( (maxEta<1.5)?JpsiM_tight:JpsiM )[0]->GetBinContent(( (maxEta<1.5)?JpsiM_tight:JpsiM )[0]->FindBin(QQ2_M));
 
-	    if(inJpsiMassSB(QQM, maxEta<1.5) && inJpsiMassRange(QQ2_M, maxEta<1.5) && Reco_QQ_dca[QQ2idx]<0.3) weightJpsiChoice = (ispp?0.213:0.662); //if QQ1 passes all BCMASS sample cuts, check if the other dimuon QQ2 passes the SIGNAL REGION cuts. If yes, apply a weight corresponding to the integrated proba of a data event not to contain a true Jpsi
-	    if(inJpsiMassRange(QQM, maxEta<1.5) && inJpsiMassSB(QQ2_M, maxEta<1.5) && Reco_QQ_dca[QQ2idx]<0.3) weightJpsiChoice = (1-(ispp?0.213:0.662)); //if QQ1 passes all SIGNAL sample cuts, check if the other dimuon QQ2 passes the jpsi mass sidebands cuts. If yes, apply a weight corresponding to the integrated proba of a data event to contain a true Jpsi
-	    weight *= weightJpsiChoice;
+	      if (binc_QQ1==0) weight = 0;
+	      else weight *= binc_QQ1 / (binc_QQ1+binc_QQ2);
+	    }
 
-	    if(fabs(gen3mu->Rapidity())<2.3 && gen3mu->Pt()>6 && (fabs(gen3mu->Rapidity())>1.3 || gen3mu->Pt()>11)) nsel += weight;
+	    for(int b=1;b<=_NanaBins;b++){
+	      if(fabs(gen3mu->Rapidity())>_BcYmin[b] && fabs(gen3mu->Rapidity())<_BcYmax[b] && gen3mu->Pt()>_BcPtmin[b] && gen3mu->Pt()<_BcPtmax[b] ){
+		passing_oneBinned[b] += weight;
+		passing_oneBinned[0] += weight;
+	      }
+	    }
+
 	    hp_sel->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight);
+
 	  } //end if passes full selection
 	      
 	} //end if(QQ_isValid)
@@ -460,14 +501,56 @@ void BuildEffMap(bool ispp = true){
     } //end loop on Bc candidates
   } //end loop on entries
 
-  cout<<"ntot, nacc, nsel, efficiency = " <<ntot<<" "<<nacc<<" "<<nsel<<" "<<nsel/nacc<<" "<<endl;
+  cout<<"ntot, accepted_oneBinned[0], passing_oneBinned[0], efficiency = " <<ntot<<" "<<accepted_oneBinned[0]<<" "<<passing_oneBinned[0]<<" "<<passing_oneBinned[0]/accepted_oneBinned[0]<<" "<<endl;
+
+
+  //**************************************************************
+  //Pre-selected tree to get BDT efficiency map
+  auto preselFile = TFile::Open("../BDT/BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root","READ");
+  TTree* T_presel = (TTree*)preselFile->Get("signal_MC");
+
+  float Bc_Pt; TBranch *b_Bc_Pt = T_presel->GetBranch("Bc_Pt");
+  b_Bc_Pt->SetAddress(&Bc_Pt);
+  float Bc_Y; TBranch *b_Bc_Y = T_presel->GetBranch("Bc_Y");
+  b_Bc_Y->SetAddress(&Bc_Y);
+  float weight; TBranch *b_weight = T_presel->GetBranch("weight");
+  b_weight->SetAddress(&weight);
+  float BDT; TBranch *b_BDT = T_presel->GetBranch("BDT");
+  b_BDT->SetAddress(&BDT);
+
+  for(int j=0; j<T_presel->GetEntries(); j++){//T_presel->GetEntries()
+    T_presel->GetEntry(j);
+    hpcoarse_sel->Fill(fabs(Bc_Y),Bc_Pt, weight);
+    selectedVsPt->Fill(Bc_Pt, weight);
+    nsel2 += weight;
+    if(BDT>_BDTcuts(ispp)[1]){
+      nBDT23 += weight;
+      BDT23effVsPt->Fill(Bc_Pt, weight);
+      hpcoarse_inBDT23->Fill(fabs(Bc_Y),Bc_Pt, weight);}
+    if(BDT>_BDTcuts(ispp)[2]){
+      nBDT3 += weight;
+      BDT3effVsPt->Fill(Bc_Pt, weight);
+      hpcoarse_inBDT3->Fill(fabs(Bc_Y),Bc_Pt, weight);}
+  }
+
+  BDT23effVsPt->Divide(selectedVsPt);
+  BDT3effVsPt->Divide(selectedVsPt);
+  hpcoarse_inBDT23->Divide(hpcoarse_sel);
+  hpcoarse_inBDT3->Divide(hpcoarse_sel);
+  float eff_BDT23 = (float)nBDT23/(float)nsel2;
+  float eff_BDT3 = (float)nBDT3/(float)nsel2;
+
+  //**************************************************************
+  //One-binned efficiency
+  for(int b=1;b<=_NanaBins;b++)
+    eff_oneBinned[b] = passing_oneBinned[b]/accepted_oneBinned[b];
 
   //**************************************************************
   //Lines for fiducial cuts 
-  TLine *line1 = new TLine(0,11,1.3,11);
-  TLine *line2 = new TLine(1.3,6,1.3,11);
-  TLine *line3 = new TLine(1.3,6,2.3,6);
-  TLine *line4 = new TLine(2.3,6,2.3,50);
+  TLine *line1 = new TLine(_BcYmin[0],_BcPtmax[1],_BcYmin[1],_BcPtmax[1]);
+  TLine *line2 = new TLine(_BcYmin[1],_BcPtmin[0],_BcYmin[1],_BcPtmax[1]);
+  TLine *line3 = new TLine(_BcYmin[1],_BcPtmin[0],_BcYmax[0],_BcPtmin[0]);
+  TLine *line4 = new TLine(_BcYmax[0],_BcPtmin[0],_BcYmax[0],_BcPtmax[0]);
   line1->SetLineWidth(4);  line1->SetLineColor(kBlack);
   line2->SetLineWidth(4);  line2->SetLineColor(kBlack);
   line3->SetLineWidth(4);  line3->SetLineColor(kBlack);
@@ -477,8 +560,8 @@ void BuildEffMap(bool ispp = true){
   gStyle->SetOptStat(0);
   gStyle->SetNumberContours(50);
 
-  // //**************************************************************
-  // //Draw TH2Poly 
+  //**************************************************************
+  //Draw TH2Poly 
 
   TCanvas *c2 = new TCanvas("c2","c2",3000,1500);
   c2->Divide(2,1);
@@ -513,7 +596,9 @@ void BuildEffMap(bool ispp = true){
   hp_acceptance->SetDirectory(0);
   TH2Poly* hp_acceff = (TH2Poly*)hp_acceptance->Clone("hp_acceff");
   hp_acceff->SetDirectory(0);
+  cout<<"acceptanc and eff in this bin = "<<hp_acceff->GetBinContent(hp_acceff->FindBin(2.2,40))<<" "<<hp_efficiency->GetBinContent(hp_efficiency->FindBin(2.2,40))<<endl;
   hp_acceff->Multiply(hp_efficiency);
+  cout<<"acc x eff in this bin = "<<hp_acceff->GetBinContent(hp_acceff->FindBin(2.2,40))<<endl;
 
   TCanvas *c3 = new TCanvas("c3","c3",2500,2500);
   c3->Divide(2,2);
@@ -547,7 +632,7 @@ void BuildEffMap(bool ispp = true){
   hp_acceff->SetTitle("Acceptance #times  Efficiency");
   gPad->SetLogz();
   gPad->SetRightMargin(0.15);
-  hp_acceff->GetZaxis()->SetRangeUser(3e-5,0.4);
+  hp_acceff->GetZaxis()->SetRangeUser(3e-5,0.45);
 
   TPaletteAxis *palette2 = (TPaletteAxis*)hp_acceff->GetListOfFunctions()->FindObject("palette");
   // the following lines moe the paletter. Choose the values you need for the position.
@@ -558,7 +643,42 @@ void BuildEffMap(bool ispp = true){
   gPad->Modified();
   gPad->Update();
 
-
   c3->SaveAs("figs/AcceptanceEfficiencyMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
   c3->SaveAs("figs/AcceptanceEfficiencyMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".png");
+
+  //**************************************************************
+  //Draw TH2Poly for BDT efficiency
+  TCanvas *c4 = new TCanvas("c4","c4",1500,1500);
+  c4->Divide(2,2);
+
+  c4->cd(1);
+  hpcoarse_inBDT23->GetZaxis()->SetRangeUser(eff_BDT23-0.2, eff_BDT23+0.2);
+  hpcoarse_inBDT23->SetTitle("Efficiency for BDT bin 2-3;|Y|;p_{T} [GeV]");
+  hpcoarse_inBDT23->Draw("COLZ");
+
+  c4->cd(2);
+  hpcoarse_inBDT3->GetZaxis()->SetRangeUser(eff_BDT3-0.2, eff_BDT3+0.2);
+  hpcoarse_inBDT3->SetTitle("Efficiency for BDT bin 3;|Y|;p_{T} [GeV]");
+  hpcoarse_inBDT3->Draw("COLZ");
+
+  c4->cd(3);
+  BDT23effVsPt->GetYaxis()->SetRangeUser(eff_BDT23-0.2, eff_BDT23+0.2);
+  BDT23effVsPt->SetTitle("Efficiency for BDT bin 2-3;p_{T} [GeV]");
+  BDT23effVsPt->Draw("E");
+
+  c4->cd(4);
+  BDT3effVsPt->GetYaxis()->SetRangeUser(eff_BDT3-0.2, eff_BDT3+0.2);
+  BDT3effVsPt->SetTitle("Efficiency for BDT bin 3;p_{T} [GeV]");
+  BDT3effVsPt->Draw("E");
+
+  c4->SaveAs("figs/BDTefficiencyMap"+(TString)(withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
+
+  //**************************************************************
+  //Store maps
+  TFile* fout = TFile::Open("AcceptanceEfficiencyMap.root","UPDATE");
+  //  hp_acceff->Write("hp_acceff_"+(TString)(ispp?"pp":"PbPb"));
+  hpcoarse_inBDT23->Write("hpcoarse_inBDT23_"+(TString)(ispp?"pp":"PbPb"));
+  hpcoarse_inBDT3->Write("hpcoarse_inBDT3_"+(TString)(ispp?"pp":"PbPb"));
+  fout->WriteObject(&eff_oneBinned,"efficiency_oneBinned"+(TString)(ispp?"_pp":"_PbPb"));
+  fout->Close();
 }

@@ -1,0 +1,30 @@
+imax 6
+jmax 3
+kmax 6
+---------------
+shapes data_obs   * InputForCombine_PbPb.root $CHANNEL/$PROCESS/BcM_AccEffWeighted 
+shapes BcSig      * InputForCombine_PbPb.root $CHANNEL/$PROCESS/BcM_AccEffWeighted 
+shapes FakeJpsi   * InputForCombine_PbPb.root $CHANNEL/$PROCESS/BcM_AccEffWeighted $CHANNEL/$PROCESS_$SYSTEMATIC/BcM_AccEffWeighted
+shapes NPJpsi     * InputForCombine_PbPb.root $CHANNEL/$PROCESS/BcM_AccEffWeighted $CHANNEL/$PROCESS_$SYSTEMATIC/BcM_AccEffWeighted
+shapes PromptJpsi * InputForCombine_PbPb.root $CHANNEL/$PROCESS/BcM_AccEffWeighted $CHANNEL/$PROCESS_$SYSTEMATIC/BcM_AccEffWeighted
+---------------
+bin		     BDT1Kin1  BDT2Kin1  BDT3Kin1  BDT1Kin2  BDT2Kin2  BDT3Kin2
+observation 	     -1        -1	 -1    	   -1	     -1	       -1
+------------------------------
+bin		     BDT1Kin1   BDT1Kin1   BDT1Kin1   BDT1Kin1   BDT2Kin1   BDT2Kin1   BDT2Kin1   BDT2Kin1   BDT3Kin1   BDT3Kin1   BDT3Kin1   BDT3Kin1   BDT1Kin2   BDT1Kin2   BDT1Kin2   BDT1Kin2   BDT2Kin2   BDT2Kin2   BDT2Kin2   BDT2Kin2   BDT3Kin2   BDT3Kin2   BDT3Kin2   BDT3Kin2  
+process       	     BcSig      FakeJpsi   NPJpsi     PromptJpsi BcSig      FakeJpsi   NPJpsi     PromptJpsi BcSig      FakeJpsi   NPJpsi     PromptJpsi BcSig      FakeJpsi   NPJpsi     PromptJpsi BcSig      FakeJpsi   NPJpsi     PromptJpsi BcSig      FakeJpsi   NPJpsi     PromptJpsi 
+process        	     0          1	   2	      3          0          1	       2	  3	     0          1	   2	      3	 	 0          1	       2	  3	     0          1	   2	      3	 	 0          1	       2	  3	 
+rate           	     -1         -1         -1         -1         -1         -1         -1         -1         -1         -1         -1         -1	 -1         -1         -1         -1	     -1         -1         -1         -1	 -1         -1         -1         -1	 
+--------------------------------
+lumi          lnN    1.019	1.019      -          -		 1.019      1.019      -          -          1.019      1.019      -          -          1.019      1.019      -          -          1.019      1.019      -          -          1.019      1.019      -          -          
+############# Beware, remove this systematic for bin BDT3, because flipJpsi is empty. Temporary !!!
+PromptOrFlipJ shape  -          -          1.	      1.	 -          -          1.	  1.	     -          -          - 	      - 	 -          -          1.	  1.	     -          -          1.	      1.	 -          -          - 	  - 	 	 	 
+bJpsiFrac     shape  -          -          1.         1.         -          -          1.         1.         -          -          1.         1.         -          -          1.         1.	     -          -          1.         1.	 -          -          1.         1.	     
+JpsiSB        shape  -          0.5        -          -          -          0.5        -          -          -          0.5        -          -          -          0.5        -          -	     -          0.5        -          -	     	 -          0.5        -          -	     
+
+misID		rateParam * NPJpsi  1.5
+misIDPrompt	rateParam * PromptJpsi 1.5
+misID		param 1.5 0.1
+misIDPrompt	param 1.5 0.1
+
+* autoMCStats 8 #Poisson threshold on typical number of events in binomial

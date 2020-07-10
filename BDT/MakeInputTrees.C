@@ -1,4 +1,4 @@
-1;5202;0c#include "TFile.h"
+#include "TFile.h"
 #include "TTree.h"
 #include "TH1.h"
 #include "TF1.h"
@@ -123,6 +123,8 @@ void MakeInputTrees(bool ispp = true){
   TClonesArray *Reco_QQ_mumi_4mom[nInputT]; TBranch *b_Reco_QQ_mumi_4mom[nInputT];
   TClonesArray *Reco_QQ_mupl_4mom[nInputT]; TBranch *b_Reco_QQ_mupl_4mom[nInputT];
   TClonesArray *Gen_QQ_4mom[nInputT]; TBranch *b_Gen_QQ_4mom[nInputT];
+  TClonesArray *Gen_3mu_4mom[nInputT]; TBranch *b_Gen_3mu_4mom[nInputT];
+  TClonesArray *Gen_Bc_4mom[nInputT]; TBranch *b_Gen_Bc_4mom[nInputT];
   float Gen_weight[nInputT]; TBranch *b_Gen_weight[nInputT];
   float pthatweight[nInputT]; TBranch *b_pthatweight[nInputT];
   //  Short_t Gen_QQ_size[nInputT]; TBranch *b_Gen_QQ_size[nInputT];
@@ -288,6 +290,14 @@ void MakeInputTrees(bool ispp = true){
     Reco_3mu_4mom[i] = new TClonesArray();
     Trees[i]->SetBranchAddress("Reco_3mu_4mom", &Reco_3mu_4mom[i], &b_Reco_3mu_4mom[i]);
 
+    if(i==1){//MC signal only
+      Gen_3mu_4mom[i] = new TClonesArray();
+      Trees[i]->SetBranchAddress("Gen_3mu_4mom", &Gen_3mu_4mom[i], &b_Gen_3mu_4mom[i]);
+      
+      Gen_Bc_4mom[i] = new TClonesArray();
+      Trees[i]->SetBranchAddress("Gen_Bc_4mom", &Gen_Bc_4mom[i], &b_Gen_Bc_4mom[i]);
+    }
+
     if(i==4){
       Reco_trk_4mom[i] = new TClonesArray();
       Trees[i]->SetBranchAddress("Reco_trk_4mom", &Reco_trk_4mom[i], &b_Reco_trk_4mom[i]);
@@ -395,6 +405,8 @@ void MakeInputTrees(bool ispp = true){
   //float Bc_M_muWisPi[ntrees];
   float Bc_P[ntrees];
   float Bc_Pt[ntrees];
+  float genBc_Pt[ntrees];
+  float gen3mu_Pt[ntrees];
   float Bc_Y[ntrees];
   float Bc_phi[ntrees];
   float Bc_ctau[ntrees];
@@ -496,6 +508,10 @@ void MakeInputTrees(bool ispp = true){
     //out_trees[i]->Branch("Bc_M_muWismu",&Bc_M_muWismu[i],"Bc_M_muWismu/F");
     out_trees[i]->Branch("Bc_P",&Bc_P[i],"Bc_P/F");
     out_trees[i]->Branch("Bc_Pt",&Bc_Pt[i],"Bc_Pt/F");
+    if(i==4){
+      out_trees[i]->Branch("genBc_Pt",&genBc_Pt[i],"genBc_Pt/F");
+      out_trees[i]->Branch("gen3mu_Pt",&gen3mu_Pt[i],"gen3mu_Pt/F");
+    }
     out_trees[i]->Branch("Bc_Y",&Bc_Y[i],"Bc_Y/F");
     out_trees[i]->Branch("Bc_phi",&Bc_phi[i],"Bc_phi/F");
     out_trees[i]->Branch("Bc_ctau",&Bc_ctau[i],"Bc_ctau/F");
@@ -640,12 +656,18 @@ void MakeInputTrees(bool ispp = true){
 	if(iIpt==5){
 	  Reco_QQ_mumi_4mom[iIpt]->Clear();
 	  Reco_QQ_mupl_4mom[iIpt]->Clear();}
+	if(iIpt==1){
+	  Gen_Bc_4mom[iIpt]->Clear();
+	  Gen_3mu_4mom[iIpt]->Clear();
+	}
 
 	Trees[iIpt]->GetEntry(j);
 
 	for(int BcNb=0;BcNb<Reco_3mu_size[iIpt];BcNb++){
+	  Short_t genBcIdx = 0;
+	  if(iIpt==1) genBcIdx = Reco_3mu_whichGen[iIpt][BcNb];
 
-	  int QQidx_3[3] = { Reco_3mu_QQ1_idx[iIpt][BcNb], Reco_3mu_QQ2_idx[iIpt][BcNb], Reco_3mu_QQss_idx[iIpt][BcNb] };
+	  Short_t QQidx_3[3] = { Reco_3mu_QQ1_idx[iIpt][BcNb], Reco_3mu_QQ2_idx[iIpt][BcNb], Reco_3mu_QQss_idx[iIpt][BcNb] };
 	  if(fabs(Reco_3mu_charge[iIpt][BcNb])==3 && iIpt!=4){ //This fix for wrongsign can be removed after rerunning the oniatree
 	    bool foundit = false;
 	    if(Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_QQ_mumi_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]] && Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_QQ_mupl_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]]) {
@@ -656,11 +678,11 @@ void MakeInputTrees(bool ispp = true){
 	    }
 	    if(!foundit) cout<<"Did not find muW for wrongsign Bc"<<endl;
 	  }
-	  int muW3idx = (Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_3mu_muW2_idx[iIpt][BcNb])?(Reco_3mu_mumi_idx[iIpt][BcNb]):(Reco_3mu_mupl_idx[iIpt][BcNb]); //for the third dimuon choice, the muWidx=old_muWmi if old_muWmi!=muW2idx, and muWidx=old_muWpl otherwise
+	  Short_t muW3idx = (Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_3mu_muW2_idx[iIpt][BcNb])?(Reco_3mu_mumi_idx[iIpt][BcNb]):(Reco_3mu_mupl_idx[iIpt][BcNb]); //for the third dimuon choice, the muWidx=old_muWmi if old_muWmi!=muW2idx, and muWidx=old_muWpl otherwise
 	  if (iIpt!=4 && (muW3idx==Reco_3mu_muW_idx[iIpt][BcNb] || muW3idx==Reco_3mu_muW2_idx[iIpt][BcNb])) cout<<"!!!!!!!!! Wrong assignement of muW3idx !"<<endl;
-	  int muWidx_3[3] = { Reco_3mu_muW_idx[iIpt][BcNb], Reco_3mu_muW2_idx[iIpt][BcNb], muW3idx };
-	  int mumiidx_3[3] = { Reco_3mu_mumi_idx[iIpt][BcNb], Reco_QQ_mumi_idx[iIpt][QQidx_3[1]], Reco_QQ_mumi_idx[iIpt][QQidx_3[2]] };
-	  int muplidx_3[3] = { Reco_3mu_mupl_idx[iIpt][BcNb], Reco_QQ_mupl_idx[iIpt][QQidx_3[1]], Reco_QQ_mupl_idx[iIpt][QQidx_3[2]] };
+	  Short_t muWidx_3[3] = { Reco_3mu_muW_idx[iIpt][BcNb], Reco_3mu_muW2_idx[iIpt][BcNb], muW3idx };
+	  Short_t mumiidx_3[3] = { Reco_3mu_mumi_idx[iIpt][BcNb], Reco_QQ_mumi_idx[iIpt][QQidx_3[1]], Reco_QQ_mumi_idx[iIpt][QQidx_3[2]] };
+	  Short_t muplidx_3[3] = { Reco_3mu_mupl_idx[iIpt][BcNb], Reco_QQ_mupl_idx[iIpt][QQidx_3[1]], Reco_QQ_mupl_idx[iIpt][QQidx_3[2]] };
 
 	  int nCandidatePairs = (fabs(Reco_3mu_charge[iIpt][BcNb])==1)?2:3; //use candidates for all three Jpsi-dimuon choices if Bc_charge is wrong, and only the two OS pairs if Bc_charge is right
 	  if(iIpt==4 || iIpt==5) nCandidatePairs = 1;
@@ -669,11 +691,11 @@ void MakeInputTrees(bool ispp = true){
 	  //Loop on the 2 or 3 possible Jpsi dimuon choices 
 	  int thisTrimuGaveABc = -1;
 	  for(int k=0; k<nCandidatePairs; k++){
-	    int QQidx = QQidx_3[k];
-	    int QQ2idx = QQidx_3[(k==0 && iIpt!=4)?1:0];
-	    int muWidx = muWidx_3[k];
-	    int mumiidx = mumiidx_3[k];
-	    int muplidx = muplidx_3[k];
+	    Short_t QQidx = QQidx_3[k];
+	    Short_t QQ2idx = QQidx_3[(k==0 && iIpt!=4)?1:0];
+	    Short_t muWidx = muWidx_3[k];
+	    Short_t mumiidx = mumiidx_3[k];
+	    Short_t muplidx = muplidx_3[k];
 
 	    //cout<<"Dimuon choice #"<<k<<endl;
 	    //can add pre-selection here
@@ -809,8 +831,8 @@ void MakeInputTrees(bool ispp = true){
 	      QQ2_VtxProb[i] = (QQ2idx<Reco_QQ_size[iIpt] && QQ2idx>-1)?(Reco_QQ_VtxProb[iIpt][QQ2idx]):0;
 	      QQ2_dca[i] = (QQ2idx<Reco_QQ_size[iIpt] && QQ2idx>-1)?(Reco_QQ_dca[iIpt][QQ2idx]):100;
 
-	      muW_inLooseAcc[i] = ((iIpt<4)?Reco_mu_InLooseAcc:Reco_trk_InLooseAcc)[iIpt][muWidx];
-	      muW_inTightAcc[i] = ((iIpt<4)?Reco_mu_InTightAcc:Reco_trk_InTightAcc)[iIpt][muWidx];
+	      muW_inLooseAcc[i] = ((iIpt!=4)?Reco_mu_InLooseAcc:Reco_trk_InLooseAcc)[iIpt][muWidx];
+	      muW_inTightAcc[i] = ((iIpt!=4)?Reco_mu_InTightAcc:Reco_trk_InTightAcc)[iIpt][muWidx];
 	      muW_isGlb[i] = (iIpt==4)?true:( (Reco_mu_SelType[iIpt][muWidx]&2)>0 );
 	      muW_trig[i] = (iIpt==4)?false:( (Reco_mu_trig[iIpt][muWidx]&(ispp?8:4096))>0 ); //DoubleMu0 trigger = 2^3 for pp //HL_THIL3Mu0NHitQ10_L2Mu0_MAXdR3p5_M1to5_v1 = 2^12 for PbPb
 	      muW_isSoft[i] = (iIpt==4)?(isSoft(false, 1,1,1,1,Reco_trk_dxy[iIpt][muWidx], Reco_trk_dz[iIpt][muWidx], 20,20)):(
@@ -837,8 +859,8 @@ void MakeInputTrees(bool ispp = true){
 	      muW_Pt[i] = recBc_muW->Pt();
 	      mumi_Pt[i] = recBc_mumi->Pt();
 	      mupl_Pt[i] = recBc_mupl->Pt();
-
-	      //cout<<(Bc_ctauSignif[i]>1.5)<<" "<<(Bc_alpha[i]<0.8)<<" "<<(Bc_alpha3D[i]<0.8)<<" "<<(Bc_VtxProb[i]>0.01)<<" "<<(QQ_dca[i]<0.3)<<" "<<(muW_isSoft[i])<<" "<<( mumi_isSoft[i])<<" "<<(mupl_isSoft[i])<<" "<<( (muW_isGlb[i] && muW_inLooseAcc[i] && mupl_isGlb[i] && mupl_inLooseAcc[i]) || (muW_isGlb[i] && muW_inLooseAcc[i] && mumi_isGlb[i] && mumi_inLooseAcc[i]) || (mumi_isGlb[i] && mumi_inLooseAcc[i] && mupl_isGlb[i] && mupl_inLooseAcc[i]) )<<" "<<((muW_trig[i] && mupl_trig[i] && muW_inTightAcc[i] && mupl_inTightAcc[i] ) ||(muW_trig[i] && mumi_trig[i] && muW_inTightAcc[i] && mumi_inTightAcc[i] ) || (mumi_trig[i] && mupl_trig[i] && mumi_inTightAcc[i] && mupl_inTightAcc[i] ))<<" "<<(fabs(muW_dz)<(ispp?0.6:0.8) && fabs(mumi_dz)<(ispp?0.6:0.8) && fabs(mupl_dz)<(ispp?0.6:0.8))<<" "<<((HLTriggers[iIpt]&((ispp || i>=4)?8:4096))>0)<<endl;
+	      
+	      //cout<<(Bc_ctauSignif[i]>1.5)<<" "<<(Bc_alpha[i]<0.8)<<" "<<(Bc_alpha3D[i]<0.8)<<" "<<(Bc_VtxProb[i]>0.01)<<" "<<(QQ_dca[i]<0.3)<<" "<<(muW_isSoft[i])<<" "<<( mumi_isSoft[i])<<" "<<(mupl_isSoft[i])<<" "<<( (muW_isGlb[i] && muW_inLooseAcc[i] && mupl_isGlb[i] && mupl_inLooseAcc[i]) || (muW_isGlb[i] && muW_inLooseAcc[i] && mumi_isGlb[i] && mumi_inLooseAcc[i]) || (mumi_isGlb[i] && mumi_inLooseAcc[i] && mupl_isGlb[i] && mupl_inLooseAcc[i]) )<<" "<<(mumi_isGlb[i] && mupl_isGlb[i] && muW_isGlb[i] && mumi_inLooseAcc[i] && mupl_inLooseAcc[i] && muW_inLooseAcc[i])<<" "<<muW_isGlb[i]<<" "<<mupl_isGlb[i]<<" "<<mumi_isGlb[i]<<" "<<((muW_trig[i] && mupl_trig[i] && muW_inTightAcc[i] && mupl_inTightAcc[i] ) ||(muW_trig[i] && mumi_trig[i] && muW_inTightAcc[i] && mumi_inTightAcc[i] ) || (mumi_trig[i] && mupl_trig[i] && mumi_inTightAcc[i] && mupl_inTightAcc[i] ))<<" "<<(fabs(muW_dz)<(ispp?0.6:0.8) && fabs(mumi_dz)<(ispp?0.6:0.8) && fabs(mupl_dz)<(ispp?0.6:0.8))<<" "<<((HLTriggers[iIpt]&((ispp || i>=4)?8:4096))>0)<<endl;
 	      if(
 		 //**************************************************************
 		 // Pre-selections
@@ -897,7 +919,7 @@ void MakeInputTrees(bool ispp = true){
 		// if(ispp && i==5 && iIpt==2 && recQQ->Pt()>6.5 && recQQ->Pt()<7.5)
 		//   cout<< "weight, pthat_weight, A^2*L_PbPb*BF, dataOverMC(QQ_Pt), weight/(NcollWeight*Gen_weight*lumi*dataOverMC) = "<<w_simple[i]<<" "<<pthatweight[iIpt]<<" "<< scaleMCb[ispp].second<<" "<<(scaleMCb[ispp].first)->Eval(recQQ->Pt())<<" "<<w_simple[i]/(pthatweight[iIpt]*scaleMCb[ispp].second*(scaleMCb[ispp].first)->Eval(recQQ->Pt()))<<endl;
 		
-		//		cout<<"Passes all selections!!!!!!!!!"<<endl;
+		//cout<<"Passes all selections!!!!!!!!!"<<endl;
 		//**** Finish filling the output variables
 		eventNb[i] = INeventNb[iIpt];
 		if(iIpt==0 || iIpt==4 || iIpt==5){
@@ -1005,6 +1027,17 @@ void MakeInputTrees(bool ispp = true){
 
 		if(iIpt==5) flipJpsi[i] = Reco_QQ_flipJpsi[iIpt][QQidx];
 
+		if(iIpt==1){
+		  if(genBcIdx>-1){
+		  TLorentzVector *genBc = (TLorentzVector*) Gen_Bc_4mom[iIpt]->At(genBcIdx);
+		  TLorentzVector *gen3mu = (TLorentzVector*) Gen_3mu_4mom[iIpt]->At(genBcIdx);
+		  genBc_Pt[i] = genBc->Pt();
+		  gen3mu_Pt[i] = gen3mu->Pt();}
+		  else{ 
+		    genBc_Pt[i] = 0;
+		    gen3mu_Pt[i] = 0;}
+		}
+
 		if(Bc_CorrM_shiftedM[i] > 25 || dR_sum_shiftedM[i]>7.5) continue; //cuts no signal in PbPb, and 0.1% in pp
 	    	     
 		if(!(std::isnan(w_simple[i]))){
@@ -1013,7 +1046,7 @@ void MakeInputTrees(bool ispp = true){
 		    if((j%4)==0) w_simple[i] *= 4;
 		    else w_simple[i]=0;
 		  }
-		  
+
 		  thisTrimuGaveABc = i;
 		  out_trees[i]->Fill();
 		}

@@ -1,9 +1,9 @@
 //FIDUCIAL cuts
 int _NanaBins = 2;
-vector<float> _BcYmin{1.3,  0.};
-vector<float> _BcYmax{2.3, 2.3};
-vector<float> _BcPtmin{6,  11};
-vector<float> _BcPtmax{11, 50};
+vector<float> _BcYmin{0, 1.3,  0.};
+vector<float> _BcYmax{2.3, 2.3, 2.3};
+vector<float> _BcPtmin{6, 6,  11};
+vector<float> _BcPtmax{50, 11, 50};
 
 //BEGIN Pre-selection
 float _ctauSignif_cut = 1.5;

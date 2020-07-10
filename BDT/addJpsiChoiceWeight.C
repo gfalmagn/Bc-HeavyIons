@@ -85,6 +85,9 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
     }
   }
 
+  vector<TH1F*> JpsiM; //goes in output file
+  vector<TH1F*> JpsiM_tight; //goes in output file
+
   //***************** Extract needed branches
   for(int iT=0; iT<(int)T.size(); iT++){
     T[iT]->SetBranchAddress("muW_eta", &muW_eta[iT]);
@@ -150,9 +153,64 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
     h_QQM_tight[k][3]->Add(h_QQM_tight[k][1]);
   }
 
+
+  //*******************************************
+  //forget histos with too few entries
+  for(int k=0;k<=nBDTb;k++){
+
+    //*** loose SB
+    if(h_QQM[k][3]->GetEntries() >100){
+      JpsiM.push_back((TH1F*)h_QQM[k][3]->Clone("JpsiM_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
+    }
+    else{
+      if(h_QQM[0][3]->GetEntries() >100){
+	//if the histo from this BDT bin is not good enough, take the histo for integrated
+	JpsiM.push_back((TH1F*)h_QQM[0][3]->Clone("JpsiM_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
+      } else{ 
+	//if nothing is good enough, a bit arbitrary here
+	JpsiM.push_back((TH1F*)h_QQM[0][3]->Clone("JpsiM_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
+	for(int bin=1;bin<=JpsiM[k]->GetNbinsX();bin++){
+	  if(inJpsiMassRange(JpsiM[k]->GetBinCenter(bin),false)){
+	    JpsiM[k]->SetBinContent(bin,0.8+min(k,4)*0.05);}
+	  else if(inJpsiMassSB(JpsiM[k]->GetBinCenter(bin),false)){
+	    JpsiM[k]->SetBinContent(bin,0.2-min(k,4)*0.05);}
+	  else{
+	    JpsiM[k]->SetBinContent(bin,0.);}
+	}
+      }
+    }
+
+    //*** tight SB
+    if(h_QQM_tight[k][3]->GetEntries() >100){
+      JpsiM_tight.push_back((TH1F*)h_QQM_tight[k][3]->Clone("JpsiM_tight_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
+    }
+    else if(h_QQM[k][3]->GetEntries() >100){
+      //first try if the Jpsi proba from the loose SB histo is ok
+      JpsiM_tight.push_back((TH1F*)h_QQM[k][3]->Clone("JpsiM_tight_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
+    } 
+    else if(h_QQM_tight[0][3]->GetEntries() >100){//if not, then take the integrated BDT bin histos for tight SB
+      JpsiM_tight.push_back((TH1F*)h_QQM_tight[0][3]->Clone("JpsiM_tight_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));	    
+    }
+    else if(h_QQM[0][3]->GetEntries() >100){//finally, try loose SB integrated BDT
+      JpsiM_tight.push_back((TH1F*)h_QQM[0][3]->Clone("JpsiM_tight_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
+    }
+    else { 
+      //if nothing is good enough, a bit arbitrary here
+      JpsiM_tight.push_back((TH1F*)h_QQM_tight[0][3]->Clone("JpsiM_tight_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
+      for(int bin=1;bin<=JpsiM_tight[k]->GetNbinsX();bin++){
+	if(inJpsiMassRange(JpsiM_tight[k]->GetBinCenter(bin),false)){
+	  JpsiM_tight[k]->SetBinContent(bin,0.8+min(k,4)*0.05);}
+	else if(inJpsiMassSB(JpsiM_tight[k]->GetBinCenter(bin),false)){
+	  JpsiM_tight[k]->SetBinContent(bin,0.2-min(k,4)*0.05);}
+	else{
+	  JpsiM_tight[k]->SetBinContent(bin,0.);}
+      }
+    }
+
+  }
+
   //*******************************************
   //Fill the weight branch, with weights containing the weight for Jpsi choice
-
   vector<TBranch*> b_weight;
 
   for(int iT=0; iT<(int)T.size(); iT++){
@@ -182,48 +240,15 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
 	       && QQ2_VtxProb[iT]>_QQvtxProb_cut && QQ2_dca[iT]<_QQdca_cut && QQ2_dca[iT]>0)
 	   ){
 	   
-	  int ihist = 3;//consider ONLY DATA unambiguous events //(iT==1)?3:iT;
+	  //consider ONLY DATA unambiguous events
 	  //*** loose SB
-	  float binc_QQ1 = h_QQM[kbin][ihist]->GetBinContent(h_QQM[kbin][ihist]->FindBin(QQ_M[iT]));
-	  float binc_QQ2 = h_QQM[kbin][ihist]->GetBinContent(h_QQM[kbin][ihist]->FindBin(QQ2_M[iT]));
-	  //forget histos with too few entries
-	  if(h_QQM[kbin][ihist]->GetEntries() <100){
-
-	    if(h_QQM[0][ihist]->GetEntries() <100){
-	      binc_QQ1 = inJpsiMassRange(QQ_M[iT],false)?(0.8+min(kbin,4)*0.05):(0.2-min(kbin,4)*0.05);//a bit arbitrary here
-	      binc_QQ2 = inJpsiMassRange(QQ_M[iT],false)?(0.2-min(kbin,4)*0.05):(0.8+min(kbin,4)*0.05);
-	    } else{ //if the histo from this BDT bin is not good enough, take the histo for integrated
-	      binc_QQ1 = h_QQM[0][ihist]->GetBinContent(h_QQM[0][ihist]->FindBin(QQ_M[iT]));
-	      binc_QQ2 = h_QQM[0][ihist]->GetBinContent(h_QQM[0][ihist]->FindBin(QQ2_M[iT]));
-	    }
-
-	  }
+	  float binc_QQ1 = JpsiM[kbin]->GetBinContent(JpsiM[kbin]->FindBin(QQ_M[iT]));
+	  float binc_QQ2 = JpsiM[kbin]->GetBinContent(JpsiM[kbin]->FindBin(QQ2_M[iT]));
 
 	  //*** tight SB
 	  if(maxEta<1.5){
-	    binc_QQ1 = h_QQM_tight[kbin][ihist]->GetBinContent(h_QQM_tight[kbin][ihist]->FindBin(QQ_M[iT]));
-	    binc_QQ2 = h_QQM_tight[kbin][ihist]->GetBinContent(h_QQM_tight[kbin][ihist]->FindBin(QQ2_M[iT]));
-	    //forget histos with too few entries
-	    if(h_QQM_tight[kbin][ihist]->GetEntries() <100){
-
-	      if(h_QQM[kbin][ihist]->GetEntries() >100){//first try if the Jpsi proba from the loose SB histo is ok
-		binc_QQ1 = h_QQM[kbin][ihist]->GetBinContent(h_QQM[kbin][ihist]->FindBin(   (inJpsiMassRange(QQ_M[iT],true))?QQ_M[iT]:(m_Jpsi-JpeakLo-JpeakLoBuf-0.01)   )) ;
-		binc_QQ2 = h_QQM[kbin][ihist]->GetBinContent(h_QQM[kbin][ihist]->FindBin(   (inJpsiMassRange(QQ_M[iT],true))?(m_Jpsi-JpeakLo-JpeakLoBuf-0.01):QQ_M[iT]   )) ;
-	      }
-	      else if(h_QQM_tight[0][ihist]->GetEntries() >100){//if not, then take the integrated BDT bin histos for tight SB
-		binc_QQ1 = h_QQM_tight[0][ihist]->GetBinContent(h_QQM_tight[0][ihist]->FindBin(QQ_M[iT]));
-		binc_QQ2 = h_QQM_tight[0][ihist]->GetBinContent(h_QQM_tight[0][ihist]->FindBin(QQ2_M[iT]));
-	      }
-	      else if(h_QQM[0][ihist]->GetEntries() >100){//finally, try loose SB integrated BDT
-		binc_QQ1 = h_QQM[0][ihist]->GetBinContent(h_QQM[0][ihist]->FindBin(   (inJpsiMassRange(QQ_M[iT],true))?QQ_M[iT]:(m_Jpsi-JpeakLo-JpeakLoBuf-0.01)   )) ;
-		binc_QQ2 = h_QQM[0][ihist]->GetBinContent(h_QQM[0][ihist]->FindBin(   (inJpsiMassRange(QQ_M[iT],true))?(m_Jpsi-JpeakLo-JpeakLoBuf-0.01):QQ_M[iT]   )) ;
-	      }
-	      else{
-		binc_QQ1 = inJpsiMassRange(QQ_M[iT],false)?(0.8+min(kbin,4)*0.05):(0.2-min(kbin,4)*0.05);//a bit arbitrary here
-		binc_QQ2 = inJpsiMassRange(QQ_M[iT],false)?(0.2-min(kbin,4)*0.05):(0.8+min(kbin,4)*0.05);
-	      }
-
-	    }
+	    binc_QQ1 = JpsiM_tight[kbin]->GetBinContent(JpsiM_tight[kbin]->FindBin(QQ_M[iT]));
+	    binc_QQ2 = JpsiM_tight[kbin]->GetBinContent(JpsiM_tight[kbin]->FindBin(QQ2_M[iT]));
 	  }
 
 	  if (binc_QQ1==0) weight[iT] = 0;
@@ -287,6 +312,16 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
     ic2+=1;
   }
   c1->SaveAs("figs/JpsiMassUnambiguousCands_tightRange_"+(TString)(ispp?"pp":"PbPb")+(TString)(useBDTbins?"_inBDTbins":"")+".pdf");
+
+  //*******************************************
+  //output file for data Jpsi mass distro
+  if(useBDTbins){
+    TFile *outfile = TFile::Open("JpsiMassDistr.root","UPDATE");
+    for(int k=0;k<=nBDTb;k++){
+      JpsiM[k]->Write("JpsiMass_data_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)))+(TString)(ispp?"_pp":"_PbPb"));
+      JpsiM_tight[k]->Write("JpsiMassCentralEta_data_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)))+(TString)(ispp?"_pp":"_PbPb"));
+    }
+  }
   
 }
 

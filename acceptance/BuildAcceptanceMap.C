@@ -10,6 +10,7 @@
 #include "Math/PdfFuncMathCore.h"
 #include "Math/PdfFuncMathMore.h"
 #include "../helpers/Definitions.h"
+#include "../helpers/Cuts.h"
 #include "SgMuonAcceptanceCuts.h"
 #include "../helpers/AccEff2DBinning.h"
 
@@ -75,8 +76,11 @@ void BuildAcceptanceMap(bool withTM = false, bool cutP=false){
   TH2Poly *hp =_hp();
   TH2Poly *hp_all = (TH2Poly*) hp->Clone("hp_all");
   TH2Poly *hp_acc = (TH2Poly*) hp->Clone("hp_acc");
+  vector<float> gen_oneBinned(_NanaBins+1,0);
+  vector<float> accepted_oneBinned(_NanaBins+1,0);
+  vector<float> acc_oneBinned(_NanaBins+1,1);
 
-  float nfid=0,nall=0,nacc=0;
+  float nall=0;
   //**************************************************************
   //event loop
   for(int j=0; j<nentries; j++){
@@ -111,25 +115,34 @@ void BuildAcceptanceMap(bool withTM = false, bool cutP=false){
 	hp_acc->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt());
       }
 
-      if(fabs(gen3mu->Rapidity())<2.3 ){ //Y cut for pt distro
+      if(fabs(gen3mu->Rapidity())<_BcYmax[0] ){ //Y cut for pt distro
 	hPt_fid->Fill(gen3mu->Pt());
 	if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM))
 	  hPt_acc->Fill(gen3mu->Pt());
       }
-      if(gen3mu->Pt()>4){ //pt cut for Y distro
+      if(gen3mu->Pt()>_BcPtmin[0]){ //pt cut for Y distro
 	hY_fid->Fill(fabs(gen3mu->Rapidity()));	
 	if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM))
 	  hY_acc->Fill(fabs(gen3mu->Rapidity()));
       }
-      if(fabs(gen3mu->Rapidity())<2.3 && gen3mu->Pt()>6 && (fabs(gen3mu->Rapidity())>1.3 || gen3mu->Pt()>11) ){
-	h_fid->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt());
-	nfid += 1;
-	if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM))
-	  nacc += 1;
+
+      for(int b=1;b<=_NanaBins;b++){
+	if(fabs(gen3mu->Rapidity())>_BcYmin[b] && fabs(gen3mu->Rapidity())<_BcYmax[b] && gen3mu->Pt()>_BcPtmin[b] && gen3mu->Pt()<_BcPtmax[b] ){
+	  h_fid->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt());
+	  gen_oneBinned[0] += 1;
+	  gen_oneBinned[b] += 1;
+	  if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM)){
+	    accepted_oneBinned[0] += 1;
+	    accepted_oneBinned[b] += 1;	  
+	  }
+	}
       }
 
     }//end Bc loop
   } //end event loop
+
+  for(int b=1;b<=_NanaBins;b++)
+    acc_oneBinned[b] = accepted_oneBinned[b]/gen_oneBinned[b];
 
   //**************************************************************
   //Lines for fiducial cuts
@@ -232,9 +245,10 @@ void BuildAcceptanceMap(bool withTM = false, bool cutP=false){
   //output file
   TFile out_file("acceptanceMap.root","RECREATE");
   hp_acceptance->Write();
+  out_file.WriteObject(&acc_oneBinned,"acceptance_oneBinned");
 
   out_file.Close();
   
-  cout<<"nall, n_fiducial, n_accepted, acceptance = "<<nall<<" "<<nfid<<" "<<nacc<<" "<<nacc/nfid<<endl;
+  cout<<"nall, n_fiducial, n_accepted, acceptance = "<<nall<<" "<<gen_oneBinned[0]<<" "<<accepted_oneBinned[0]<<" "<<accepted_oneBinned[0]/gen_oneBinned[0]<<endl;
 
 }

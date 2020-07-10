@@ -19,21 +19,35 @@
 
 void MakePositive(TH1F* h){
   for(int b=0;b<=h->GetNbinsX();b++){
-    if(h->GetBinContent(b)<0) h->SetBinContent(b,0);
+    if(h->GetBinContent(b)<=0) {
+      h->SetBinContent(b,0);
+      h->SetBinError(b,0);}
+    if(h->GetBinContent(b) - h->GetBinError(b) <0) { //avoid errors reaching negative values
+      h->SetBinError(b, 0.9 * h->GetBinContent(b));}
   }
   h->SetMinimum(0);
   return;
 }
 
-void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBin){
+void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBin, bool addAccEff=true){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
 
+  auto acceffFile = TFile::Open(addAccEff?"../efficiency/AcceptanceEfficiencyMap.root":"","READ");
+  TH2Poly* hp_acceff = (TH2Poly*)(addAccEff?(  acceffFile->Get("hp_acceff_"+(TString)(ispp?"pp":"PbPb"))  ):(new TH2Poly()));
+  hp_acceff->SetDirectory(0);
+  TH2Poly* hpcoarse_inBDT23 = (TH2Poly*)(addAccEff?(  acceffFile->Get("hpcoarse_inBDT23_"+(TString)(ispp?"pp":"PbPb"))  ):(new TH2Poly()));
+  hpcoarse_inBDT23->SetDirectory(0);
+  TH2Poly* hpcoarse_inBDT3 = (TH2Poly*)(addAccEff?(  acceffFile->Get("hpcoarse_inBDT3_"+(TString)(ispp?"pp":"PbPb"))  ):(new TH2Poly()));
+  hpcoarse_inBDT3->SetDirectory(0);
+  acceffFile->Close();
+
   auto fullFile = TFile::Open("../BDT/BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root");
 
-  const int nCuts = BDTcut.size()-1;
+  bool applyBDTweights = ispp;
 
+  const int nCuts = BDTcut.size()-1;
   int ntrees = 8;
 
   //Initialization of variables
@@ -118,6 +132,14 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
   vector<TH1F*> h_BDT, h_BDTprob;
   vector<vector<TH1F*> > h_bdt(nProc, vector<TH1F*>(nCuts)); 
   vector<vector<TH1F*> > h_BcM(nProc, vector<TH1F*>(nCuts)); 
+  vector<vector<TH1F*> > h_MeanInvAccEff(nProc, vector<TH1F*>(nCuts)); 
+  vector<vector<TH1F*> > h_AccEffCorr(nProc, vector<TH1F*>(nCuts)); 
+  vector<vector<TH1F*> > h_MeanInvAccEff_BDT23(nProc, vector<TH1F*>(nCuts)); 
+  vector<vector<TH1F*> > h_AccEffCorr_BDT23(nProc, vector<TH1F*>(nCuts)); 
+  vector<vector<TH1F*> > h_MeanInvAccEff_BDT3(nProc, vector<TH1F*>(nCuts)); 
+  vector<vector<TH1F*> > h_AccEffCorr_BDT3(nProc, vector<TH1F*>(nCuts)); 
+  vector<vector<TH1F*> > h_AccEffWeights(nProc, vector<TH1F*>(nCuts)); 
+  vector<vector<TH1F*> > h_CorrYieldsVsAccEffWeights(nProc, vector<TH1F*>(nCuts)); 
   vector<vector<TH1F*> > h_BcPt(nProc, vector<TH1F*>(nCuts,new TH1F( "Bc_Pt", "Bc transverse momentum", 50, 0, 30 )));
   vector<vector<TH1F*> > h_QQM(nProc, vector<TH1F*>(nCuts,new TH1F( "QQ_M", "Jpsi mass", nbinM, 2,4 )));
 
@@ -127,13 +149,32 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
     T.push_back((TTree*)fullFile->Get(treeName[itree]));
   }
 
+  //logarithmic binning
+  const int nlogbins = 30;
+  float xmin=2, xmax=2500;
+  float lxmin=TMath::Log(xmin), lxmax=TMath::Log(xmax);
+  float logbins[nlogbins+1];
+  for(int l=0;l<=nlogbins;l++){
+    logbins[l] = TMath::Exp(lxmin + l * (lxmax-lxmin)/((float)nlogbins));
+  }
+
   //Prepare output for each dataset (signal and backgrounds)
   for(int i=0; i<nProc; i++){
-    h_BDT.push_back( new TH1F( "BDT_"+procName[i], "BDT_"+prettyName[i], nbin, -0.5, 0.5 ) );
+    h_BDT.push_back( new TH1F( "BDT_"+procName[i], "BDT_"+prettyName[i], nbin, -0.9, 0.9 ) );
 
     for(int k=0;k<nCuts;k++){
-      h_bdt[i][k] = new TH1F( "BDT_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "BDT "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k+1])+"]", 50, -0.5,0.5 );
+      h_bdt[i][k] = new TH1F( "BDT_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "BDT "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k+1])+"]", 50, -0.9,0.9 );
       h_BcM[i][k] = new TH1F( "BcM_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k+1])+"]", _nbinM(ispp), _Mbinning(ispp) );
+      h_MeanInvAccEff[i][k] = new TH1F( "MeanInvAccEff_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), 
+					"Mean 1/#alpha#times#varepsilon "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k+1])+"]", _nbinM(ispp), _Mbinning(ispp) );
+      h_AccEffWeights[i][k] = new TH1F( "AccEffWeights_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), 
+					"1/#alpha#times#varepsilon weights "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k+1])+"]", nlogbins,logbins );
+      h_MeanInvAccEff_BDT23[i][k] = new TH1F( "MeanInvAccEff_BDT23_"+procName[i]+"_BDT"+(TString)(to_string(k+1)),
+					      "Mean 1/#alpha#times#varepsilon "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k+1])+"], with efficiency of being in BDT bins 2-3", _nbinM(ispp), _Mbinning(ispp) );
+      h_MeanInvAccEff_BDT3[i][k] = new TH1F( "MeanInvAccEff_BDT3_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), 
+					     "Mean 1/#alpha#times#varepsilon "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k+1])+"], with efficiency of being in BDT bin 3", _nbinM(ispp), _Mbinning(ispp) );
+      h_CorrYieldsVsAccEffWeights[i][k] = new TH1F( "CorrYieldsVsAccEffWeights_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), 
+						    "Corrected yields VS 1/#alpha#times#varepsilon weights "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k+1])+"]", nlogbins,logbins );
       h_BcPt[i][k] = new TH1F( "BcPt_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} p_{T} "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k+1])+"]", 50, 0, 30 );
       h_QQM[i][k] = new TH1F( "QQM_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "J/#psi mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,BDTuncorrFromM)[k+1])+"]", nbinM, 2.6,3.6 );
     }
@@ -143,7 +184,7 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
   //Fetch the BDT weights to be applied to flipJpsi
   TFile* flipJWfile = new TFile("../BDT/weightingCR/flipJpsiWeights_fromBDTinCR_"+(TString)(ispp?"pp":"PbPb")+".root","READ");
   vector<TH1F*> flipJBdtWeight;
-  if(_withTM){
+  if(applyBDTweights){
     flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinCR_flipJpsi"+(TString)(ispp?"0":"3")+"_JpsiMC"+(TString)(to_string(JMCcontent[0]))+"_AddMCtoFlipJ"));
     flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinCR_flipJpsi1_JpsiMC"+(TString)(to_string(JMCcontent[1]))+"_AddMCtoFlipJ"));//flipJpsiSameSide
     flipJBdtWeight.push_back((TH1F*) flipJWfile->Get("flipJpsiWeights_fromBDTinCR_flipJpsi2_JpsiMC"+(TString)(to_string(JMCcontent[2]))+"_AddMCtoFlipJ"));//flipJpsiOppSide
@@ -182,8 +223,8 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
       T[iT]->GetEntry(j);
 
       //Keep events from the wanted analysis bin
-      if(kinBin>-1 && !( Bc_Pt[iT]>_BcPtmin[kinBin] && Bc_Pt[iT]<_BcPtmax[kinBin] && fabs(Bc_Y[iT])>_BcYmin[kinBin] && fabs(Bc_Y[iT])<_BcYmax[kinBin])) continue;
-      if(kinBin==-1){//integrated bin
+      if(kinBin>0 && !( Bc_Pt[iT]>_BcPtmin[kinBin] && Bc_Pt[iT]<_BcPtmax[kinBin] && fabs(Bc_Y[iT])>_BcYmin[kinBin] && fabs(Bc_Y[iT])<_BcYmax[kinBin])) continue;
+      if(kinBin==0){//integrated bin
 	bool inFidCuts = Bc_Pt[iT]>_BcPtmin[0] && Bc_Pt[iT]<_BcPtmax[0] && fabs(Bc_Y[iT])>_BcYmin[0] && fabs(Bc_Y[iT])<_BcYmax[0];
 	inFidCuts = inFidCuts || (Bc_Pt[iT]>_BcPtmin[1] && Bc_Pt[iT]<_BcPtmax[1] && fabs(Bc_Y[iT])>_BcYmin[1] && fabs(Bc_Y[iT])<_BcYmax[1]);
 	if(!inFidCuts) continue;
@@ -254,17 +295,17 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 	  if(iproc==16) w *= 7/4. *(ispp?1.:0.4);	
 	  //BDT weights for flipJpsi
 	  for(int flipMeth=0; flipMeth<5;flipMeth++){
-	    if(iproc==(14+flipMeth) && _withTM){
-	      if(BDTv[iT]<(_withTM?-0.2:-0.3) && Bc_M[iT]<5.5) w *= flipJBdtWeight[5+flipMeth]->GetBinContent(flipJBdtWeight[5+flipMeth]->FindBin(BDTv[iT])); //weights from SR
-	      else                              w *= flipJBdtWeight[0+flipMeth]->GetBinContent(flipJBdtWeight[0+flipMeth]->FindBin(BDTv[iT])); //from CR
+	    if(iproc==(14+flipMeth) && applyBDTweights){
+	      if(BDTv[iT]<(_withTM?-0.2:-0.35) && Bc_M[iT]<5.6 && _withTM) w *= flipJBdtWeight[5+flipMeth]->GetBinContent(flipJBdtWeight[5+flipMeth]->FindBin(BDTv[iT])); //weights from SR
+	      else                                                         w *= flipJBdtWeight[0+flipMeth]->GetBinContent(flipJBdtWeight[0+flipMeth]->FindBin(BDTv[iT])); //from CR
 	    }
 	  }
 	  //BDT weights for JpsiMC (uncorrelated part)
 	  if(!muW_isJpsiBro[iT]){
 	    for(int flipMeth=0; flipMeth<5;flipMeth++){
-	      if(iproc==(9+flipMeth) && _withTM){
-		if(BDTv[iT]<(_withTM?-0.2:-0.3) && Bc_M[iT]<5.5) w *= flipJBdtWeight[5+flipMeth]->GetBinContent(flipJBdtWeight[5+flipMeth]->FindBin(BDTv[iT]));
-		else                              w *= flipJBdtWeight[0+flipMeth]->GetBinContent(flipJBdtWeight[0+flipMeth]->FindBin(BDTv[iT]));
+	      if(iproc==(9+flipMeth) && applyBDTweights){
+		if(BDTv[iT]<(_withTM?-0.2:-0.35) && Bc_M[iT]<5.6 && _withTM) w *= flipJBdtWeight[5+flipMeth]->GetBinContent(flipJBdtWeight[5+flipMeth]->FindBin(BDTv[iT]));
+		else                                                         w *= flipJBdtWeight[0+flipMeth]->GetBinContent(flipJBdtWeight[0+flipMeth]->FindBin(BDTv[iT]));
 	      }
 	    }
 	  }
@@ -284,9 +325,22 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 	    h_BcM[iproc][k]->Fill(Bc_M[iT], w ); 
 	    h_BcPt[iproc][k]->Fill(Bc_Pt[iT], w ); 
 	    h_QQM[iproc][k]->Fill(QQ_M[iT], w );
+
+	    if(addAccEff){
+	      float acceff = hp_acceff->GetBinContent( hp_acceff->FindBin( fabs(Bc_Y[iT]) , Bc_Pt[iT] ));
+	      float acceffW = (acceff==0)?300:(1/acceff);
+	      h_MeanInvAccEff[iproc][k]->Fill(Bc_M[iT], w * acceffW);
+	      h_AccEffWeights[iproc][k]->Fill(acceffW, w);
+	      h_CorrYieldsVsAccEffWeights[iproc][k]->Fill(acceffW, w * acceffW);
+	      float effBDT23 = hpcoarse_inBDT23->GetBinContent( hpcoarse_inBDT23->FindBin( fabs(Bc_Y[iT]) , Bc_Pt[iT] ));
+	      float effBDT3 = hpcoarse_inBDT3->GetBinContent( hpcoarse_inBDT3->FindBin( fabs(Bc_Y[iT]) , Bc_Pt[iT] ));
+	      h_MeanInvAccEff_BDT23[iproc][k]->Fill(Bc_M[iT], w * acceffW / ((effBDT23==0)?1.5:effBDT23));
+	      h_MeanInvAccEff_BDT3[iproc][k]->Fill(Bc_M[iT], w * acceffW / ((effBDT3==0)?3.:effBDT3));
+	    }
+
 	  }
 	}
-      }
+      }//END loop on processes
       
     }
     //END event loop
@@ -297,13 +351,13 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
   //********************************************************
   //Recording mass histos intended for combine
   //********************************************************
-  TFile *f = new TFile("InputForCombine_"+(TString)(BDTuncorrFromM?"BDTuncorrFromM_":"")+(TString)(ispp?"pp":"PbPb")+".root", (kinBin<1)?"recreate":"update");  
+  TFile *f = new TFile("InputForCombine_"+(TString)(BDTuncorrFromM?"BDTuncorrFromM_":"")+(TString)(ispp?"pp":"PbPb")+".root", (kinBin<2)?"recreate":"update");  
   TDirectory *dir1[nCuts];
   TDirectory *dir2[nProc];
   for(int k=0;k<nCuts;k++){
     
     f->cd();
-    dir1[k] = f->mkdir("BDT"+(TString)(to_string(k+1))+(TString)((kinBin>-1)?("Kin"+to_string(kinBin)):""));
+    dir1[k] = f->mkdir("BDT"+(TString)(to_string(k+1))+(TString)((kinBin>0)?("Kin"+to_string(kinBin)):""));
     for(int i=0; i<nProc; i++){
       dir1[k]->cd();
       dir2[k] = dir1[k]->mkdir(procName[i]);
@@ -318,6 +372,46 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
       h_BcM[i][k]->Write("BcM");
       h_BcPt[i][k]->Write("BcPt");
       h_QQM[i][k]->Write("JpsiM");
+
+      if(addAccEff) {
+	MakePositive(h_MeanInvAccEff[i][k]);
+	MakePositive(h_MeanInvAccEff_BDT23[i][k]);
+	MakePositive(h_MeanInvAccEff_BDT3[i][k]);
+	h_MeanInvAccEff[i][k]->Write("BcM_AccEffWeighted");
+	h_MeanInvAccEff_BDT23[i][k]->Write("BcM_AccEffWeighted_BDTeff23");
+	h_MeanInvAccEff_BDT3[i][k]->Write("BcM_AccEffWeighted_BDTeff3");
+	h_AccEffWeights[i][k]->Write("AccEffWeights");
+	h_CorrYieldsVsAccEffWeights[i][k]->Write("CorrYieldsVsAccEffWeights");
+	
+	h_AccEffCorr[i][k] = (TH1F*)h_MeanInvAccEff[i][k]->Clone("AccEffCorr_"+procName[i]+"_BDT"+(TString)(to_string(k+1)));
+	h_AccEffCorr[i][k]->Divide(h_BcM[i][k]);
+	for(int B=0;B<h_BcM[i][k]->GetNbinsX();B++){
+	  if(h_BcM[i][k]->GetBinContent(B) <=0) {
+	    h_AccEffCorr[i][k]->SetBinError(B, 0.); 
+	    h_AccEffCorr[i][k]->SetBinContent(B, 1.); }
+	}
+	h_AccEffCorr[i][k]->Write("BcM_AccEffCorr");
+	  
+	h_AccEffCorr_BDT23[i][k] = (TH1F*)h_MeanInvAccEff_BDT23[i][k]->Clone("AccEffCorr_BDTeff23_"+procName[i]+"_BDT"+(TString)(to_string(k+1)));
+	h_AccEffCorr_BDT23[i][k]->Divide(h_BcM[i][k]);
+	for(int B=0;B<h_BcM[i][k]->GetNbinsX();B++){
+	  if(h_BcM[i][k]->GetBinContent(B) <=0) {
+	    h_AccEffCorr_BDT23[i][k]->SetBinError(B, 0.); 
+	    h_AccEffCorr_BDT23[i][k]->SetBinContent(B, 1.); }
+	}
+	h_AccEffCorr_BDT23[i][k]->Write("BcM_AccEffCorr_BDTeff23");
+	  
+	h_AccEffCorr_BDT3[i][k] = (TH1F*)h_MeanInvAccEff_BDT23[i][k]->Clone("AccEffCorr_BDTeff3_"+procName[i]+"_BDT"+(TString)(to_string(k+1)));
+	h_AccEffCorr_BDT3[i][k]->Divide(h_BcM[i][k]);
+	for(int B=0;B<h_BcM[i][k]->GetNbinsX();B++){
+	  if(h_BcM[i][k]->GetBinContent(B) <=0) {
+	    h_AccEffCorr_BDT3[i][k]->SetBinError(B, 0.); 
+	    h_AccEffCorr_BDT3[i][k]->SetBinContent(B, 1.); }
+	}
+	h_AccEffCorr_BDT3[i][k]->Write("BcM_AccEffCorr_BDTeff3");
+	  
+      }
+
     }
   }
   f->Close();
@@ -326,8 +420,8 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 
 void HistsForCombine(bool ispp = true, bool BDTuncorrFromM=false){
 
-  //  application(BDTuncorrFromM?(_corrBDTcuts(ispp)):(_BDTcuts(ispp)), ispp, BDTuncorrFromM, -1); //integrated bin
-  application(BDTuncorrFromM?(_corrBDTcuts(ispp)):(_BDTcuts(ispp)), ispp, BDTuncorrFromM, 0); //run bin0 before bin1
-  application(BDTuncorrFromM?(_corrBDTcuts(ispp)):(_BDTcuts(ispp)), ispp, BDTuncorrFromM, 1);
+  //  application(BDTuncorrFromM?(_corrBDTcuts(ispp)):(_BDTcuts(ispp)), ispp, BDTuncorrFromM, 0); //integrated bin
+  application(BDTuncorrFromM?(_corrBDTcuts(ispp)):(_BDTcuts(ispp)), ispp, BDTuncorrFromM, 1); //run bin1 before bin2
+  application(BDTuncorrFromM?(_corrBDTcuts(ispp)):(_BDTcuts(ispp)), ispp, BDTuncorrFromM, 2);
 
 }
