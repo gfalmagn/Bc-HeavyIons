@@ -79,7 +79,7 @@ void addBDTvariable(bool ispp=true, bool withTM=false){
   float BDTrarity[ntrees];
 
   //Which BDT is used, and what fitting strategy
-  TString weightFile = "BDT"+(TString)(withTM?"finer":"")+(TString)(ispp?"":"_PbPb")+"_withJpsiMC"+(TString)(useVarCorrWMass?"":"_dropVarCorrWMass")+(TString)(withTM?"_withTM":""); //BDTfinerShallow
+  TString weightFile = "BDT"+(TString)(withTM?"finer":"finerShallow")+(TString)(ispp?"":"_PbPb")+"_withJpsiMC"+(TString)(useVarCorrWMass?"":"_dropVarCorrWMass")+(TString)(withTM?"_withTM":""); //BDTfinerShallow
   TString treeName[] = {"bkgWRONGSIGN","bkgBCMASS","bkgTRUEJPSI","sigRegion","signal_MC","bToJpsi_MC","PromptJpsi_MC","dimuonTrk","flipJpsi"};
   TString prettyName[] = {"WRONGSIGN","J/Psi sidebands","High mass control","signal region","MC signal expectation",
 			  "MC NonPromptJpsi","MC PromptJpsi","dimuon+track (misID)","flipped J/Psi"};
@@ -111,78 +111,78 @@ void addBDTvariable(bool ispp=true, bool withTM=false){
     reader2.push_back(vector<TMVA::Reader*>());
 
     //loop on analysis bins: 1 reader pair per bin (because there is 1 BDT training per bin)
-    for(int b=0;b<_NanaBins;b++){
+    for(int b=1;b<=_NanaBins;b++){
       reader1[iT].push_back(new TMVA::Reader( "Color:!Silent" ));
 
       //Declare the used variables -- must be the same as in training
-      if(useVarCorrWMass) reader1[iT][b]->AddVariable("Bc_CorrM_shiftedM", &Bc_CorrM[iT]);
-      reader1[iT][b]->AddSpectator("Bc_ctauSignif", &Bc_ctauSignif[iT]);
-      reader1[iT][b]->AddVariable("Bc_log_ctauSignif3D := TMath::Log(Bc_ctauSignif3D+1e-8)", &Bc_log_ctauSignif3D[iT]);
-      reader1[iT][b]->AddSpectator("Bc_alpha", &Bc_alpha[iT]);
-      if(withTM) reader1[iT][b]->AddVariable("Bc_alpha3D", &Bc_alpha3D[iT]);
-      reader1[iT][b]->AddVariable("Bc_log1min_VtxProb := TMath::Log(1-Bc_VtxProb+1e-6)", &Bc_log1min_VtxProb[iT]);
-      reader1[iT][b]->AddSpectator("QQ_log1min_VtxProb := TMath::Log(1-QQ_VtxProb+1e-6)", &QQ_log1min_VtxProb[iT]);
-      if(withTM) reader1[iT][b]->AddVariable("QQ_log_dca := TMath::Log(QQ_dca+1e-8)", &QQ_log_dca[iT]);
+      if(useVarCorrWMass) reader1[iT][b-1]->AddVariable("Bc_CorrM_shiftedM", &Bc_CorrM[iT]);
+      reader1[iT][b-1]->AddSpectator("Bc_ctauSignif", &Bc_ctauSignif[iT]);
+      reader1[iT][b-1]->AddVariable("Bc_log_ctauSignif3D := TMath::Log(Bc_ctauSignif3D+1e-8)", &Bc_log_ctauSignif3D[iT]);
+      reader1[iT][b-1]->AddSpectator("Bc_alpha", &Bc_alpha[iT]);
+      if(withTM) reader1[iT][b-1]->AddVariable("Bc_alpha3D", &Bc_alpha3D[iT]);
+      reader1[iT][b-1]->AddVariable("Bc_log1min_VtxProb := TMath::Log(1-Bc_VtxProb+1e-6)", &Bc_log1min_VtxProb[iT]);
+      reader1[iT][b-1]->AddSpectator("QQ_log1min_VtxProb := TMath::Log(1-QQ_VtxProb+1e-6)", &QQ_log1min_VtxProb[iT]);
+      if(withTM) reader1[iT][b-1]->AddVariable("QQ_log_dca := TMath::Log(QQ_dca+1e-8)", &QQ_log_dca[iT]);
       if(useVarCorrWMass) {
-	reader1[iT][b]->AddVariable("dR_sum_shiftedM", &dR_sum[iT]);
-	reader1[iT][b]->AddVariable("dR_jpsiOverMuW_shiftedM", &dR_jpsiOverMuW[iT]);
-	reader1[iT][b]->AddSpectator("dR_jpsiMuW_shiftedM", &dR_jpsiMuW[iT]);
+	reader1[iT][b-1]->AddVariable("dR_sum_shiftedM", &dR_sum[iT]);
+	reader1[iT][b-1]->AddVariable("dR_jpsiOverMuW_shiftedM", &dR_jpsiOverMuW[iT]);
+	reader1[iT][b-1]->AddSpectator("dR_jpsiMuW_shiftedM", &dR_jpsiMuW[iT]);
       }
-      reader1[iT][b]->AddSpectator("MuonDzSignif_sum", &MuonDzSignif_sum[iT]);
+      reader1[iT][b-1]->AddSpectator("MuonDzSignif_sum", &MuonDzSignif_sum[iT]);
       if(withTM) {
-	reader1[iT][b]->AddVariable("log_MuonDxySignif_sum := TMath::Log(MuonDxySignif_sum+1e-8)", &log_MuonDxySignif_sum[iT]);
-	reader1[iT][b]->AddVariable("muonsGlbInLooseAcc := (muW_isGlb && muW_inLooseAcc) + (mumi_isGlb && mumi_inLooseAcc) + (mupl_isGlb && mupl_inLooseAcc)",&muonsGlbInLooseAcc[iT]);
-	reader1[iT][b]->AddVariable("muonsInTightAcc := muW_inTightAcc + mumi_inTightAcc + mupl_inTightAcc",&muonsInTightAcc[iT]);
+	reader1[iT][b-1]->AddVariable("log_MuonDxySignif_sum := TMath::Log(MuonDxySignif_sum+1e-8)", &log_MuonDxySignif_sum[iT]);
+	reader1[iT][b-1]->AddVariable("muonsGlbInLooseAcc := (muW_isGlb && muW_inLooseAcc) + (mumi_isGlb && mumi_inLooseAcc) + (mupl_isGlb && mupl_inLooseAcc)",&muonsGlbInLooseAcc[iT]);
+	reader1[iT][b-1]->AddVariable("muonsInTightAcc := muW_inTightAcc + mumi_inTightAcc + mupl_inTightAcc",&muonsInTightAcc[iT]);
       }
-      reader1[iT][b]->AddVariable("QQmuW_ptImbal", &QQmuW_ptImbal[iT]);
-      reader1[iT][b]->AddSpectator("Bc_M", &Bc_M[iT]);
-      reader1[iT][b]->AddSpectator("Bc_Pt", &Bc_Pt[iT]);
-      reader1[iT][b]->AddSpectator("QQ_M", &QQ_M[iT]);
-      // reader1[iT][b]->AddSpectator("QQ2_M", &QQ2_M[iT]);
-      // reader1[iT][b]->AddSpectator("QQ3_M", &QQ3_M[iT]);
-      reader1[iT][b]->AddSpectator("bkgType", &bkgType[iT]);
-      reader1[iT][b]->AddSpectator("muW_isJpsiBro", &muW_isJpsiBro[iT]);
-      reader1[iT][b]->AddSpectator("muW_trueId", &muW_trueId[iT]);
-      reader1[iT][b]->AddSpectator("w_simple2", &w_simple2[iT]);
+      reader1[iT][b-1]->AddVariable("QQmuW_ptImbal", &QQmuW_ptImbal[iT]);
+      reader1[iT][b-1]->AddSpectator("Bc_M", &Bc_M[iT]);
+      reader1[iT][b-1]->AddSpectator("Bc_Pt", &Bc_Pt[iT]);
+      reader1[iT][b-1]->AddSpectator("QQ_M", &QQ_M[iT]);
+      // reader1[iT][b-1]->AddSpectator("QQ2_M", &QQ2_M[iT]);
+      // reader1[iT][b-1]->AddSpectator("QQ3_M", &QQ3_M[iT]);
+      reader1[iT][b-1]->AddSpectator("bkgType", &bkgType[iT]);
+      reader1[iT][b-1]->AddSpectator("muW_isJpsiBro", &muW_isJpsiBro[iT]);
+      reader1[iT][b-1]->AddSpectator("muW_trueId", &muW_trueId[iT]);
+      reader1[iT][b-1]->AddSpectator("w_simple2", &w_simple2[iT]);
 
       //Book MVA methods
-      reader1[iT][b]->BookMVA("BDT","dataset/weights/BcSigBkgClassification_"+weightFile+"_kinBin"+(TString)to_string(b)+"_1stHalf.weights.xml");
+      reader1[iT][b-1]->BookMVA("BDT","dataset/weights/BcSigBkgClassification_"+weightFile+"_kinBin"+(TString)to_string(b)+"_1stHalf.weights.xml");
 
       reader2[iT].push_back(new TMVA::Reader( "Color:!Silent" ));
 
       //Declare the used variables -- must be the same as in training
-      if(useVarCorrWMass) reader2[iT][b]->AddVariable("Bc_CorrM_shiftedM", &Bc_CorrM[iT]);
-      reader2[iT][b]->AddSpectator("Bc_ctauSignif", &Bc_ctauSignif[iT]);
-      reader2[iT][b]->AddVariable("Bc_log_ctauSignif3D := TMath::Log(Bc_ctauSignif3D+1e-8)", &Bc_log_ctauSignif3D[iT]);
-      reader2[iT][b]->AddSpectator("Bc_alpha", &Bc_alpha[iT]);
-      if(withTM) reader2[iT][b]->AddVariable("Bc_alpha3D", &Bc_alpha3D[iT]);
-      reader2[iT][b]->AddVariable("Bc_log1min_VtxProb := TMath::Log(1-Bc_VtxProb+1e-6)", &Bc_log1min_VtxProb[iT]);
-      reader2[iT][b]->AddSpectator("QQ_log1min_VtxProb := TMath::Log(1-QQ_VtxProb+1e-6)", &QQ_log1min_VtxProb[iT]);
-      if(withTM) reader2[iT][b]->AddVariable("QQ_log_dca := TMath::Log(QQ_dca+1e-8)", &QQ_log_dca[iT]);
+      if(useVarCorrWMass) reader2[iT][b-1]->AddVariable("Bc_CorrM_shiftedM", &Bc_CorrM[iT]);
+      reader2[iT][b-1]->AddSpectator("Bc_ctauSignif", &Bc_ctauSignif[iT]);
+      reader2[iT][b-1]->AddVariable("Bc_log_ctauSignif3D := TMath::Log(Bc_ctauSignif3D+1e-8)", &Bc_log_ctauSignif3D[iT]);
+      reader2[iT][b-1]->AddSpectator("Bc_alpha", &Bc_alpha[iT]);
+      if(withTM) reader2[iT][b-1]->AddVariable("Bc_alpha3D", &Bc_alpha3D[iT]);
+      reader2[iT][b-1]->AddVariable("Bc_log1min_VtxProb := TMath::Log(1-Bc_VtxProb+1e-6)", &Bc_log1min_VtxProb[iT]);
+      reader2[iT][b-1]->AddSpectator("QQ_log1min_VtxProb := TMath::Log(1-QQ_VtxProb+1e-6)", &QQ_log1min_VtxProb[iT]);
+      if(withTM) reader2[iT][b-1]->AddVariable("QQ_log_dca := TMath::Log(QQ_dca+1e-8)", &QQ_log_dca[iT]);
       if(useVarCorrWMass) {
-	reader2[iT][b]->AddVariable("dR_sum_shiftedM", &dR_sum[iT]);
-	reader2[iT][b]->AddVariable("dR_jpsiOverMuW_shiftedM", &dR_jpsiOverMuW[iT]);
-	reader2[iT][b]->AddSpectator("dR_jpsiMuW_shiftedM", &dR_jpsiMuW[iT]);
+	reader2[iT][b-1]->AddVariable("dR_sum_shiftedM", &dR_sum[iT]);
+	reader2[iT][b-1]->AddVariable("dR_jpsiOverMuW_shiftedM", &dR_jpsiOverMuW[iT]);
+	reader2[iT][b-1]->AddSpectator("dR_jpsiMuW_shiftedM", &dR_jpsiMuW[iT]);
       }
-      reader2[iT][b]->AddSpectator("MuonDzSignif_sum", &MuonDzSignif_sum[iT]);
+      reader2[iT][b-1]->AddSpectator("MuonDzSignif_sum", &MuonDzSignif_sum[iT]);
       if(withTM) {
-	reader2[iT][b]->AddVariable("log_MuonDxySignif_sum := TMath::Log(MuonDxySignif_sum+1e-8)", &log_MuonDxySignif_sum[iT]);
-	reader2[iT][b]->AddVariable("muonsGlbInLooseAcc := (muW_isGlb && muW_inLooseAcc) + (mumi_isGlb && mumi_inLooseAcc) + (mupl_isGlb && mupl_inLooseAcc)",&muonsGlbInLooseAcc[iT]);
-	reader2[iT][b]->AddVariable("muonsInTightAcc := muW_inTightAcc + mumi_inTightAcc + mupl_inTightAcc",&muonsInTightAcc[iT]);
+	reader2[iT][b-1]->AddVariable("log_MuonDxySignif_sum := TMath::Log(MuonDxySignif_sum+1e-8)", &log_MuonDxySignif_sum[iT]);
+	reader2[iT][b-1]->AddVariable("muonsGlbInLooseAcc := (muW_isGlb && muW_inLooseAcc) + (mumi_isGlb && mumi_inLooseAcc) + (mupl_isGlb && mupl_inLooseAcc)",&muonsGlbInLooseAcc[iT]);
+	reader2[iT][b-1]->AddVariable("muonsInTightAcc := muW_inTightAcc + mumi_inTightAcc + mupl_inTightAcc",&muonsInTightAcc[iT]);
       }
-      reader2[iT][b]->AddVariable("QQmuW_ptImbal", &QQmuW_ptImbal[iT]);
-      reader2[iT][b]->AddSpectator("Bc_M", &Bc_M[iT]);
-      reader2[iT][b]->AddSpectator("Bc_Pt", &Bc_Pt[iT]);
-      reader2[iT][b]->AddSpectator("QQ_M", &QQ_M[iT]);
-      // reader2[iT][b]->AddSpectator("QQ2_M", &QQ2_M[iT]);
-      // reader2[iT][b]->AddSpectator("QQ3_M", &QQ3_M[iT]);
-      reader2[iT][b]->AddSpectator("bkgType", &bkgType[iT]);
-      reader2[iT][b]->AddSpectator("muW_isJpsiBro", &muW_isJpsiBro[iT]);
-      reader2[iT][b]->AddSpectator("muW_trueId", &muW_trueId[iT]);
-      reader2[iT][b]->AddSpectator("w_simple2", &w_simple2[iT]);
+      reader2[iT][b-1]->AddVariable("QQmuW_ptImbal", &QQmuW_ptImbal[iT]);
+      reader2[iT][b-1]->AddSpectator("Bc_M", &Bc_M[iT]);
+      reader2[iT][b-1]->AddSpectator("Bc_Pt", &Bc_Pt[iT]);
+      reader2[iT][b-1]->AddSpectator("QQ_M", &QQ_M[iT]);
+      // reader2[iT][b-1]->AddSpectator("QQ2_M", &QQ2_M[iT]);
+      // reader2[iT][b-1]->AddSpectator("QQ3_M", &QQ3_M[iT]);
+      reader2[iT][b-1]->AddSpectator("bkgType", &bkgType[iT]);
+      reader2[iT][b-1]->AddSpectator("muW_isJpsiBro", &muW_isJpsiBro[iT]);
+      reader2[iT][b-1]->AddSpectator("muW_trueId", &muW_trueId[iT]);
+      reader2[iT][b-1]->AddSpectator("w_simple2", &w_simple2[iT]);
 
       //Book MVA methods //only difference between the two reader is here
-      reader2[iT][b]->BookMVA("BDT","dataset/weights/BcSigBkgClassification_"+weightFile+"_kinBin"+(TString)to_string(b)+"_2ndHalf.weights.xml");
+      reader2[iT][b-1]->BookMVA("BDT","dataset/weights/BcSigBkgClassification_"+weightFile+"_kinBin"+(TString)to_string(b)+"_2ndHalf.weights.xml");
     }
 
     T[iT]->SetBranchAddress("Bc_alpha", &Bc_alpha[iT]);
@@ -235,7 +235,7 @@ void addBDTvariable(bool ispp=true, bool withTM=false){
       log_MuonDxySignif_sum[iT] = TMath::Log(MuonDxySignif_sum[iT]+1e-8);
 
       int kinBin = -1;
-      if(Bc_Pt[iT]<_BcPtmax[0]) kinBin = 0;
+      if(Bc_Pt[iT]<_BcPtmax[1]) kinBin = 0; //different bin numbering convetion here, start from 0
       else kinBin = 1;
       if(kinBin==-1) continue;
 

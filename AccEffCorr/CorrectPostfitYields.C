@@ -8,7 +8,7 @@
 #include "TStyle.h"
 #include "Math/PdfFuncMathCore.h"
 #include "Math/PdfFuncMathMore.h"
-#include "../helpers/Definitions.h"
+#include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
 
 void CorrectPostfitYields(bool ispp = true, bool BDTuncorrFromM=false, int skipBDTbins=0){

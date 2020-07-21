@@ -16,7 +16,7 @@
 #include "TGaxis.h"
 #include "TCanvas.h"
 #include "TPad.h"
-#include "../helpers/Definitions.h"
+#include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
 
 void UncorrelateBDTfromM(bool ispp=true){
@@ -30,15 +30,6 @@ void UncorrelateBDTfromM(bool ispp=true){
   bool useFlipJpsi = ispp;
   bool flipJpsiSameSide = false; // whether to keep only events with flipJpsi angle on same |eta| side
   bool bToJpsiOnly = false;//ispp;
-
-  vector<float> BDTcut = _BDTcuts(ispp); //vector of BDT cut values put into array
-  //  if(ignore1stBin) BDTcut.erase(0);
-  //int nchan = BDTcut.size() -1;
-  float BDTcut_l[_nChan(ispp)+2]; 
-  BDTcut_l[0] = -1;
-  for(int k=0;k<=_nChan(ispp);k++){
-    BDTcut_l[k+1] = BDTcut[k];
-  }
   
   vector<vector<TH1F*> > h_BcM(ntrees, vector<TH1F*>(_nChan(ispp)+1));
   vector<vector<TH1F*> > h_BcM_postfit(ntrees, vector<TH1F*>(_nChan(ispp)+1 ));

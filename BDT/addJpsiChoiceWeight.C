@@ -14,7 +14,7 @@
 #include "TROOT.h"
 #include "TLatex.h"
 #include "TGaxis.h"
-#include "../helpers/Definitions.h"
+#include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
 
 void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts = vector<float>()){
@@ -121,7 +121,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
     for(int j=0; j<T[iT]->GetEntries(); j++){//T[iT]->GetEntries()
 
       T[iT]->GetEntry(j);
-      if(!(Bc_Pt[iT]>_BcPtmin[0] && Bc_Pt[iT]<_BcPtmax[1] && fabs(Bc_Y[iT])<_BcYmax[0] && (Bc_Pt[iT]>_BcPtmin[1] || fabs(Bc_Y[iT])>_BcYmin[0]) )) continue; //fiducial cuts
+      if(!(Bc_Pt[iT]>_BcPtmin[0] && Bc_Pt[iT]<_BcPtmax[0] && fabs(Bc_Y[iT])<_BcYmax[0] && (Bc_Pt[iT]>_BcPtmin[1] || fabs(Bc_Y[iT])>_BcYmin[2]) )) continue; //fiducial cuts
 
       float maxEta = max(fabs(muW_eta[iT]),max(fabs(mumi_eta[iT]),fabs(mupl_eta[iT])));
       int kbin = nBDTb; //kbin 0 is for all BDT values
@@ -263,7 +263,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
     //END event loop
 
     //T[iT]->Print(); 
-    //T[iT]->Write("",TObject::kOverwrite); //overwrite, or two versions of the trees are saved 
+    T[iT]->Write("",TObject::kOverwrite); //overwrite, or two versions of the trees are saved 
   } 
   //END loop on trees
   
@@ -311,7 +311,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
     }
     ic2+=1;
   }
-  c1->SaveAs("figs/JpsiMassUnambiguousCands_tightRange_"+(TString)(ispp?"pp":"PbPb")+(TString)(useBDTbins?"_inBDTbins":"")+".pdf");
+  c2->SaveAs("figs/JpsiMassUnambiguousCands_tightRange_"+(TString)(ispp?"pp":"PbPb")+(TString)(useBDTbins?"_inBDTbins":"")+".pdf");
 
   //*******************************************
   //output file for data Jpsi mass distro
@@ -327,11 +327,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
 
 void addJpsiChoiceWeight(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts_ = vector<float>()){
   if (useBDTbins && BDTcuts_.size()<2){
-    BDTcuts_ = _BDTcuts(ispp);
-    // BDTcuts_.push_back(-0.6);
-    // BDTcuts_.push_back(0.);
-    // BDTcuts_.push_back(ispp?0.15:0.20);
-    // BDTcuts_.push_back(0.6);
+    BDTcuts_ = _BDTcuts(ispp,0); //we don't bother to make this dependent on the kinematic bin
   }
   
   addJpsiChoiceW(ispp,useBDTbins,BDTcuts_);

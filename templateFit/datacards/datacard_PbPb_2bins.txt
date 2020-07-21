@@ -17,14 +17,14 @@ process        	     0          1	   2	      3          0          1	       2	  
 rate           	     -1         -1         -1         -1         -1         -1         -1         -1         -1         -1         -1         -1	 -1         -1         -1         -1	     -1         -1         -1         -1	 -1         -1         -1         -1	 
 --------------------------------
 lumi          lnN    1.019	1.019      -          -		 1.019      1.019      -          -          1.019      1.019      -          -          1.019      1.019      -          -          1.019      1.019      -          -          1.019      1.019      -          -          
-############# Beware, remove this systematic for bin BDT3, because flipJpsi is empty. Temporary !!!
-PromptOrFlipJ shape  -          -          1.	      1.	 -          -          1.	  1.	     -          -          - 	      - 	 -          -          1.	  1.	     -          -          1.	      1.	 -          -          - 	  - 	 	 	 
-bJpsiFrac     shape  -          -          1.         1.         -          -          1.         1.         -          -          1.         1.         -          -          1.         1.	     -          -          1.         1.	 -          -          1.         1.	     
+PromptOrFlipJ shape  -          -          - 	      1.	 -          -          - 	  1.	     -          -          - 	      - 	 -          -          - 	  1.	     -          -          - 	      1.	 -          -          -  	  1.
+bJpsiFrac     shape  -          -          1.         -          -          -          1.         -          -          -          1.         -          -          -          1.         - 	     -          -          1.         - 	 -          -          1.         - 	     
 JpsiSB        shape  -          0.5        -          -          -          0.5        -          -          -          0.5        -          -          -          0.5        -          -	     -          0.5        -          -	     	 -          0.5        -          -	     
+#here, for PromptOrFlipJ and bJpsiFrac, remove the second order effect of applying different BDT weightings for the varied shapes
 
-misID		rateParam * NPJpsi  1.5
-misIDPrompt	rateParam * PromptJpsi 1.5
-misID		param 1.5 0.5
-misIDPrompt	param 1.5 0.5
+misID		rateParam * NPJpsi  1.8
+misIDPrompt	rateParam * PromptJpsi 1.8
+misID		param 1.8 0.5
+misIDPrompt	param 1.8 0.5
 
-* autoMCStats 10 #Poisson threshold on typical number of events in binomial
+* autoMCStats 13 #Poisson threshold on typical number of events in binomial

@@ -34,52 +34,6 @@ float* _Mbinning(bool ispp){
   return Mbins;
 }
 
-std::vector<float> _BDTcuts(bool ispp){
-  vector<float> res;
-  res.push_back(_withTM?-0.5:-1);
-  if(_withTM) res.push_back(-0.2);
-  res.push_back(0.);
-  res.push_back(_withTM?0.15:0.4);//ispp?0.15:0.2);
-  res.push_back(_withTM?0.4:1);
-  return res;
-}
-
-std::vector<float> _corrBDTcuts(bool ispp){
-  vector<float> res;
-  res.push_back(_withTM?(ispp?-0.35:-0.26):(ispp?-1:-0.8));
-  if(_withTM) res.push_back(ispp?-0.05:0.05);
-  res.push_back(_withTM?(ispp?0.1:0.23):(ispp?0.:0.32));
-  res.push_back(_withTM?(ispp?0.23:0.42):(ispp?0.3:0.73));
-  res.push_back(_withTM?(ispp?0.45:0.64):(ispp?1.:1.4));
-  return res;
-}
-
-//String manipulation for output                                                                                                                                                                                                            
-int _nChan(bool ispp){return _BDTcuts(ispp).size()-1; }
-
-std::vector<std::string> _BDTcut_s(bool ispp, bool UncorrBDTfromM=false){
-  std::vector<std::string> res2;
-  char res[_nChan(ispp)+1][10];
-  for(int k=0;k<_nChan(ispp)+1;k++){
-    sprintf(res[k], "%.2f", (UncorrBDTfromM?_corrBDTcuts:_BDTcuts)(ispp)[k]);
-    res2.push_back((std::string)res[k]);
-  }
-  return res2;
-}
-
-std::vector<std::string> _BDTcut_s2(bool ispp){
-  std::vector<std::string> res;
-  for(int k=0;k<_nChan(ispp)+1;k++){
-    res.push_back((std::string)_BDTcut_s(ispp)[k]);
-    if(_BDTcuts(ispp)[k]<-0.001){
-      res[k].replace(2,1,"p");
-      res[k].replace(0,1,"Minus");}
-    else{
-      res[k].replace(1,1,"p");}
-  }
-  return res;
-}
-
 bool isSoft(bool includeTM, bool isGlb, bool isTrk, bool TMOneStaTight, bool highP, float dxy, float dz, int nPix, int nTrk){
 
   if(includeTM){//pp

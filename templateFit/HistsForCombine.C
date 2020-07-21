@@ -14,19 +14,99 @@
 #include "TLatex.h"
 #include "TGaxis.h"
 #include "TDirectory.h"
-#include "../helpers/Definitions.h"
+#include "../helpers/Cuts_BDT.h" //this first
 #include "../helpers/Cuts.h"
 
-void MakePositive(TH1F* h){
-  for(int b=0;b<=h->GetNbinsX();b++){
+float Maxi3(float f1, float f2, float f3){
+  return max(f1,max(f2,f3));
+}
+
+bool needsRegul(TH1F* h, bool loose=true){
+  //check if the histo passes the 'not enough stats' conditions
+  bool needsReg = false, looseCondition = true;
+  bool emptybin = false, seenNonEmpty = false;
+
+  for(int b=1;b<=h->GetNbinsX();b++){ //if some bins have a lot of stats, no regularization
+    if(h->GetBinContent(b)>0 && h->GetBinError(b)/h->GetBinContent(b)<0.2) return false;
+  }
+  
+  if(loose){
+    for(int b=1;b<=h->GetNbinsX();b++){
+      if(h->GetBinContent(b)>0 && h->GetBinError(b)/h->GetBinContent(b)<0.5) {
+	looseCondition = false; break;}
+    }
+  }
+
+  //empty bin surrounded by non-empty bins?
+  for(int b=2;b<h->GetNbinsX();b++){
+    if(emptybin && 
+       h->GetBinContent(b)>0) 
+      needsReg = true; //order of the 3 conditions does matter
+    if(seenNonEmpty && 
+       (h->GetBinContent(b)<=0 || (loose && h->GetBinError(b) > 0.9*h->GetBinContent(b))))
+      emptybin = true;
+    if(h->GetBinContent(b)>0) 
+      seenNonEmpty = true;
+  }
+
+  return needsReg || (loose && looseCondition);
+}
+
+void floatingAverage3bins(TH1F* h){
+  TH1F* hcopy = (TH1F*)h->Clone("hcopy");
+
+  const int n = h->GetNbinsX();
+  //special cases for bin 1 and n
+  h->SetBinContent(1, (2*hcopy->GetBinContent(1)+hcopy->GetBinContent(2))/3 );
+  h->SetBinError(1, max(hcopy->GetBinError(1),hcopy->GetBinError(2)));//sqrt( pow(2*hcopy->GetBinError(1),2) + pow(hcopy->GetBinError(2),2) )/3 );// sqrt( ...)/3
+  h->SetBinContent(n, (2*hcopy->GetBinContent(n)+hcopy->GetBinContent(n-1))/3 );
+  h->SetBinError(n, max(hcopy->GetBinError(n),hcopy->GetBinError(n-1)));//sqrt( pow(2*hcopy->GetBinError(n),2) + pow(hcopy->GetBinError(n-1),2) )/3 );// sqrt( ...)/3
+  //average over 3 bins
+  for(int b=2;b<n;b++){
+    h->SetBinContent(b, ( hcopy->GetBinContent(b-1)+hcopy->GetBinContent(b)+hcopy->GetBinContent(b+1) )/3 );
+    h->SetBinError(b, Maxi3(hcopy->GetBinError(b-1),hcopy->GetBinError(b),hcopy->GetBinError(b+1)));//sqrt( pow(hcopy->GetBinError(b-1),2) + pow(hcopy->GetBinError(b),2) + pow(hcopy->GetBinError(b+1),2) )/3 );
+  }
+
+  hcopy->Delete();
+}
+
+int MakePositive(TH1F* h, bool regularize=false, int forceReg=-1){
+
+  //for histos with too few stats, make a 3-bins floating average
+  int reg = 0;
+  if(regularize && forceReg!=0){
+    if((needsRegul(h,true) && forceReg==-1) || forceReg>=1){
+      floatingAverage3bins(h);
+      reg = 1;
+    }
+    if((reg==1 && needsRegul(h,false) && forceReg==-1) || forceReg>=2) { //only if 1st regularization was done
+      floatingAverage3bins(h); //if there are still empty bins surrounded by non-empty bins, regularize again
+      reg = 2;
+    }
+    if((reg==2 && needsRegul(h,false) && forceReg==-1) || forceReg>=3) { //only if 2nd regularization was done
+      floatingAverage3bins(h); //if there are still empty bins surrounded by non-empty bins, regularize again
+      reg = 3;
+    }
+    if(forceReg==-1 && reg>=1) cout<<"Regularized "<<h->GetName()<<" "<<reg<<" time(s)"<<endl;
+  }
+
+  //forbid bins with negative content
+  bool nonEmpty = false;
+  for(int b=1;b<=h->GetNbinsX();b++){
     if(h->GetBinContent(b)<=0) {
       h->SetBinContent(b,0);
       h->SetBinError(b,0);}
     if(h->GetBinContent(b) - h->GetBinError(b) <0) { //avoid errors reaching negative values
-      h->SetBinError(b, 0.9 * h->GetBinContent(b));}
+      h->SetBinError(b, h->GetBinContent(b));}
+    if(h->GetBinContent(b)>0) nonEmpty = true;
+  }
+  if(!nonEmpty){
+    h->SetBinContent(h->FindBin(4.8),1e-5);
+    h->SetBinError(h->FindBin(4.8),1e-5);
   }
   h->SetMinimum(0);
-  return;
+
+  return reg;
 }
 
 void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBin, bool addAccEff=true){
@@ -37,9 +117,9 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
   auto acceffFile = TFile::Open(addAccEff?"../efficiency/AcceptanceEfficiencyMap.root":"","READ");
   TH2Poly* hp_acceff = (TH2Poly*)(addAccEff?(  acceffFile->Get("hp_acceff_"+(TString)(ispp?"pp":"PbPb"))  ):(new TH2Poly()));
   hp_acceff->SetDirectory(0);
-  TH2Poly* hpcoarse_inBDT23 = (TH2Poly*)(addAccEff?(  acceffFile->Get("hpcoarse_inBDT23_"+(TString)(ispp?"pp":"PbPb"))  ):(new TH2Poly()));
+  TH2Poly* hpcoarse_inBDT23 = (TH2Poly*)(addAccEff?(  acceffFile->Get("hpcoarse_inBDT23_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)((kinBin==0)?"_integratePtBins":""))  ):(new TH2Poly()));
   hpcoarse_inBDT23->SetDirectory(0);
-  TH2Poly* hpcoarse_inBDT3 = (TH2Poly*)(addAccEff?(  acceffFile->Get("hpcoarse_inBDT3_"+(TString)(ispp?"pp":"PbPb"))  ):(new TH2Poly()));
+  TH2Poly* hpcoarse_inBDT3 = (TH2Poly*)(addAccEff?(  acceffFile->Get("hpcoarse_inBDT3_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)((kinBin==0)?"_integratePtBins":""))  ):(new TH2Poly()));
   hpcoarse_inBDT3->SetDirectory(0);
   acceffFile->Close();
 
@@ -364,7 +444,7 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
       dir2[k]->cd();
       
       MakePositive(h_bdt[i][k]);
-      MakePositive(h_BcM[i][k]);
+      int didReg = MakePositive(h_BcM[i][k], (i!=3 && i!=4));
       MakePositive(h_BcPt[i][k]);
       MakePositive(h_QQM[i][k]);
 
@@ -374,9 +454,9 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
       h_QQM[i][k]->Write("JpsiM");
 
       if(addAccEff) {
-	MakePositive(h_MeanInvAccEff[i][k]);
-	MakePositive(h_MeanInvAccEff_BDT23[i][k]);
-	MakePositive(h_MeanInvAccEff_BDT3[i][k]);
+	MakePositive(h_MeanInvAccEff[i][k], (i!=3 && i!=4), didReg); //need same regularization as simple Bc_M
+	MakePositive(h_MeanInvAccEff_BDT23[i][k], (i!=3 && i!=4), didReg);
+	MakePositive(h_MeanInvAccEff_BDT3[i][k], (i!=3 && i!=4), didReg);
 	h_MeanInvAccEff[i][k]->Write("BcM_AccEffWeighted");
 	h_MeanInvAccEff_BDT23[i][k]->Write("BcM_AccEffWeighted_BDTeff23");
 	h_MeanInvAccEff_BDT3[i][k]->Write("BcM_AccEffWeighted_BDTeff3");
@@ -401,7 +481,7 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 	}
 	h_AccEffCorr_BDT23[i][k]->Write("BcM_AccEffCorr_BDTeff23");
 	  
-	h_AccEffCorr_BDT3[i][k] = (TH1F*)h_MeanInvAccEff_BDT23[i][k]->Clone("AccEffCorr_BDTeff3_"+procName[i]+"_BDT"+(TString)(to_string(k+1)));
+	h_AccEffCorr_BDT3[i][k] = (TH1F*)h_MeanInvAccEff_BDT3[i][k]->Clone("AccEffCorr_BDTeff3_"+procName[i]+"_BDT"+(TString)(to_string(k+1)));
 	h_AccEffCorr_BDT3[i][k]->Divide(h_BcM[i][k]);
 	for(int B=0;B<h_BcM[i][k]->GetNbinsX();B++){
 	  if(h_BcM[i][k]->GetBinContent(B) <=0) {
@@ -420,8 +500,8 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 
 void HistsForCombine(bool ispp = true, bool BDTuncorrFromM=false){
 
-  //  application(BDTuncorrFromM?(_corrBDTcuts(ispp)):(_BDTcuts(ispp)), ispp, BDTuncorrFromM, 0); //integrated bin
-  application(BDTuncorrFromM?(_corrBDTcuts(ispp)):(_BDTcuts(ispp)), ispp, BDTuncorrFromM, 1); //run bin1 before bin2
-  application(BDTuncorrFromM?(_corrBDTcuts(ispp)):(_BDTcuts(ispp)), ispp, BDTuncorrFromM, 2);
+  //  application( _BDTcuts(ispp,0,BDTuncorrFromM) , ispp, BDTuncorrFromM, 0); //integrated bin
+  application( _BDTcuts(ispp,1,BDTuncorrFromM) , ispp, BDTuncorrFromM, 1); //run bin1 before bin2
+  application( _BDTcuts(ispp,2,BDTuncorrFromM) , ispp, BDTuncorrFromM, 2);
 
 }

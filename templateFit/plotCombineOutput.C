@@ -16,7 +16,7 @@
 #include "TGaxis.h"
 #include "TCanvas.h"
 #include "TPad.h"
-#include "../helpers/Definitions.h"
+#include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
 
 float quadSum(float f1, float f2, float f3=0, float f4=0){
@@ -39,13 +39,14 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
   int nbin = 38;
   int nParam = 7; //number of parameters from the template fit, !!!hard-coded
 
-  vector<float> BDTcut = (BDTuncorrFromM?_corrBDTcuts:_BDTcuts)(ispp); //vector of BDT cut values put into array
-  //  if(ignore1stBin) BDTcut.erase(0);
-  //int nchan = BDTcut.size() -1;
-  float BDTcut_l[_nChan(ispp)+2]; 
-  BDTcut_l[0] = _withTM?(-1):(-1.2);
-  for(int k=0;k<=_nChan(ispp);k++){
-    BDTcut_l[k+1] = BDTcut[k];
+  float BDTcut_l[_NanaBins+1][_nChan(ispp)+2]; 
+  for(int b=0;b<=_NanaBins;b++){
+    vector<float> BDTcut = _BDTcuts(ispp,b,BDTuncorrFromM); //vector of BDT cut values put into array
+    //  if(ignore1stBin) BDTcut.erase(0);
+    BDTcut_l[b][0] = -1;
+    for(int k=0;k<=_nChan(ispp);k++){
+      BDTcut_l[b][k+1] = BDTcut[k];
+    }
   }
 
   vector<vector<vector<TH1F*> > > h_BcM(ntrees, vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1)));
@@ -94,10 +95,10 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
 
   vector<TH1F*> effSig,rejBkg,sigSignif,sigSignifAsim;
   for(int b=0;b<=_NanaBins;b++){
-    effSig.push_back(new TH1F( "effSig_KinBin"+(TString)to_string(b), "signal efficiency", _nChan(ispp)+1, BDTcut_l ));
-    rejBkg.push_back(new TH1F( "rejBkg_KinBin"+(TString)to_string(b), "background rejection", _nChan(ispp)+1, BDTcut_l ));
-    sigSignif.push_back(new TH1F( "sigSignif_KinBin"+(TString)to_string(b), "signal significance S/sqrt(S+B)", _nChan(ispp)+1, BDTcut_l ));
-    sigSignifAsim.push_back(new TH1F( "sigSignifAsim_KinBin"+(TString)to_string(b), "signal significance (Asimov improved) S/sqrt(S+B)", _nChan(ispp)+1, BDTcut_l ));
+    effSig.push_back(new TH1F( "effSig_KinBin"+(TString)to_string(b), "signal efficiency", _nChan(ispp)+1, BDTcut_l[b] ));
+    rejBkg.push_back(new TH1F( "rejBkg_KinBin"+(TString)to_string(b), "background rejection", _nChan(ispp)+1, BDTcut_l[b] ));
+    sigSignif.push_back(new TH1F( "sigSignif_KinBin"+(TString)to_string(b), "signal significance S/sqrt(S+B)", _nChan(ispp)+1, BDTcut_l[b] ));
+    sigSignifAsim.push_back(new TH1F( "sigSignifAsim_KinBin"+(TString)to_string(b), "signal significance (Asimov improved) S/sqrt(S+B)", _nChan(ispp)+1, BDTcut_l[b] ));
   }
 
   //********************************************************
@@ -111,12 +112,12 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
       int bb = (b==0)?1:b;
       for(int k=0;k<=_nChan(ispp);k++){
 	int kk = (k==0)?1:k;
-	//h_BDT[i][k] = (TH1F*)histFile->Get("BDT"+(TString)(to_string(kk))+"/"+procName[i][systIdx[i]]+"/BDTv");//new TH1F( "BDT_"+treeName[i]+"_BDTbin"+(TString)(to_string(k+1)), "BDTvalue "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp)[k])+","+(TString)(_BDTcut_s(ispp)[k+1])+"]", 50, BDTcut[0], BDTcut[_nChan(ispp)] );
-	h_BcM[i][b][k] = (TH1F*)histFile->Get("BDT"+(TString)(to_string(kk))+"Kin"+(TString)(to_string(bb))+"/"+procName[i][systIdx[i]]+"/BcM"+(TString)(_preFitCorrAE?"_AccEffWeighted":""));//new TH1F( "Bc_M_"+treeName[i]+"_BDTbin"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp)[k])+","+(TString)(_BDTcut_s(ispp)[k+1])+"]", _nbinM(ispp), _Mbinning(ispp) );
-	// h_BcPt[i][k] = new TH1F( "Bc_Pt_"+treeName[i]+"_BDTbin"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp)[k])+","+(TString)(_BDTcut_s(ispp)[k+1])+"]", 50, 0, 30 );
-	// h_QQM[i][k] = new TH1F( "QQ_M_"+treeName[i]+"_BDTbin"+(TString)(to_string(k+1)), "J/#psi mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp)[k])+","+(TString)(_BDTcut_s(ispp)[k+1])+"]", nbinM, 2,4 );
-	// h_QQ2M[i][k] = new TH1F( "QQ2_M_"+treeName[i]+"_BDTbin"+(TString)(to_string(k+1)), "QQ2 mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp)[k])+","+(TString)(_BDTcut_s(ispp)[k+1])+"]", nbinM, 2,4 );
-	// h_QQ3M[i][k] = new TH1F( "QQ3_M_"+treeName[i]+"_BDTbin"+(TString)(to_string(k+1)), "QQ3 mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp)[k])+","+(TString)(_BDTcut_s(ispp)[k+1])+"]", nbinM, 2,4 );
+	//h_BDT[i][k] = (TH1F*)histFile->Get("BDT"+(TString)(to_string(kk))+"/"+procName[i][systIdx[i]]+"/BDTv");//new TH1F( "BDT_"+treeName[i]+"_BDTbin"+(TString)(to_string(k+1)), "BDTvalue "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,b,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,b,BDTuncorrFromM)[k+1])+"]", 50, BDTcut[0], BDTcut[_nChan(ispp)] );
+	h_BcM[i][b][k] = (TH1F*)histFile->Get("BDT"+(TString)(to_string(kk))+"Kin"+(TString)(to_string(bb))+"/"+procName[i][systIdx[i]]+"/BcM"+(TString)(_preFitCorrAE?"_AccEffWeighted":""));//new TH1F( "Bc_M_"+treeName[i]+"_BDTbin"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,b,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,b,BDTuncorrFromM)[k+1])+"]", _nbinM(ispp), _Mbinning(ispp) );
+	// h_BcPt[i][k] = new TH1F( "Bc_Pt_"+treeName[i]+"_BDTbin"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,b,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,b,BDTuncorrFromM)[k+1])+"]", 50, 0, 30 );
+	// h_QQM[i][k] = new TH1F( "QQ_M_"+treeName[i]+"_BDTbin"+(TString)(to_string(k+1)), "J/#psi mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,b,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,b,BDTuncorrFromM)[k+1])+"]", nbinM, 2,4 );
+	// h_QQ2M[i][k] = new TH1F( "QQ2_M_"+treeName[i]+"_BDTbin"+(TString)(to_string(k+1)), "QQ2 mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,b,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,b,BDTuncorrFromM)[k+1])+"]", nbinM, 2,4 );
+	// h_QQ3M[i][k] = new TH1F( "QQ3_M_"+treeName[i]+"_BDTbin"+(TString)(to_string(k+1)), "QQ3 mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,b,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,b,BDTuncorrFromM)[k+1])+"]", nbinM, 2,4 );
       
 	if(k>1) {
 	  //h_BDT[i][b][0]->Add(h_BDT[i][b][k]);
@@ -165,7 +166,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
 	c3->cd(k);
 	c3->cd(k)->SetRightMargin(0.04);}
 
-      cout<<"\n **** For BDTval in ["<<_BDTcut_s(ispp,BDTuncorrFromM)[max(k-1,0)]<<", "<<_BDTcut_s(ispp,BDTuncorrFromM)[(k==0)?_nChan(ispp):k]<<"]"<<endl;
+      cout<<"\n **** For BDTval in ["<<_BDTcut_s(ispp,b,BDTuncorrFromM)[max(k-1,0)]<<", "<<_BDTcut_s(ispp,b,BDTuncorrFromM)[(k==0)?_nChan(ispp):k]<<"]"<<endl;
       // cout<<"background efficiency = "<<rejBkg->GetBinContent(k+1)<<endl;
       // cout<<"MC signal efficiency = "<<effSig->GetBinContent(k+1)<<endl;
       // cout<<"Number of expected (MC) signal events = "<<nSig[k]<<endl;
@@ -199,7 +200,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
 
       //DRAW data signal region
       //cout<<"--- Drawing: "<<prettyName[3]<<endl;
-      h_BcM[3][b][k]->SetTitle("B_{c} candidates mass"+(TString)((k==0)?", no BDT cuts":(" with BDT #in "+(TString)((k==1)?"]-#infty":("["+_BDTcut_s(ispp,BDTuncorrFromM)[k-1]))+","+(TString)((k==_nChan(ispp))?"+#infty[":(_BDTcut_s(ispp,BDTuncorrFromM)[k]+"]"))) ));
+      h_BcM[3][b][k]->SetTitle("B_{c} candidates mass"+(TString)((k==0)?", no BDT cuts":(" with BDT #in "+(TString)((k==1)?"]-#infty":("["+_BDTcut_s(ispp,b,BDTuncorrFromM)[k-1]))+","+(TString)((k==_nChan(ispp))?"+#infty[":(_BDTcut_s(ispp,b,BDTuncorrFromM)[k]+"]"))) ));
       h_BcM[3][b][k]->GetXaxis()->SetTitle("trimuon mass [GeV]");
       h_BcM[3][b][k]->GetYaxis()->SetTitle("candidates/("+(TString)Form("%.2f",(m_Bc-3.3)/_nbinMSR(ispp)) +" GeV)");
       h_BcM[3][b][k]->GetYaxis()->SetRangeUser(0, 1.1*((h_BcM[3][b][k]->GetMaximum() > h_BcM_prefit[nPiled-1][b][k]->GetMaximum())?h_BcM[3][b][k]->GetMaximum():h_BcM_prefit[nPiled-1][b][k]->GetMaximum())  );
@@ -469,7 +470,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
 	c6->cd(k);
       }
 
-      cout<<"\n **** For BDTval in ["<<_BDTcut_s(ispp,BDTuncorrFromM)[max(k-1,0)]<<", "<<_BDTcut_s(ispp,BDTuncorrFromM)[(k==0)?_nChan(ispp):k]<<"]"<<endl;
+      cout<<"\n **** For BDTval in ["<<_BDTcut_s(ispp,b,BDTuncorrFromM)[max(k-1,0)]<<", "<<_BDTcut_s(ispp,b,BDTuncorrFromM)[(k==0)?_nChan(ispp):k]<<"]"<<endl;
       cout<<"background rejection = "<<rejBkg[b]->GetBinContent(k+1)<<endl;
       if(!bkgOnly) cout<<"MC signal efficiency = "<<effSig[b]->GetBinContent(k+1)<<endl;
       if(!bkgOnly) cout<<"Number of expected (MC postfit norm) signal events = "<<nSig[b][k]<<endl;

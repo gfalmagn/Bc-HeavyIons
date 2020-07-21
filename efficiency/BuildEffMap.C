@@ -11,12 +11,12 @@
 #include "Math/PdfFuncMathMore.h"
 #include <TVirtualFitter.h>
 #include "../PbPb18/Utilities/EVENTUTILS.h"
-#include "../helpers/Definitions.h"
+#include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
 #include "../acceptance/SgMuonAcceptanceCuts.h"
 #include "../helpers/AccEff2DBinning.h"
 
-void BuildEffMap(bool ispp = true){
+void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBins=false){
   bool withTM = false;
 
   //**************************************************************  
@@ -523,11 +523,13 @@ void BuildEffMap(bool ispp = true){
     hpcoarse_sel->Fill(fabs(Bc_Y),Bc_Pt, weight);
     selectedVsPt->Fill(Bc_Pt, weight);
     nsel2 += weight;
-    if(BDT>_BDTcuts(ispp)[1]){
+    int kinb = 0;
+    if(!integratePtBins) kinb = (Bc_Pt<_BcPtmax[1])?1:2;
+    if(BDT>_BDTcuts(ispp,kinb,BDTuncorrFromM)[1]){ //should be adapted, when changing to centrality binning
       nBDT23 += weight;
       BDT23effVsPt->Fill(Bc_Pt, weight);
       hpcoarse_inBDT23->Fill(fabs(Bc_Y),Bc_Pt, weight);}
-    if(BDT>_BDTcuts(ispp)[2]){
+    if(BDT>_BDTcuts(ispp,kinb,BDTuncorrFromM)[2]){
       nBDT3 += weight;
       BDT3effVsPt->Fill(Bc_Pt, weight);
       hpcoarse_inBDT3->Fill(fabs(Bc_Y),Bc_Pt, weight);}
@@ -547,10 +549,10 @@ void BuildEffMap(bool ispp = true){
 
   //**************************************************************
   //Lines for fiducial cuts 
-  TLine *line1 = new TLine(_BcYmin[0],_BcPtmax[1],_BcYmin[1],_BcPtmax[1]);
-  TLine *line2 = new TLine(_BcYmin[1],_BcPtmin[0],_BcYmin[1],_BcPtmax[1]);
-  TLine *line3 = new TLine(_BcYmin[1],_BcPtmin[0],_BcYmax[0],_BcPtmin[0]);
-  TLine *line4 = new TLine(_BcYmax[0],_BcPtmin[0],_BcYmax[0],_BcPtmax[0]);
+  TLine *line1 = new TLine(_BcYmin[1],_BcPtmax[2],_BcYmin[2],_BcPtmax[2]);
+  TLine *line2 = new TLine(_BcYmin[2],_BcPtmin[1],_BcYmin[2],_BcPtmax[2]);
+  TLine *line3 = new TLine(_BcYmin[2],_BcPtmin[1],_BcYmax[1],_BcPtmin[1]);
+  TLine *line4 = new TLine(_BcYmax[1],_BcPtmin[1],_BcYmax[1],_BcPtmax[1]);
   line1->SetLineWidth(4);  line1->SetLineColor(kBlack);
   line2->SetLineWidth(4);  line2->SetLineColor(kBlack);
   line3->SetLineWidth(4);  line3->SetLineColor(kBlack);
@@ -596,9 +598,7 @@ void BuildEffMap(bool ispp = true){
   hp_acceptance->SetDirectory(0);
   TH2Poly* hp_acceff = (TH2Poly*)hp_acceptance->Clone("hp_acceff");
   hp_acceff->SetDirectory(0);
-  cout<<"acceptanc and eff in this bin = "<<hp_acceff->GetBinContent(hp_acceff->FindBin(2.2,40))<<" "<<hp_efficiency->GetBinContent(hp_efficiency->FindBin(2.2,40))<<endl;
   hp_acceff->Multiply(hp_efficiency);
-  cout<<"acc x eff in this bin = "<<hp_acceff->GetBinContent(hp_acceff->FindBin(2.2,40))<<endl;
 
   TCanvas *c3 = new TCanvas("c3","c3",2500,2500);
   c3->Divide(2,2);
@@ -676,9 +676,9 @@ void BuildEffMap(bool ispp = true){
   //**************************************************************
   //Store maps
   TFile* fout = TFile::Open("AcceptanceEfficiencyMap.root","UPDATE");
-  //  hp_acceff->Write("hp_acceff_"+(TString)(ispp?"pp":"PbPb"));
-  hpcoarse_inBDT23->Write("hpcoarse_inBDT23_"+(TString)(ispp?"pp":"PbPb"));
-  hpcoarse_inBDT3->Write("hpcoarse_inBDT3_"+(TString)(ispp?"pp":"PbPb"));
+  hp_acceff->Write("hp_acceff_"+(TString)(ispp?"pp":"PbPb"));
+  hpcoarse_inBDT23->Write("hpcoarse_inBDT23_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(integratePtBins?"_integratePtBins":""));
+  hpcoarse_inBDT3->Write("hpcoarse_inBDT3_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(integratePtBins?"_integratePtBins":""));
   fout->WriteObject(&eff_oneBinned,"efficiency_oneBinned"+(TString)(ispp?"_pp":"_PbPb"));
   fout->Close();
 }

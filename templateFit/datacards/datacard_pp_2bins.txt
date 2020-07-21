@@ -24,8 +24,8 @@ JpsiSB	      shape  -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	
 #wPromptMC: the same nuisance param makes flipJpsi vary, concerning how the BDT weights are calculated
 
 misID		rateParam *     JpsiMC   1.8
-highMassControl	rateParam *   	flipJpsi 1.8
+highMassControl	rateParam *   	flipJpsi 1.
 misID		param 1.8 0.8
-highMassControl	param 1.8 0.8
+highMassControl	param 1. 0.5
 
 * autoMCStats 10 #Poisson threshold on typical number of events in binomial

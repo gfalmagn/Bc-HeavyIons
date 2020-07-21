@@ -12,12 +12,12 @@
 #include "TSystem.h"
 #include "TROOT.h"
 #include "TLatex.h"
-#include "../../helpers/Definitions.h"
+#include "../../helpers/Cuts_BDT.h"
 #include "../../helpers/Cuts.h"
 
   //flipJ: 0=nominal, 1=flipSameSide, 2=flipOppSide, 3=PromptJpsi
   //JpsiMC: what to add to flipJpsi (or subtract from data, depending on AddMCtoFlipJ) after SB-subtraction from data? 0=bToJpsi, 1=NonPromptJpsi(-bToJpsi), 2=fullJpsiMC(-bToJpsi), 3=NonPromptJpsi(-bToJpsi x3), 4=NonPromptJpsi(-bToJpsi x0.33)
-void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., int bin=-1){
+void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., float flipJpsiSF=1., float sigSF=1., int bin=0, bool step2=false){
 
   bool AddMCtoFlipJ = true; //whether to include the Jpsi MC (uncorrelated part) to the flipJpsi sample whose BDT distro is weighted
   auto h_test = new TH1F();
@@ -148,10 +148,11 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., int
     for(int j=0; j<T[iT]->GetEntries(); j++){//T[iT]->GetEntries()
 
       T[iT]->GetEntry(j);
-      if(bin>-1 && !( Bc_Pt[iT]>_BcPtmin[bin] && Bc_Pt[iT]<_BcPtmax[bin] && fabs(Bc_Y[iT])>_BcYmin[bin] && fabs(Bc_Y[iT])<_BcYmax[bin])) continue;
-      if(bin==-1){//integrated bin
-	bool inFidCuts = Bc_Pt[iT]>_BcPtmin[0] && Bc_Pt[iT]<_BcPtmax[0] && fabs(Bc_Y[iT])>_BcYmin[0] && fabs(Bc_Y[iT])<_BcYmax[0];
-	inFidCuts = inFidCuts || (Bc_Pt[iT]>_BcPtmin[1] && Bc_Pt[iT]<_BcPtmax[1] && fabs(Bc_Y[iT])>_BcYmin[1] && fabs(Bc_Y[iT])<_BcYmax[1]);
+      if(bin>0 && !( Bc_Pt[iT]>_BcPtmin[bin] && Bc_Pt[iT]<_BcPtmax[bin] && fabs(Bc_Y[iT])>_BcYmin[bin] && fabs(Bc_Y[iT])<_BcYmax[bin])) continue;
+      if(bin==0){//integrated bin
+	bool inFidCuts = false;
+	for(int b=1;b<=_NanaBins;b++)
+	  inFidCuts = inFidCuts || (Bc_Pt[iT]>_BcPtmin[b] && Bc_Pt[iT]<_BcPtmax[b] && fabs(Bc_Y[iT])>_BcYmin[b] && fabs(Bc_Y[iT])<_BcYmax[b]);
 	if(!inFidCuts) continue;
       }
 
@@ -167,11 +168,12 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., int
 	w *= JpsiMCSF;}
 
       if(iT==8){
+	w *= flipJpsiSF;
 	if(flipJ==1){
-	  if(flipJpsi[iT]>4) {w *= 7/3. * (ispp?1:0.5);} else {continue;}
+	  if(flipJpsi[iT]>4) {w *= 7/3.;} else {continue;}
 	}
 	else if(flipJ==2){
-	  if(flipJpsi[iT]<=4) {w *= 7/4. * (ispp?1:0.5);} else {continue;}
+	  if(flipJpsi[iT]<=4) {w *= 7/4.;} else {continue;}
 	}
       }
 
@@ -190,7 +192,7 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., int
     //5:bToJpsi, 6:prompt, 7:nonprompt without bToJpsi
     delete h_bdt[2][i]; h_bdt[2][i] = (TH1F*)h_bdt[3][i]->Clone(); //clone data hist
     h_bdt[2][i]->Add(h_bdt[1][i],-1); //subtract Jpsi SB from data
-    h_bdt[2][i]->Add(h_bdt[4][i],-(ispp?1.:0.7)); //subtract Bc MC from data
+    h_bdt[2][i]->Add(h_bdt[4][i],-sigSF); //subtract Bc MC from data
 
     h_bdt[2][i]->Add(h_bdt[5][i], -((JpsiMC==3)?3.:((JpsiMC==4)?0.33:1.)) ); //subtract pure bToJpsi from data
     if(AddMCtoFlipJ){
@@ -250,7 +252,7 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., int
     leg->DrawClone("same");
   }
 
-  c1->SaveAs("BDTdistributions_SRandCR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"")+(TString)((bin>-1)?("_kinBin"+(TString)to_string(bin)):"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
+  c1->SaveAs("BDTdistributions_SRandCR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"")+(TString)((bin>0)?("_kinBin"+(TString)to_string(bin)):"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
 
   //*******************************************
   //Get ratios of flipJpsi to data for weights, in CR and SR
@@ -258,9 +260,10 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., int
   for(int i=0; i<2; i++){
     dataOverFlipJ.push_back((TH1F*)h_bdt[2][i]->Clone());
     dataOverFlipJ[i]->Divide(h_bdt[8][i]); //data divided by flipJpsi
-    for (int bin=1;bin<dataOverFlipJ[i]->GetNbinsX();bin++){
-      if(h_bdt[8][i]->GetBinContent(bin)<=0 || (h_bdt[2][i]->GetBinContent(bin)<=0 && h_bdt[2][i]->GetBinCenter(bin)>0.) ) dataOverFlipJ[i]->SetBinContent(bin,1);
-      else if(fabs(h_bdt[2][i]->GetBinContent(bin) / h_bdt[8][i]->GetBinContent(bin)) > 10 ) dataOverFlipJ[i]->SetBinContent(bin,10); //limit weight to x10
+    for (int B=1;B<dataOverFlipJ[i]->GetNbinsX();B++){
+      if(h_bdt[8][i]->GetBinContent(B)<=0 || (h_bdt[2][i]->GetBinContent(B)<=0 && h_bdt[2][i]->GetBinCenter(B)>0.) ) dataOverFlipJ[i]->SetBinContent(B,1);
+      else if(fabs(h_bdt[2][i]->GetBinContent(B) / h_bdt[8][i]->GetBinContent(B)) > 10 ) dataOverFlipJ[i]->SetBinContent(B,10); //limit weight to x10
+      else if(fabs(h_bdt[2][i]->GetBinContent(B) / h_bdt[8][i]->GetBinContent(B)) <= 0 ) dataOverFlipJ[i]->SetBinContent(B, step2?0.:1.); //limit weight to x10
     }
   }
 
@@ -314,29 +317,49 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., int
   leg2->AddEntry(dataOverFlipJ[1], "CR");
   leg2->DrawClone("same");
 
-  c2->SaveAs("BDTdistributions_ratioDataFlipJ_SRandCR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"")+(TString)((bin>-1)?("_kinBin"+(TString)to_string(bin)):"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
+  c2->SaveAs("BDTdistributions_ratioDataFlipJ_SRandCR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"")+(TString)((bin>0)?("_kinBin"+(TString)to_string(bin)):"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
 
 
   TFile* weightF = new TFile("flipJpsiWeights_fromBDTinCR_"+(TString)(ispp?"pp":"PbPb")+".root","UPDATE");
   
-  dataOverFlipJ[0]->Write("flipJpsiWeights_fromBDTinSR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"")+(TString)((bin>-1)?("_kinBin"+(TString)to_string(bin)):"") );
-  dataOverFlipJ[1]->Write("flipJpsiWeights_fromBDTinCR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"")+(TString)((bin>-1)?("_kinBin"+(TString)to_string(bin)):"") );
+  dataOverFlipJ[0]->Write("flipJpsiWeights_fromBDTinSR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"")+(TString)((bin>0)?("_kinBin"+(TString)to_string(bin)):"") );
+  dataOverFlipJ[1]->Write("flipJpsiWeights_fromBDTinCR_flipJpsi"+(TString)(to_string(flipJ))+"_JpsiMC"+(TString)(to_string(JpsiMC))+(TString)(AddMCtoFlipJ?"_AddMCtoFlipJ":"")+(TString)((bin>0)?("_kinBin"+(TString)to_string(bin)):"") );
   weightF->Close();
 
 }
 
-void BDTweighting(bool ispp=true){
-  float scaleJMCpp = 1.5;
+void BDTweighting(bool ispp=true, bool step2=false){
 
-  //  for(int b=0;b<_NanaBins;b++){
-  for(int b=-1;b<0;b++){
+  float scaleJMC = ispp?1.8:1.5;
+  float scaleFlipJ = 1.;
+  vector<float> scaleSig(_NanaBins+1, ispp?1.:0.8);
+
+  if(step2){
+    bool BDTuncorrFromM = false;
+    int skipBDTbins=0;
+    bool ignoreBin2 = (skipBDTbins==2);
+    bool ignoreBin1 = (skipBDTbins==1 || skipBDTbins==2);
+
+    //  TString normFileName = "./CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(bToJpsiOnly?"bToJpsi":"NonPromptJpsi")+(TString)(useFlipJpsi?(flipJpsiSameSide?"_flipJpsiSameSide":"_flipJpsi"):(ispp?"":"_PromptJpsi"))+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(ignoreBin2?"_ignoreBin1-2":(ignoreBin1?"_ignoreBin1":""))+(TString)(ispp?"_pp":"_PbPb")+"_2bins"+(TString)(_preFitCorrAE?"_wAccEff":"")+".root";
+    TString normFileName = "./CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_NonPromptJpsi"+(TString)(ispp?"_flipJpsi":"_PromptJpsi")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(ignoreBin2?"_ignoreBin1-2":(ignoreBin1?"_ignoreBin1":""))+(TString)(ispp?"_pp":"_PbPb")+"_2bins.root";
+    auto normFile = TFile::Open(normFileName);
+    RooArgList fittedPars = ((RooFitResult*)normFile->Get("fit_s"))->floatParsFinal();
+    scaleFlipJ = ((RooRealVar*)fittedPars.find(ispp?"flipJSameSide":"PromptOrFlipJ"))->getValV();
+    scaleJMC = ((RooRealVar*)fittedPars.find(ispp?"wPromptMC":"bJpsiFrac"))->getValV();
+    scaleSig[1] = ((RooRealVar*)fittedPars.find("r1"))->getValV();
+    scaleSig[2] = ((RooRealVar*)fittedPars.find("r2"))->getValV();
+    scaleSig[0] = (scaleSig[1]+scaleSig[2])/2;
+  }
+  
+  // for(int b=1;b<=_NanaBins;b++){
+  for(int b=0;b<1;b++){
     //in PbPb: replace flipJpsi by PromptMC
-    BDTweight(ispp, (ispp?0:3) , (ispp?0:3) , (ispp?scaleJMCpp:1.5), b); 
-    BDTweight(ispp, (ispp?0:3) , (ispp?2:4) , (ispp?scaleJMCpp:1.5), b);
-    BDTweight(ispp, (ispp?0:3) ,1, (ispp?scaleJMCpp:1.5), b); //NonPromptMC - bToJpsi
+    BDTweight(ispp, (ispp?0:3) , (ispp?0:3) , scaleJMC, scaleFlipJ, scaleSig[b], b, step2); 
+    BDTweight(ispp, (ispp?0:3) , (ispp?2:4) , scaleJMC, scaleFlipJ, scaleSig[b], b, step2);
+    BDTweight(ispp, (ispp?0:3) ,1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2); //NonPromptMC - bToJpsi
 
-    BDTweight(ispp, 1, 1, (ispp?scaleJMCpp:1.5), b); //flipJpsi method variation: nonpromptMC-bToJpsi is nominal in pp and PbPb
-    BDTweight(ispp, 2, 1, (ispp?scaleJMCpp:1.5), b);
+    BDTweight(ispp, 1, 1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2); //flipJpsi method variation: nonpromptMC-bToJpsi is nominal in pp and PbPb
+    BDTweight(ispp, 2, 1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2);
   }
 
 }
