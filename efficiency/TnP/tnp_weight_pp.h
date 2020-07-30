@@ -173,73 +173,6 @@ std::tuple<double,double,double,double> tnp_weight_HybridSoftID_LooseAcceptance_
   }
        
   return std::make_tuple(1,0,0,0);                                                                                                                                                                   }                
-/*
-//To be used for HybridSoftID efficiency, with loose muon kinematic acceptance cuts
-//Central scale-factor value, statistical error, systematic error, total error
-
-std::tuple<double,double,double,double> tnp_weight_HybridSoftID_LooseAcceptance_pp(double pt, double eta){
-
-  if( (fabs(eta) > 0) && (fabs(eta) < 1.2) ){
-    if (pt<3.7) return std::make_tuple(0.991509, 0.00132469, 0.000169579, 0.0013355);
-    else if (pt<4) return std::make_tuple(0.994812, 0.00098049, 9.3781e-05, 0.000984965);
-    else if (pt<4.5) return std::make_tuple(0.996624, 0.000652936, 5.94331e-05, 0.000655635);
-    else if (pt<5) return std::make_tuple(0.997641, 0.000608668, 0.000281891, 0.000670775);
-    else if (pt<5.5) return std::make_tuple(0.998693, 0.000581153, 4.7311e-05, 0.000583075);
-    else if (pt<6) return std::make_tuple(0.997692, 0.000592181, 4.28475e-05, 0.000593729);
-    else if (pt<7) return std::make_tuple(0.99823, 0.000488995, 0.000133913, 0.000507);
-    else if (pt<8) return std::make_tuple(0.998932, 0.000570471, 6.84542e-05, 0.000574564);
-    else if (pt<10.5) return std::make_tuple(0.999942, 0.000461622, 0.000246741, 0.000523427);
-    else if (pt<14) return std::make_tuple(1.00025, 0.000588468, 0.000412485, 0.000718636);
-    else if (pt<18) return std::make_tuple(0.998795, 0.00103439, 0.000343453, 0.00108992);
-    else if (pt<30) return std::make_tuple(1.00013, 0.00119241, 0.000258227, 0.00122005);
-  }
-
-  if( (fabs(eta) > 1.2) && (fabs(eta) < 1.8) ){
-    if (pt<2.5) return std::make_tuple(0.999008, 0.00101804, 0.00022889, 0.00104346);
-    else if (pt<3) return std::make_tuple(0.997385, 0.000670367, 0.000166048, 0.000690626);
-    else if (pt<3.5) return std::make_tuple(0.99795, 0.000566551, 7.41528e-05, 0.000571383);
-    else if (pt<4) return std::make_tuple(0.997328, 0.000565301, 0.000106841, 0.000575308);
-    else if (pt<4.5) return std::make_tuple(0.998049, 0.000586026, 0.000166683, 0.00060927);
-    else if (pt<5) return std::make_tuple(0.99893, 0.000624649, 0.000139086, 0.000639946);
-    else if (pt<6) return std::make_tuple(0.99775, 0.000524755, 0.000129245, 0.000540437);
-    else if (pt<7) return std::make_tuple(0.997207, 0.000631782, 0.000158721, 0.000651415);
-    else if (pt<9) return std::make_tuple(0.997041, 0.000592354, 0.000262767, 0.00064802);
-    else if (pt<14) return std::make_tuple(0.997027, 0.000643335, 0.000101755, 0.000651333);
-    else if (pt<18) return std::make_tuple(0.998987, 0.00145434, 0.000105944, 0.00145819);
-    else if (pt<30) return std::make_tuple(0.998832, 0.00176589, 0.000185321, 0.00177559);
-  }
-
-  if( (fabs(eta) > 1.8) && (fabs(eta) < 2.1) ){
-    if (pt<1.75) return std::make_tuple(0.99501, 0.00190285, 0.000614269, 0.00199954);
-    else if (pt<2.1) return std::make_tuple(0.995534, 0.000958298, 0.000938682, 0.00134144);
-    else if (pt<2.5) return std::make_tuple(0.998697, 0.000606511, 0.000452902, 0.000756951);
-    else if (pt<3) return std::make_tuple(0.998797, 0.000516932, 0.000241382, 0.000570512);
-    else if (pt<3.5) return std::make_tuple(0.999229, 0.000521865, 1.82422e-05, 0.000522184);
-    else if (pt<4) return std::make_tuple(0.998185, 0.000596435, 0.000199466, 0.000628905);
-    else if (pt<4.5) return std::make_tuple(0.997687, 0.000654825, 0.000242263, 0.000698203);
-    else if (pt<5.25) return std::make_tuple(0.998599, 0.000576324, 0.000257014, 0.000631036);
-    else if (pt<6.5) return std::make_tuple(0.999244, 0.000485306, 0.000321732, 0.000582266);
-    else if (pt<9) return std::make_tuple(0.998085, 0.000535479, 0.000314486, 0.000620998);
-    else if (pt<13) return std::make_tuple(0.998346, 0.000716329, 0.000608368, 0.000939807);
-    else if (pt<30) return std::make_tuple(0.998398, 0.00112506, 0.000231803, 0.00114869);
-  }
-
-  if( (fabs(eta) > 2.1) && (fabs(eta) < 2.4) ){
-    if (pt<1.9) return std::make_tuple(0.99387, 0.00114168, 0.000306098, 0.001182);
-    else if (pt<2.5) return std::make_tuple(0.996848, 0.00781191, 0.000367591, 0.00782055);
-    else if (pt<3) return std::make_tuple(0.998103, 0.000651977, 0.000306688, 0.000720508);
-    else if (pt<3.5) return std::make_tuple(1.00042, 0.000618082, 0.000608206, 0.000867145);
-    else if (pt<4) return std::make_tuple(0.998227, 0.000779589, 0.000550001, 0.000954076);
-    else if (pt<4.75) return std::make_tuple(0.999744, 0.000565002, 0.000220046, 0.000606339);
-    else if (pt<5.5) return std::make_tuple(0.998818, 0.000747367, 0.000685803, 0.00101434);
-    else if (pt<8) return std::make_tuple(0.997726, 0.000576727, 0.000259674, 0.000632491);
-    else if (pt<12) return std::make_tuple(0.999967, 0.000812264, 0.000550096, 0.000981008);
-    else if (pt<30) return std::make_tuple(1.00071, 1.49564e-12, 0.000545007, 0.000545007);
-  }
-  return std::make_tuple(1,0,0,0);
-
-}
-*/
 
 //To be used for HybridSoftID+(J/psi trigger) efficiency, with tight muon kinematic acceptance cuts (the loose cuts cannot be used with trigger efficiency)
 //Central scale-factor value, statistical error, systematic error, total error
@@ -359,27 +292,26 @@ std::tuple<double,double,double,double> tnp_weight_TM_LooseAcceptance_pp(double 
 std::tuple<double,double,double,double> tnp_weight_SoftID_LooseAcceptance_pp(double pt, double eta){
 
   if( (fabs(eta) > 0) && (fabs(eta) < 1.1) ){
-    if (pt<3.8) return std::make_tuple(0.999313, 0.000139593, 2.81059e-05, 0.000142394);
-    else if (pt<4.4) return std::make_tuple(0.999087, 0.000130609, 3.4521e-05, 0.000135094);
-    else if (pt<5.2) return std::make_tuple(0.999518, 0.000103967, 1.22022e-05, 0.000104681);
-    else if (pt<7) return std::make_tuple(0.999577, 7.79912e-05, 3.23446e-05, 8.44323e-05);
-    else if (pt<30) return std::make_tuple(0.999981, 2.87862e-05, 9.33658e-06, 3.02625e-05);
+    if (pt<3.8) return std::make_tuple(0.999324, 0.000142399, 3.98581e-05, 0.000147872);
+    else if (pt<4.4) return std::make_tuple(0.999053, 0.000133731, 3.58144e-05, 0.000138444);
+    else if (pt<5.2) return std::make_tuple(0.999506, 0.000105829, 2.87498e-05, 0.000109665);
+    else if (pt<7) return std::make_tuple(0.999614, 8.10057e-05, 4.25893e-06, 8.11176e-05);
+    else if (pt<30) return std::make_tuple(0.999995, 3.57268e-05, 4.66432e-06, 3.603e-05);
   }
-
+  
   if( (fabs(eta) > 1.1) && (fabs(eta) < 1.8) ){
-    if (pt<2.8) return std::make_tuple(0.998845, 0.000303937, 0.000260953, 0.000400593);
-    else if (pt<4) return std::make_tuple(0.999278, 0.00015213, 7.31622e-05, 0.000168808);
-    else if (pt<8) return std::make_tuple(0.999592, 9.80221e-05, 4.27735e-06, 9.81154e-05);
-    else if (pt<30) return std::make_tuple(1, 2.01742e-05, 7.17495e-07, 2.01869e-05);
+    if (pt<2.8) return std::make_tuple(0.999011, 0.000320735, 0.000245804, 0.000404093);
+    else if (pt<4) return std::make_tuple(0.999208, 0.000160307, 0.000129319, 0.000205965);
+    else if (pt<8) return std::make_tuple(0.999498, 0.000103203, 2.62778e-05, 0.000106496);
+    else if (pt<30) return std::make_tuple(1, 1.77276e-05, 2.36063e-07, 1.77292e-05);
   }
-
+  
   if( (fabs(eta) > 1.8) && (fabs(eta) < 2.4) ){
-    if (pt<2.5) return std::make_tuple(0.997528, 0.000417448, 0.000291909, 0.000509386);
-    else if (pt<3.7) return std::make_tuple(0.999233, 0.00026297, 8.82396e-05, 0.00027738);
-    else if (pt<6) return std::make_tuple(0.999844, 0.000182294, 0.000120279, 0.0002184);
-    else if (pt<30) return std::make_tuple(0.999581, 0.000202215, 8.93888e-05, 0.000221091);
+    if (pt<2.5) return std::make_tuple(0.997624, 0.000434151, 0.000260878, 0.000506502);
+    else if (pt<3.7) return std::make_tuple(0.999134, 0.000274953, 8.50146e-05, 0.000287796);
+    else if (pt<6) return std::make_tuple(0.999693, 0.000200237, 5.08814e-05, 0.000206601);
+    else if (pt<30) return std::make_tuple(0.999584, 0.000228825, 9.01656e-05, 0.000245948);
   }
-
   return std::make_tuple(1,0,0,0);
 }
 
