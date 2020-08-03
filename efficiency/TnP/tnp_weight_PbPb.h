@@ -217,43 +217,43 @@ if (fabs(eta) >= 0 && fabs(eta) < 1.2) {
 double tnp_weight_muid_looseacceptance_pbpb(double pt, double eta, int idx) {
 double x = pt;
 double num=1, den=1, syst=0, statUp=0, statDown=0;
-if (idx != 99) {
-//Central scale-factor value, statistical error, systematic error, total error
-if( (fabs(eta) > 0) && (fabs(eta) < 1.1) ){
-if (pt<4.5) return std::make_tuple(0.993413, 0.00404087, 0.00175161, 0.00440418);
-else if (pt<5) return std::make_tuple(1.00135, 0.00443913, 0.000409137, 0.00445794);
-else if (pt<6.5) return std::make_tuple(0.99664, 0.00274216, 0.000448298, 0.00277856);
-else if (pt<8) return std::make_tuple(0.996432, 0.00315872, 0.00105002, 0.00332867);
-else if (pt<10.5) return std::make_tuple(1.00082, 0.00355842, 0.00261679, 0.00441701);
-else if (pt<30) return std::make_tuple(1.00707, 0.00473145, 0.00194176, 0.00511439);
-}
-//Central scale-factor value, statistical error, systematic error, total error
-if( (fabs(eta) > 1.1) && (fabs(eta) < 1.8) ){
-if (pt<4) return std::make_tuple(1.01117, 0.0049903, 0.00209659, 0.00541284);
-else if (pt<5) return std::make_tuple(0.998208, 0.00363736, 0.00142787, 0.00390759);
-else if (pt<6) return std::make_tuple(0.992438, 0.00461883, 0.00136743, 0.004817);
-else if (pt<7.5) return std::make_tuple(0.993071, 0.00464291, 0.00187468, 0.00500709);
-else if (pt<15) return std::make_tuple(0.997924, 0.00486426, 0.000314358, 0.0048744);
-else if (pt<30) return std::make_tuple(0.990539, 0.0155561, 0.00470714, 0.0162527);
-}
-//Central scale-factor value, statistical error, systematic error, total error
-if( (fabs(eta) > 1.8) && (fabs(eta) < 2.1) ){
-if (pt<3) return std::make_tuple(1.01177, 0.01393, 0.0123408, 0.0186103);
-else if (pt<3.5) return std::make_tuple(0.996695, 0.00707997, 0.000456095, 0.00709465);
-else if (pt<4.5) return std::make_tuple(0.994041, 0.00439463, 0.00344214, 0.00558222);
-else if (pt<5.5) return std::make_tuple(0.998074, 0.00385061, 0.00109399, 0.004003);
-else if (pt<7) return std::make_tuple(1.00135, 0.00727207, 0.000274388, 0.00727724);
-else if (pt<9) return std::make_tuple(0.991667, 0.00658467, 0.00482807, 0.00816506);
-else if (pt<30) return std::make_tuple(1.00247, 0.00198197, 0.000189961, 0.00199105);
-}
-//Central scale-factor value, statistical error, systematic error, total error
-if( (fabs(eta) > 2.1) && (fabs(eta) < 2.4) ){
-if (pt<2.7) return std::make_tuple(0.993542, 0.0251461, 0.0154881, 0.0295331);
-else if (pt<3.7) return std::make_tuple(0.998359, 0.00803949, 0.00689549, 0.0105916);
-else if (pt<8) return std::make_tuple(1.00256, 0.00353051, 0.00285398, 0.00453979);
-else if (pt<11) return std::make_tuple(1.00128, 0.00588806, 0.000219603, 0.00589215);
-else if (pt<30) return std::make_tuple(1.00392, 0.00692499, 0.000340466, 0.00693336);
-}
+if (idx != 99) { 
+  // SF for 0 < |eta| < 1.1
+  if (fabs(eta) >= 0 && fabs(eta) < 1.1) {
+    if (x >= 3.3 && x <4.5) {num = 0.948733; den = 0.955024; statUp = 0.00380327; statDown = 0.00391521;}
+    else if (x >= 4.5 && x <5) {num = 0.9866; den = 0.985274; statUp = 0.0041967; statDown = 0.0045537;}
+    else if (x >= 5 && x <6.5) {num = 0.987123; den = 0.99045; statUp = 0.00263437; statDown = 0.00279898;}
+    else if (x >= 6.5 && x <8) {num = 0.989174; den = 0.992717; statUp = 0.00297485; statDown = 0.00330039;}
+    else if (x >= 8 && x <10.5) {num = 0.989445; den = 0.988638; statUp = 0.00331444; statDown = 0.00372826;}
+    else {num = 0.982816; den = 0.97592; statUp = 0.00439878; statDown = 0.00484155;}
+  }
+// SF for 1.1 < |eta| < 1.8
+ if (fabs(eta) >= 1.1 && fabs(eta) < 1.8) {
+   if (x >= 1.75 && x <4) {num = 0.982791; den = 0.971937; statUp = 0.00479601; statDown = 0.00490521;}
+   else if (x >= 4 && x <5) {num = 0.987852; den = 0.989626; statUp = 0.00347727; statDown = 0.00372541;}
+   else if (x >= 5 && x <6) {num = 0.985747; den = 0.993259; statUp = 0.00436325; statDown = 0.0048202;}
+   else if (x >= 6 && x <7.5) {num = 0.988915; den = 0.995815; statUp = 0.00435158; statDown = 0.00490696;}
+   else if (x >= 7.5 && x <15) {num = 0.982434; den = 0.984478; statUp = 0.00456413; statDown = 0.00502111;}
+   else {num = 0.972038; den = 0.981322; statUp = 0.0140267; statDown = 0.0166183;}
+ }
+ // SF for 1.8 < |eta| < 2.1
+ if (fabs(eta) >= 1.8 && fabs(eta) < 2.1) {
+   if (x >= 1.33 && x <3) {num = 0.967731; den = 0.956475; statUp = 0.0133546; statDown = 0.0133268;}
+   else if (x >= 3 && x <3.5) {num = 0.988271; den = 0.991548; statUp = 0.00658562; statDown = 0.00748651;}
+   else if (x >= 3.5 && x <4.5) {num = 0.991137; den = 0.997078; statUp = 0.00406749; statDown = 0.00471666;}
+   else if (x >= 4.5 && x <5.5) {num = 0.996091; den = 0.998014; statUp = 0.00334903; statDown = 0.00440572;}
+   else if (x >= 5.5 && x <7) {num = 1; den = 0.998654; statUp = 2.35228e-07; statDown = 0.00316994;}
+   else if (x >= 7 && x <9) {num = 0.991205; den = 0.999535; statUp = 0.00595637; statDown = 0.00734183;}
+   else {num = 1; den = 0.997536; statUp = 7.62371e-09; statDown = 0.00194303;}
+ }
+ // SF for 2.1 < |eta| < 2.4
+ if (fabs(eta) >= 2.1 && fabs(eta) < 2.4) {
+   if (x >= 1.2 && x <2.7) {num = 0.90688; den = 0.912775; statUp = 0.0233261; statDown = 0.0226667;}
+   else if (x >= 2.7 && x <3.7) {num = 0.977493; den = 0.979099; statUp = 0.00763304; statDown = 0.00812459;}
+   else if (x >= 3.7 && x <8) {num = 0.998764; den = 0.996218; statUp = 0.00123579; statDown = 0.00376785;}
+   else if (x >= 8 && x <11) {num = 1; den = 0.998724; statUp = 2.73793e-09; statDown = 0.00535402;}
+   else {num = 1; den = 0.996093; statUp = 1.56969e-08; statDown = 0.0071709;}
+ }
 if (fabs(eta) >= 0 && fabs(eta) < 1.1) {
   if (x >= 3.3 && x < 4.5) syst = 0.0013846;
   else if (x >= 4.5 && x < 5) syst = 0.000744057;
@@ -288,43 +288,45 @@ else if (fabs(eta) >= 2.1 && fabs(eta) < 2.4) {
 }
 }
 else {
-//Central scale-factor value, statistical error, systematic error, total error
-if( (fabs(eta) > 0) && (fabs(eta) < 1.1) ){
-if (pt<4.5) return std::make_tuple(0.993413, 0.00404087, 0.00175161, 0.00440418);
-else if (pt<5) return std::make_tuple(1.00135, 0.00443913, 0.000409137, 0.00445794);
-else if (pt<6.5) return std::make_tuple(0.99664, 0.00274216, 0.000448298, 0.00277856);
-else if (pt<8) return std::make_tuple(0.996432, 0.00315872, 0.00105002, 0.00332867);
-else if (pt<10.5) return std::make_tuple(1.00082, 0.00355842, 0.00261679, 0.00441701);
-else if (pt<30) return std::make_tuple(1.00707, 0.00473145, 0.00194176, 0.00511439);
+                                                                                                                                                                 
+  // SF for 0 < |eta| < 1.1
+  if (fabs(eta) >= 0 && fabs(eta) < 1.1) {
+    if (x >= 3.3 && x <4.5) {num = 0.948733; den = 0.955024; statUp = 0.00380327; statDown = 0.00391521;}
+    else if (x >= 4.5 && x <5) {num = 0.9866; den = 0.985274; statUp = 0.0041967; statDown = 0.0045537;}
+    else if (x >= 5 && x <6.5) {num = 0.987123; den = 0.99045; statUp = 0.00263437; statDown = 0.00279898;}
+    else if (x >= 6.5 && x <8) {num = 0.989174; den = 0.992717; statUp = 0.00297485; statDown = 0.00330039;}
+    else if (x >= 8 && x <10.5) {num = 0.989445; den = 0.988638; statUp = 0.00331444; statDown = 0.00372826;}
+    else {num = 0.982816; den = 0.97592; statUp = 0.00439878; statDown = 0.00484155;}
+  }
+// SF for 1.1 < |eta| < 1.8
+ if (fabs(eta) >= 1.1 && fabs(eta) < 1.8) {
+   if (x >= 1.75 && x <4) {num = 0.982791; den = 0.971937; statUp = 0.00479601; statDown = 0.00490521;}
+   else if (x >= 4 && x <5) {num = 0.987852; den = 0.989626; statUp = 0.00347727; statDown = 0.00372541;}
+   else if (x >= 5 && x <6) {num = 0.985747; den = 0.993259; statUp = 0.00436325; statDown = 0.0048202;}
+   else if (x >= 6 && x <7.5) {num = 0.988915; den = 0.995815; statUp = 0.00435158; statDown = 0.00490696;}
+   else if (x >= 7.5 && x <15) {num = 0.982434; den = 0.984478; statUp = 0.00456413; statDown = 0.00502111;}
+   else {num = 0.972038; den = 0.981322; statUp = 0.0140267; statDown = 0.0166183;}
+ }
+ // SF for 1.8 < |eta| < 2.1
+ if (fabs(eta) >= 1.8 && fabs(eta) < 2.1) {
+   if (x >= 1.33 && x <3) {num = 0.967731; den = 0.956475; statUp = 0.0133546; statDown = 0.0133268;}
+   else if (x >= 3 && x <3.5) {num = 0.988271; den = 0.991548; statUp = 0.00658562; statDown = 0.00748651;}
+   else if (x >= 3.5 && x <4.5) {num = 0.991137; den = 0.997078; statUp = 0.00406749; statDown = 0.00471666;}
+   else if (x >= 4.5 && x <5.5) {num = 0.996091; den = 0.998014; statUp = 0.00334903; statDown = 0.00440572;}
+   else if (x >= 5.5 && x <7) {num = 1; den = 0.998654; statUp = 2.35228e-07; statDown = 0.00316994;}
+   else if (x >= 7 && x <9) {num = 0.991205; den = 0.999535; statUp = 0.00595637; statDown = 0.00734183;}
+   else {num = 1; den = 0.997536; statUp = 7.62371e-09; statDown = 0.00194303;}
+ }
+ // SF for 2.1 < |eta| < 2.4
+ if (fabs(eta) >= 2.1 && fabs(eta) < 2.4) {
+   if (x >= 1.2 && x <2.7) {num = 0.90688; den = 0.912775; statUp = 0.0233261; statDown = 0.0226667;}
+   else if (x >= 2.7 && x <3.7) {num = 0.977493; den = 0.979099; statUp = 0.00763304; statDown = 0.00812459;}
+   else if (x >= 3.7 && x <8) {num = 0.998764; den = 0.996218; statUp = 0.00123579; statDown = 0.00376785;}
+   else if (x >= 8 && x <11) {num = 1; den = 0.998724; statUp = 2.73793e-09; statDown = 0.00535402;}
+   else {num = 1; den = 0.996093; statUp = 1.56969e-08; statDown = 0.0071709;}
+ }
 }
-//Central scale-factor value, statistical error, systematic error, total error
-if( (fabs(eta) > 1.1) && (fabs(eta) < 1.8) ){
-if (pt<4) return std::make_tuple(1.01117, 0.0049903, 0.00209659, 0.00541284);
-else if (pt<5) return std::make_tuple(0.998208, 0.00363736, 0.00142787, 0.00390759);
-else if (pt<6) return std::make_tuple(0.992438, 0.00461883, 0.00136743, 0.004817);
-else if (pt<7.5) return std::make_tuple(0.993071, 0.00464291, 0.00187468, 0.00500709);
-else if (pt<15) return std::make_tuple(0.997924, 0.00486426, 0.000314358, 0.0048744);
-else if (pt<30) return std::make_tuple(0.990539, 0.0155561, 0.00470714, 0.0162527);
-}
-//Central scale-factor value, statistical error, systematic error, total error
-if( (fabs(eta) > 1.8) && (fabs(eta) < 2.1) ){
-if (pt<3) return std::make_tuple(1.01177, 0.01393, 0.0123408, 0.0186103);
-else if (pt<3.5) return std::make_tuple(0.996695, 0.00707997, 0.000456095, 0.00709465);
-else if (pt<4.5) return std::make_tuple(0.994041, 0.00439463, 0.00344214, 0.00558222);
-else if (pt<5.5) return std::make_tuple(0.998074, 0.00385061, 0.00109399, 0.004003);
-else if (pt<7) return std::make_tuple(1.00135, 0.00727207, 0.000274388, 0.00727724);
-else if (pt<9) return std::make_tuple(0.991667, 0.00658467, 0.00482807, 0.00816506);
-else if (pt<30) return std::make_tuple(1.00247, 0.00198197, 0.000189961, 0.00199105);
-}
-//Central scale-factor value, statistical error, systematic error, total error
-if( (fabs(eta) > 2.1) && (fabs(eta) < 2.4) ){
-if (pt<2.7) return std::make_tuple(0.993542, 0.0251461, 0.0154881, 0.0295331);
-else if (pt<3.7) return std::make_tuple(0.998359, 0.00803949, 0.00689549, 0.0105916);
-else if (pt<8) return std::make_tuple(1.00256, 0.00353051, 0.00285398, 0.00453979);
-else if (pt<11) return std::make_tuple(1.00128, 0.00588806, 0.000219603, 0.00589215);
-else if (pt<30) return std::make_tuple(1.00392, 0.00692499, 0.000340466, 0.00693336);
-}
-}
+
 
 double syst_factor = 0; double stat_factor = 0;
 if (idx == -1) syst_factor = syst;
