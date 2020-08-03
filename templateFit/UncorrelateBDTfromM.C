@@ -19,7 +19,7 @@
 #include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
 
-void UncorrelateBDTfromM(bool ispp=true){
+void Uncorrelate(bool ispp=true, int kinBin=1){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -69,7 +69,7 @@ void UncorrelateBDTfromM(bool ispp=true){
     if(!usedForFit[i]) continue;
     for(int k=0;k<=_nChan(ispp);k++){
       int kk = (k==0)?1:k;
-      h_BcM_prefit[i][k] = (TH1F*)histFile->Get("BDT"+(TString)(to_string(kk))+"/"+procName[i][systIdx[i]]+"/BcM");
+      h_BcM_prefit[i][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(kk)+"Kin"+(TString)to_string(kinBin)+"/"+procName[i][systIdx[i]]+"/BcM");
       if(k>1) {
 	h_BcM_prefit[i][0]->Add(h_BcM_prefit[i][k]);}
     }
@@ -78,7 +78,7 @@ void UncorrelateBDTfromM(bool ispp=true){
   //********************************************************
   //Extract (POSTFIT NORMALISATIONS & SHAPES) from combine output
   //********************************************************
-  TString normFileName = "./CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(bToJpsiOnly?"bToJpsi":"NonPromptJpsi")+(TString)(useFlipJpsi?(flipJpsiSameSide?"_flipJpsiSameSide":"_flipJpsi"):(ispp?"":"_PromptJpsi"))+(TString)(ignoreBin2?"_ignoreBin1-2":(ignoreBin1?"_ignoreBin1":""))+(TString)(ispp?"_pp":"_PbPb")+".root";
+  TString normFileName = "./CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(bToJpsiOnly?"bToJpsi":"NonPromptJpsi")+(TString)(useFlipJpsi?(flipJpsiSameSide?"_flipJpsiSameSide":"_flipJpsi"):(ispp?"":"_PromptJpsi"))+(TString)(ignoreBin2?"_noBDT1-2":(ignoreBin1?"_noBDT1":""))+(TString)(ispp?"_pp":"_PbPb")+"_2bins.root";
   cout<<"Extract normalisations from file "<<normFileName<<endl;
   auto normFile = TFile::Open(normFileName,"READ");
   
@@ -89,7 +89,7 @@ void UncorrelateBDTfromM(bool ispp=true){
     for(int k=0;k<=_nChan(ispp);k++){
 
       //Clone trimuon mass histos prefit into postfit. Processes not used in fitting will not change histos postfit
-      h_BcM_postfit[i][k] = (TH1F*) normFile->Get("shapes_fit_s/BDT"+(TString)(to_string((k==0)?1:k))+"/"+procNameDef[i]);
+      h_BcM_postfit[i][k] = (TH1F*) normFile->Get("shapes_fit_s/BDT"+(TString)(to_string((k==0)?1:k))+"Kin"+(TString)to_string(kinBin)+"/"+procNameDef[i]);
       h_BcM_postfit[i][k]->SetDirectory(0);
 
       //inclusive on BDT bins
@@ -126,6 +126,8 @@ void UncorrelateBDTfromM(bool ispp=true){
 
   //variables for branches
   float Bc_M[ntrees];
+  float Bc_Pt[ntrees];
+  float Bc_Y[ntrees];
   float BDT[ntrees];
   float weight[ntrees];
   int flipJpsi[ntrees];
@@ -136,12 +138,12 @@ void UncorrelateBDTfromM(bool ispp=true){
     mbins[bx] = _Mbinning(ispp)[bx];
   }
   double bdtlo = _withTM?-0.47:-1, bdthi = _withTM?(ispp?0.31:0.39):1;
-  int nbdt = _withTM?(ispp?50:40):35;
+  int nbdt = 60;//_withTM?(ispp?50:40):35;
   TH2F* h_BDTM_bkg = new TH2F("Bc_BDTM_bkg", "BDT vs M(B_{c}) background", _nbinM(ispp), mbins, nbdt,bdtlo,bdthi);
   TH2F* h_BDTM_sig = new TH2F("Bc_BDTM_sig", "BDT vs M(B_{c}) signal", _nbinM(ispp), mbins, nbdt,bdtlo,bdthi);
   TH2F* h_BDTM_data = new TH2F("Bc_BDTM_data", "BDT vs M(B_{c}) data", _nbinM(ispp), mbins, nbdt,bdtlo,bdthi);
   float nbkg = 0, ndata = 0, nsig = 0;
-  float CRbinwRatio = ((m_Bc-3.3)/_nbinMSR(ispp)) * (_nbinMCR(ispp)/1.);
+  float CRbinwRatio = ((_mBcMax-_mBcMin)/_nbinMSR(ispp)) * (_nbinMCR(ispp)/1.);
 
   //tree and event loop
   for(int iT=0; iT<(int)T.size(); iT++){
@@ -150,12 +152,16 @@ void UncorrelateBDTfromM(bool ispp=true){
 
     T[iT]->SetBranchAddress("BDT", &BDT[iT]);
     T[iT]->SetBranchAddress("Bc_M", &Bc_M[iT]);
+    T[iT]->SetBranchAddress("Bc_Y", &Bc_Y[iT]);
+    T[iT]->SetBranchAddress("Bc_Pt", &Bc_Pt[iT]);
     if(iT==7) T[iT]->SetBranchAddress("flipJpsi", &flipJpsi[iT]);
     T[iT]->SetBranchAddress("weight", &weight[iT]);
 
     //BEGIN event loop on the analyzed tree
     for(int j=0; j<T[iT]->GetEntries(); j++){
       T[iT]->GetEntry(j);
+      if(!inFidCuts(kinBin,Bc_Pt[iT],Bc_Y[iT])) continue;
+      
       float w = weight[iT];
       if(Bc_M[iT]>m_Bc) w *= CRbinwRatio;
 
@@ -210,14 +216,14 @@ void UncorrelateBDTfromM(bool ispp=true){
   h_BDTM_data->GetYaxis()->SetTitle("BDT");
   h_BDTM_data->Draw("COLZ0");
   
-  c1->SaveAs("figs_UncorrBDT/BDTvsM_2D_"+(TString)(ispp?"pp":"PbPb")+".pdf");
+  c1->SaveAs("figs_UncorrBDT/BDTvsM_2D_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+".pdf");
 
   //********************************************************
   //DRAW average BDT vs M
   //********************************************************
-  TH1F *avBDTvsM_bkg = (TH1F*)h_BDTM_bkg->ProfileX("avBDTvsM_bkg",1,-1,""); //default error is error on the mean, option g is for weighted average errors 
-  TH1F *avBDTvsM_sig = (TH1F*)h_BDTM_sig->ProfileX("avBDTvsM_sig",1,-1,""); 
-  TH1F *avBDTvsM_data = (TH1F*)h_BDTM_data->ProfileX("avBDTvsM_data",1,-1,"");
+  TH1F *avBDTvsM_bkg = (TH1F*)h_BDTM_bkg->ProfileX("avBDTvsM_bkg_KinBin"+(TString)to_string(kinBin),1,-1,""); //default error is error on the mean, option g is for weighted average errors 
+  TH1F *avBDTvsM_sig = (TH1F*)h_BDTM_sig->ProfileX("avBDTvsM_sig_KinBin"+(TString)to_string(kinBin),1,-1,""); 
+  TH1F *avBDTvsM_data = (TH1F*)h_BDTM_data->ProfileX("avBDTvsM_data_KinBin"+(TString)to_string(kinBin),1,-1,"");
   TCanvas* c2 = new TCanvas("c2","c2",3900,1300);
   c2->Divide(3,1);
   c2->cd(1);
@@ -239,8 +245,7 @@ void UncorrelateBDTfromM(bool ispp=true){
   gPad->SetRightMargin(0.05);
   avBDTvsM_data->Draw();
 
-  c2->SaveAs("figs_UncorrBDT/BDTvsM_profile_"+(TString)(ispp?"pp":"PbPb")+".pdf");
-
+  c2->SaveAs("figs_UncorrBDT/BDTvsM_profile_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+".pdf");
 
   //********************************************************
   //Get BDT vs M histograms
@@ -257,6 +262,8 @@ void UncorrelateBDTfromM(bool ispp=true){
     //BEGIN event loop on the analyzed tree
     for(int j=0; j<T[iT]->GetEntries(); j++){
       T[iT]->GetEntry(j);
+      if(!inFidCuts(kinBin,Bc_Pt[iT],Bc_Y[iT])) continue;
+
       float w = weight[iT];
       if(Bc_M[iT]>m_Bc) w *= CRbinwRatio;
 
@@ -304,7 +311,7 @@ void UncorrelateBDTfromM(bool ispp=true){
   h_corrBDT_data->GetYaxis()->SetTitle("BDT corrected");
   h_corrBDT_data->Draw("COLZ0");
   
-  c3->SaveAs("figs_UncorrBDT/correctedBDTvsM_2D_"+(TString)(ispp?"pp":"PbPb")+".pdf");
+  c3->SaveAs("figs_UncorrBDT/correctedBDTvsM_2D_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+".pdf");
 
 
   //********************************************************
@@ -334,7 +341,7 @@ void UncorrelateBDTfromM(bool ispp=true){
   gPad->SetRightMargin(0.05);
   avcorrBDTvsM_data->Draw();
 
-  c4->SaveAs("figs_UncorrBDT/correctedBDTvsM_profile_"+(TString)(ispp?"pp":"PbPb")+".pdf");
+  c4->SaveAs("figs_UncorrBDT/correctedBDTvsM_profile_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+".pdf");
 
   //********************************************************
   //DRAW corrected BDT
@@ -360,33 +367,38 @@ void UncorrelateBDTfromM(bool ispp=true){
   gPad->SetRightMargin(0.05);
   corrBDT_data->Draw();
 
-  c5->SaveAs("figs_UncorrBDT/correctedBDT_"+(TString)(ispp?"pp":"PbPb")+".pdf");
+  c5->SaveAs("figs_UncorrBDT/correctedBDT_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+".pdf");
 
-  cout<<"poportion of signal MC with corrBDT<-0.1 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(-0.1)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<-0.07 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(-0.07)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<-0.05 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(-0.05)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0. = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.05 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.05)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.1 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.1)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.15 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.15)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.2 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.2)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.22 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.22)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.23 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.23)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.25 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.25)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.3 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.3)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.35 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.35)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.4 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.4)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.45 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.45)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.5 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.5)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.55 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.55)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.65 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.65)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.7 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.7)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.75 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.75)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.8 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.8)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.85 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.85)) / nsig <<endl;
-  cout<<"poportion of signal MC with corrBDT<0.9 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.9)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<-0.1 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(-0.1)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<-0.07 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(-0.07)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<-0.05 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(-0.05)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0. = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.05 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.05)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.1 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.1)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.15 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.15)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.2 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.2)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.22 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.22)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.23 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.23)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.25 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.25)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.3 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.3)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.35 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.35)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.4 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.4)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.45 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.45)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.5 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.5)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.55 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.55)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.65 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.65)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.7 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.7)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.75 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.75)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.8 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.8)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.85 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.85)) / nsig <<endl;
+  // cout<<"poportion of signal MC with corrBDT<0.9 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.9)) / nsig <<endl;
 
-  TFile *outf = new TFile("BDTuncorrFromM_"+(TString)(ispp?"pp":"PbPb")+".root","RECREATE"); 
+  TFile *outf = new TFile("BDTuncorrFromM_"+(TString)(ispp?"pp":"PbPb")+".root",(kinBin==1)?"RECREATE":"UPDATE"); 
   avBDTvsM_bkg->Write();
   outf->Close();
+}
+
+void UncorrelateBDTfromM(bool ispp){
+  Uncorrelate(ispp,1);
+  Uncorrelate(ispp,2);
 }

@@ -31,6 +31,25 @@
   * `cd ~/efficiency/`
   * `rt BuildEffMap.C`
 
-## Make the templates histos for combine. Includes histos with acc eff corrections
+## Template fitting 
+- Make the templates histos for combine. Includes histos with acc eff corrections
   *`cd ~/templateFit`
   *`rt HistsForCombine.C`
+- Make the template fit, without acc eff corrections
+  *`cd ~/templateFit`
+  *`cmsrel CMSSW_10_3_4; cd CMSSW_10_3_4/src'
+  *`cmsenv'
+  *`git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit'
+  *`cd HiggsAnalysis/CombinedLimit/test'
+  *`ln -s /home/llr/cms/falmagne/Bc/templateFit/combineFit/runCombine.sh runCombine.sh'
+  *`source runCombine.sh'
+
+## Yields and errors
+- Correct yields with event-by-event acc eff corrections
+  *`rt -b runMetafitSysts.C'
+- Draw corrected yields for various acc eff methods, and get a systematic from it
+  *`rt "Draw_corrYields.C(true)"'
+  *`rt "Draw_corrYields.C(false)"'
+- Draw R_PbPb:
+  * `cd ~/RAA/`
+  *`rt Draw_XSandRAA.C'

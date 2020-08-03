@@ -121,16 +121,16 @@ void Draw_corrYields(bool ispp=true){
   g_MCv2->SetMarkerColor(kGreen+2);
   g_MCv2->SetMarkerStyle(23);
 
-  g_MC->GetYaxis()->SetRangeUser(0.5*y_MC[nbins-1],2*y_MC[0]);//+3*yErr[0]);
+  g_MC->GetYaxis()->SetRangeUser(ispp?(0.5*y_MC[nbins-1]):0,1.5*y_MC[0]);//+3*yErr[0]);
   g_MC->GetXaxis()->SetRangeUser(_BcPtmin[0],_BcPtmax[0]);//+3*yErr[0]);
   g_MC->SetTitle("Systematic variations of corrected yields");
   g_MC->GetYaxis()->SetTitle("corrected yield");
   g_MC->GetXaxis()->SetTitle("p_{T}(#mu#mu#mu) [GeV]");
 
-  TLegend *leg = new TLegend(0.5,0.6,0.9,0.9);
-  if(ispp) leg->AddEntry(g_nominal,"nominal");
+  TLegend *leg = new TLegend(0.45,0.6,0.9,0.9);
+  if(ispp) leg->AddEntry(g_nominal,"full event-by-event");
   leg->AddEntry(g_oneBinned,"one-binned AccEff");
-  leg->AddEntry(g_MC,"MC v1: method crosscheck");
+  leg->AddEntry(g_MC,"MC v1: method crosscheck","lpe");
   leg->AddEntry(g_MCv2,"MC v2: effect of AccEff maps (close to one-binned)");
   leg->AddEntry(g_no1stBDTbin,"no 1st BDT bin");
   leg->AddEntry(g_BDTeff23,"no 1st BDT bin, BDT eff map");
@@ -148,7 +148,7 @@ void Draw_corrYields(bool ispp=true){
   g_BDTeff3->Draw("Psame");
   g_MCv2->Draw("Psame");
   leg->Draw("same");
-  gPad->SetLogy();
+  //gPad->SetLogy();
 
   //DRAW CMS Preliminary                                                                                                                                                                                                                  
   TLatex CMStag;
@@ -177,7 +177,8 @@ void Draw_corrYields(bool ispp=true){
       y_systErr[b] = max(y_systErr[b] , (float)fabs(y_nom[b] - y_BDTeff23[b]) );
     }
     else{
-      y_nom[b] = (y_oneBinned[b] + y_BDTeff23[b])/2;
+      y_nom[b] = (y_oneBinned[b] + y_BDTeff3[b])/2;
+      cout<<"b, y_oneBinned, y_BDTeff3, y_nom = "<<b<<" "<<y_oneBinned[b]<<" "<<y_BDTeff3[b]<<" "<<y_nom[b]<<endl;
       //systErr = max deviation from average of the 2 methods
       y_systErr[b] = fabs(y_nom[b] - y_BDTeff3[b]);
       y_systErr[b] = max(y_systErr[b] , (float)fabs(y_nom[b] - y_oneBinned[b]) );
@@ -188,7 +189,7 @@ void Draw_corrYields(bool ispp=true){
 
   TFile * outf = new TFile("corrected_yields.root","UPDATE");
   outf->WriteObject(&y_nom,"FinalCorrectedYield"+(TString)(ispp?"_pp":"_PbPb"));
-  outf->WriteObject(&y_systErr,"FinalCorrectedYield_systError"+(TString)(ispp?"_pp":"_PbPb"));
+  outf->WriteObject(&y_systErr,"FinalCorrectedYield_AccEffSystError"+(TString)(ispp?"_pp":"_PbPb"));
   outf->WriteObject(&y_fitErr,"FinalCorrectedYield_fitError"+(TString)(ispp?"_pp":"_PbPb"));
   outf->WriteObject(r1r2Corr,"r1r2Correlation"+(TString)(ispp?"_pp":"_PbPb"));
 

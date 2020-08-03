@@ -549,14 +549,16 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 
   //**************************************************************
   //Lines for fiducial cuts 
-  TLine *line1 = new TLine(_BcYmin[1],_BcPtmax[2],_BcYmin[2],_BcPtmax[2]);
-  TLine *line2 = new TLine(_BcYmin[2],_BcPtmin[1],_BcYmin[2],_BcPtmax[2]);
-  TLine *line3 = new TLine(_BcYmin[2],_BcPtmin[1],_BcYmax[1],_BcPtmin[1]);
-  TLine *line4 = new TLine(_BcYmax[1],_BcPtmin[1],_BcYmax[1],_BcPtmax[1]);
+  TLine *line1 = new TLine(_BcYmin[0],_BcPtmax[1],_BcYmin[1],_BcPtmax[1]);
+  TLine *line2 = new TLine(_BcYmin[1],_BcPtmin[1],_BcYmin[1],_BcPtmax[1]);
+  TLine *line3 = new TLine(_BcYmin[1],_BcPtmin[1],_BcYmax[1],_BcPtmin[1]);
+  TLine *line4 = new TLine(_BcYmax[1],_BcPtmin[0],_BcYmax[1],_BcPtmax[0]);
+  TLine *line5 = new TLine(_BcYmin[1],_BcPtmax[1],_BcYmax[1],_BcPtmax[1]);
   line1->SetLineWidth(4);  line1->SetLineColor(kBlack);
   line2->SetLineWidth(4);  line2->SetLineColor(kBlack);
   line3->SetLineWidth(4);  line3->SetLineColor(kBlack);
   line4->SetLineWidth(4);  line4->SetLineColor(kBlack);
+  line5->SetLineWidth(3); line5->SetLineStyle(2); line5->SetLineColor(kBlack);
 
   gStyle->SetPalette(kLightTemperature);
   gStyle->SetOptStat(0);
@@ -576,7 +578,7 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
   hp_sel->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
   hp_sel->SetTitle("Selected B_{c}'s");
   hp_sel->Draw("COLZ0");
-  line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same");
+  line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same");
 
   c2->cd(2);
   //  gPad->SetLogz();
@@ -586,7 +588,7 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
   hp_efficiency->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
   hp_efficiency->SetTitle("Efficiency");
   hp_efficiency->Draw("COLZ0");
-  line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same");
+  line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same");
 
   c2->SaveAs("figs/EfficiencyMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
   c2->SaveAs("figs/EfficiencyMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".png");
@@ -605,7 +607,7 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
   
   c3->cd(1);
   hp_acceptance->Draw("COLZ");
-  line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same");
+  line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same");
   gPad->SetLogz();
   gPad->SetRightMargin(0.15);
   hp_acceptance->GetZaxis()->SetRangeUser(5e-5,1);
@@ -621,15 +623,16 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
   
   c3->cd(2);
   hp_efficiency->Draw("COLZ0");
-  line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same");
+  line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same");
   c3->cd(3);
   hp_sel->Draw("COLZ0");
-  line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same");
+  line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same");
 
   c3->cd(4);
   hp_acceff->Draw("COLZ0");
-  line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same");
+  line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same");
   hp_acceff->SetTitle("Acceptance #times  Efficiency");
+  cout<<"smallest in fid cuts acc eff = "<<hp_acceff->GetBinContent(hp_acceff->FindBin(1.32,6.05))<<endl;
   gPad->SetLogz();
   gPad->SetRightMargin(0.15);
   hp_acceff->GetZaxis()->SetRangeUser(3e-5,0.45);

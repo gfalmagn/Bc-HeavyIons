@@ -109,7 +109,7 @@ int MakePositive(TH1F* h, bool regularize=false, int forceReg=-1){
   return reg;
 }
 
-void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBin, bool addAccEff=true){
+void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBin, bool scaleSystBDTintegrated=false, bool regulLowStatShapes=false, bool addAccEff=true){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -174,7 +174,7 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
   //what fitting strategy
   int nbin = 38; //for other histos than Bc_M
   int nbinM = 30;
-  float CRbinwRatio = ((m_Bc-3.3)/_nbinMSR(ispp)) * (_nbinMCR(ispp)/1.);
+  float CRbinwRatio = ((_mBcMax-_mBcMin)/_nbinMSR(ispp)) * (_nbinMCR(ispp)/1.);
 
   //*******************************************
   //process names, pretty names of histos (designating actual content)
@@ -201,7 +201,7 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 				     (vector<TString>){"WrongSign","J/#psi sidebands","High mass control","signal region","MC signal expectation",
 					 JMCname[1],JMCname[0],"MC prompt J/#psi",JMCname[5], 
 					 JMCname[JMCcontent[0]], JMCname[JMCcontent[1]]+" PromptOrFlipJUp", JMCname[JMCcontent[2]]+" PromptOrFlipJDown", JMCname[JMCcontent[3]], JMCname[JMCcontent[4]],
-					 "Prompt J/#psi","Prompt J/#psi same-#eta side","Prompt J/#psi opposite-#eta side","Prompt J/#psi bJpsiFracUp","Prompt J/#psi bJpsiFracDown",
+					 "Prompt J/#psi","flipped J/#psi same-#eta side","flipped J/#psi opposite-#eta side","Prompt J/#psi bJpsiFracUp","Prompt J/#psi bJpsiFracDown",
 					 "J/#psi upper sidebands","J/#psi lower sideband"}
 					);
 
@@ -281,7 +281,12 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
   //*******************************************
   //Fetch BDT correction = f(M) to be subtracted from BDT, to uncorrelate it from mass
   TFile* f_BDTuncorrel = new TFile("BDTuncorrFromM_"+(TString)(ispp?"pp":"PbPb")+".root","READ");
-  TH1F* h_correctBDT = BDTuncorrFromM?( (TH1F*) f_BDTuncorrel->Get("avBDTvsM_bkg") ):NULL; //make the BDT of the expected background (postfit) uncorrelated with mass
+  TH1F* h_correctBDT = BDTuncorrFromM?( (TH1F*) f_BDTuncorrel->Get("avBDTvsM_bkg_KinBin"+(TString)to_string(kinBin)) ):NULL; //make the BDT of the expected background (postfit) uncorrelated with mass
+  if(kinBin==0 && BDTuncorrFromM) {
+    for(int b=2;b<=_NanaBins;b++)
+      h_correctBDT->Add((TH1F*) f_BDTuncorrel->Get("avBDTvsM_bkg_KinBin"+(TString)to_string(b)));
+    h_correctBDT->Scale(1/_NanaBins); //average of correction functions of all bins 
+  }
 
   //*******************************************
   //For the signal region and the tmva output, fill the histos for BDT and Bc_M
@@ -303,14 +308,9 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
       T[iT]->GetEntry(j);
 
       //Keep events from the wanted analysis bin
-      if(kinBin>0 && !( Bc_Pt[iT]>_BcPtmin[kinBin] && Bc_Pt[iT]<_BcPtmax[kinBin] && fabs(Bc_Y[iT])>_BcYmin[kinBin] && fabs(Bc_Y[iT])<_BcYmax[kinBin])) continue;
-      if(kinBin==0){//integrated bin
-	bool inFidCuts = Bc_Pt[iT]>_BcPtmin[0] && Bc_Pt[iT]<_BcPtmax[0] && fabs(Bc_Y[iT])>_BcYmin[0] && fabs(Bc_Y[iT])<_BcYmax[0];
-	inFidCuts = inFidCuts || (Bc_Pt[iT]>_BcPtmin[1] && Bc_Pt[iT]<_BcPtmax[1] && fabs(Bc_Y[iT])>_BcYmin[1] && fabs(Bc_Y[iT])<_BcYmax[1]);
-	if(!inFidCuts) continue;
-      }
+      if(!inFidCuts(kinBin,Bc_Pt[iT],Bc_Y[iT])) continue;
 
-      vector<int> iProc;
+      vector<int> iProc; //processes in which we want to include this event
       iProc.push_back(iT);
       
       //*******************************************
@@ -365,14 +365,14 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 	if(Bc_M[iT]>m_Bc) w *= CRbinwRatio; //compensate for larger bins in the high mass CR
 	float bdtcorr = BDTuncorrFromM?( h_correctBDT->GetBinContent(h_correctBDT->FindBin(Bc_M[iT])) ):0;
 
-	if(iT==1){
-	  if(iproc==19) w *= (ispp?2.415:2.028); //hard-coded correction of norm of lower and upper Jpsi sidebands //2020/04/27
-	  if(iproc==20) w *= (ispp?1.706:1.973);
-	}
+	// if(iT==1){
+	//   if(iproc==19) w *= (ispp?2.415:2.028); //hard-coded correction of norm of lower and upper Jpsi sidebands //2020/04/27 //needed only if the histos are not scaled by the nominal process (done later on)
+	//   if(iproc==20) w *= (ispp?1.706:1.973);
+	// }
 
 	if(iT>=5){ //weights of Jpsi MC or flipJpsi events
-	  if(iproc==15) w *= 7/3. *(ispp?1.:0.4);	
-	  if(iproc==16) w *= 7/4. *(ispp?1.:0.4);	
+	  if(iproc==15) w *= 7/3.;// *(ispp?1.:0.4);
+	  if(iproc==16) w *= 7/4.;// *(ispp?1.:0.4);	
 	  //BDT weights for flipJpsi
 	  for(int flipMeth=0; flipMeth<5;flipMeth++){
 	    if(iproc==(14+flipMeth) && applyBDTweights){
@@ -390,12 +390,14 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 	    }
 	  }
 	  //variations of the non-prompt Jpsi MC in PbPb
-	  if(!ispp && !muW_isJpsiBro[iT]){
+	  if(!ispp && muW_isJpsiBro[iT]){
 	    if(iproc==12) w *= 3;
 	    if(iproc==13) w *= 0.33;
 	  }	
 	}
 
+	//	if(iproc==9 || iproc==12 || iproc==13)
+	//cout<<"iproc, iT, w, w change, muW_isJpsiBro = "<<iproc<<" "<<iT<<" "<<w<<" "<<w/weight[iT]<<" "<<muW_isJpsiBro[iT]<<endl;
 	//Fill histos
 	h_BDT[iproc]->Fill( BDTv[iT] , w);
 
@@ -428,10 +430,19 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
   }
   //END loop on trees
 
+  //Getting integrals of processes, integrated over BDT bins
+  vector<float> integ(nProc,0);
+  if(scaleSystBDTintegrated){
+    for(int i=0; i<nProc; i++){
+      for(int k=0;k<nCuts;k++){
+	integ[i] += h_BcM[i][k]->Integral();}
+    }
+  }
+
   //********************************************************
   //Recording mass histos intended for combine
   //********************************************************
-  TFile *f = new TFile("InputForCombine_"+(TString)(BDTuncorrFromM?"BDTuncorrFromM_":"")+(TString)(ispp?"pp":"PbPb")+".root", (kinBin<2)?"recreate":"update");  
+  TFile *f = new TFile("InputForCombine_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(scaleSystBDTintegrated?"_scaleSystBDTintegrated":"")+(TString)(regulLowStatShapes?"_regulLowStatShapes":"")+".root", (kinBin<2)?"recreate":"update");  
   TDirectory *dir1[nCuts];
   TDirectory *dir2[nProc];
   for(int k=0;k<nCuts;k++){
@@ -444,9 +455,20 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
       dir2[k]->cd();
       
       MakePositive(h_bdt[i][k]);
-      int didReg = MakePositive(h_BcM[i][k], (i!=3 && i!=4));
+      int didReg = MakePositive(h_BcM[i][k], regulLowStatShapes && i!=3 && i!=4);
       MakePositive(h_BcPt[i][k]);
       MakePositive(h_QQM[i][k]);
+
+      int scaleWithProc = -1;
+      if(i>9 && i<=13) scaleWithProc = 9;
+      if(i>14 && i<=18) scaleWithProc = 14;
+      if(i>=19 && i<=20) scaleWithProc = 1;
+      
+      //if(scaleWithProc!=-1) cout<<"scaling histo of proc "<<i<<" with "<<integ[scaleWithProc]<<"/"<<integ[i]<<" = "<<integ[scaleWithProc]/integ[i]<<endl;
+      float scale = (scaleWithProc==-1)?1:(h_BcM[scaleWithProc][k]->Integral() / h_BcM[i][k]->Integral());
+      if(scaleSystBDTintegrated)
+	scale = (scaleWithProc==-1)?1:(integ[scaleWithProc]/integ[i]);
+      h_BcM[i][k]->Scale(scale);
 
       h_bdt[i][k]->Write("BDTv");
       h_BcM[i][k]->Write("BcM");
@@ -457,6 +479,10 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 	MakePositive(h_MeanInvAccEff[i][k], (i!=3 && i!=4), didReg); //need same regularization as simple Bc_M
 	MakePositive(h_MeanInvAccEff_BDT23[i][k], (i!=3 && i!=4), didReg);
 	MakePositive(h_MeanInvAccEff_BDT3[i][k], (i!=3 && i!=4), didReg);
+	h_MeanInvAccEff[i][k]->Scale(scale);
+	h_MeanInvAccEff_BDT23[i][k]->Scale(scale);
+	h_MeanInvAccEff_BDT3[i][k]->Scale(scale);
+
 	h_MeanInvAccEff[i][k]->Write("BcM_AccEffWeighted");
 	h_MeanInvAccEff_BDT23[i][k]->Write("BcM_AccEffWeighted_BDTeff23");
 	h_MeanInvAccEff_BDT3[i][k]->Write("BcM_AccEffWeighted_BDTeff3");
@@ -498,10 +524,23 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 
 }
 
-void HistsForCombine(bool ispp = true, bool BDTuncorrFromM=false){
+void HistsForCombine(bool ispp = true){
 
+  bool BDTuncorrFromM=false;
+  bool scaleSystBDTintegrated=false;
+  bool regulLowStatShapes=false;
   //  application( _BDTcuts(ispp,0,BDTuncorrFromM) , ispp, BDTuncorrFromM, 0); //integrated bin
-  application( _BDTcuts(ispp,1,BDTuncorrFromM) , ispp, BDTuncorrFromM, 1); //run bin1 before bin2
-  application( _BDTcuts(ispp,2,BDTuncorrFromM) , ispp, BDTuncorrFromM, 2);
+  application( _BDTcuts(ispp,1,BDTuncorrFromM) , ispp, BDTuncorrFromM, 1, scaleSystBDTintegrated, regulLowStatShapes); //run bin1 before bin2
+  application( _BDTcuts(ispp,2,BDTuncorrFromM) , ispp, BDTuncorrFromM, 2, scaleSystBDTintegrated, regulLowStatShapes);
+
+  application( _BDTcuts(ispp,1,BDTuncorrFromM) , ispp, BDTuncorrFromM, 1, true, true); //run bin1 before bin2
+  application( _BDTcuts(ispp,2,BDTuncorrFromM) , ispp, BDTuncorrFromM, 2, true, true);
+
+  application( _BDTcuts(ispp,1,BDTuncorrFromM) , ispp, BDTuncorrFromM, 1, scaleSystBDTintegrated, true); //run bin1 before bin2
+  application( _BDTcuts(ispp,2,BDTuncorrFromM) , ispp, BDTuncorrFromM, 2, scaleSystBDTintegrated, true);
+
+  BDTuncorrFromM=true;
+  application( _BDTcuts(ispp,1,BDTuncorrFromM) , ispp, BDTuncorrFromM, 1, scaleSystBDTintegrated, regulLowStatShapes); //run bin1 before bin2
+  application( _BDTcuts(ispp,2,BDTuncorrFromM) , ispp, BDTuncorrFromM, 2, scaleSystBDTintegrated, regulLowStatShapes);
 
 }

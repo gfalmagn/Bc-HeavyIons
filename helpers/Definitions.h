@@ -17,19 +17,19 @@ float TAA_090 = 6.27e-9; //pb-1 //6.27+-0.14 mb-1 (2.2%), HIN-19-007-pas-v5
 int _nbinMSR(bool ispp){return _withTM?(ispp?25:16):(ispp?(_preFitCorrAE?10:16):(_preFitCorrAE?7:10));}
 int _nbinMCR(bool ispp){return _withTM?(ispp?5:4):(ispp?(_preFitCorrAE?2:4):2);}
 int _nbinM(bool ispp){return _nbinMSR(ispp) + (int)_keepFirstMassBin + _nbinMCR(ispp);}
+float _mBcMax = 6.2;
+float _mBcMin = 3.5;
 
 float Mbins[100];//max number of mass bins = 100
 float* _Mbinning(bool ispp){
-  float mBcMax = 6.2;
-  float mBcMin = 3.5;
   int nbinsCR = _nbinMCR(ispp);
   int nbinsSR = _nbinMSR(ispp);
-  float Mstep = (mBcMax-mBcMin)/(float)nbinsSR;
-  if(_keepFirstMassBin) Mbins[0] = mBcMin - Mstep;
+  float Mstep = (_mBcMax-_mBcMin)/(float)nbinsSR;
+  if(_keepFirstMassBin) Mbins[0] = _mBcMin - Mstep;
   for(int b=0; b<=nbinsSR; b++)
-    Mbins[b+(int)_keepFirstMassBin] = mBcMin + b*Mstep;
+    Mbins[b+(int)_keepFirstMassBin] = _mBcMin + b*Mstep;
   for(int b=(int)_keepFirstMassBin; b<=nbinsCR; b++)
-    Mbins[b+(int)_keepFirstMassBin+nbinsSR] = mBcMax + b*1./(float)nbinsCR; //CR is 1GeV wide
+    Mbins[b+(int)_keepFirstMassBin+nbinsSR] = _mBcMax + b*1./(float)nbinsCR; //CR is 1GeV wide
 
   return Mbins;
 }

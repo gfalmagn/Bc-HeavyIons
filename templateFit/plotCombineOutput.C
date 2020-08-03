@@ -23,15 +23,13 @@ float quadSum(float f1, float f2, float f3=0, float f4=0){
   return sqrt(f1*f1+f2*f2+f3*f3+f4*f4);
 }
 
-void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=false, int skipBDTbins=0){
+void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="", TString systExt=""){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
 
   int ntrees = 9;
 
-  bool ignoreBin2 = (skipBDTbins==2);
-  bool ignoreBin1 = (skipBDTbins==1 || skipBDTbins==2);
   bool separateCombinatorics = false; // in non-prompt Jpsi MC, separate the events where muW and Jpsi are not from same decay, and gather them with Prompt Jpsi MC to make a combinatorics sample
   bool useFlipJpsi = ispp;
   bool flipJpsiSameSide = false; // whether to keep only events with flipJpsi angle on same |eta| side
@@ -41,7 +39,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
 
   float BDTcut_l[_NanaBins+1][_nChan(ispp)+2]; 
   for(int b=0;b<=_NanaBins;b++){
-    vector<float> BDTcut = _BDTcuts(ispp,b,BDTuncorrFromM); //vector of BDT cut values put into array
+    vector<float> BDTcut = _BDTcuts(ispp,b,(metafitSyst=="_BDTuncorrFromM")); //vector of BDT cut values put into array
     //  if(ignore1stBin) BDTcut.erase(0);
     BDTcut_l[b][0] = -1;
     for(int k=0;k<=_nChan(ispp);k++){
@@ -104,7 +102,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
   //********************************************************
   //Extract BcM HISTOGRAMS used as combine input
   //********************************************************
-  auto histFile = TFile::Open("InputForCombine_"+(TString)(BDTuncorrFromM?"BDTuncorrFromM_":"")+(TString)(ispp?"pp":"PbPb")+".root");
+  auto histFile = TFile::Open("InputForCombine_"+(TString)(ispp?"pp":"PbPb")+metafitSyst+".root");
   for(int i=0; i<ntrees; i++){
     if(!drawShape[i]) continue;
     if(i==7) continue; //no dimutrk for now
@@ -166,7 +164,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
 	c3->cd(k);
 	c3->cd(k)->SetRightMargin(0.04);}
 
-      cout<<"\n **** For BDTval in ["<<_BDTcut_s(ispp,b,BDTuncorrFromM)[max(k-1,0)]<<", "<<_BDTcut_s(ispp,b,BDTuncorrFromM)[(k==0)?_nChan(ispp):k]<<"]"<<endl;
+      cout<<"\n **** For BDTval in ["<<_BDTcut_s(ispp,b,(metafitSyst=="_BDTuncorrFromM"))[max(k-1,0)]<<", "<<_BDTcut_s(ispp,b,(metafitSyst=="_BDTuncorrFromM"))[(k==0)?_nChan(ispp):k]<<"]"<<endl;
       // cout<<"background efficiency = "<<rejBkg->GetBinContent(k+1)<<endl;
       // cout<<"MC signal efficiency = "<<effSig->GetBinContent(k+1)<<endl;
       // cout<<"Number of expected (MC) signal events = "<<nSig[k]<<endl;
@@ -200,7 +198,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
 
       //DRAW data signal region
       //cout<<"--- Drawing: "<<prettyName[3]<<endl;
-      h_BcM[3][b][k]->SetTitle("B_{c} candidates mass"+(TString)((k==0)?", no BDT cuts":(" with BDT #in "+(TString)((k==1)?"]-#infty":("["+_BDTcut_s(ispp,b,BDTuncorrFromM)[k-1]))+","+(TString)((k==_nChan(ispp))?"+#infty[":(_BDTcut_s(ispp,b,BDTuncorrFromM)[k]+"]"))) ));
+      h_BcM[3][b][k]->SetTitle("B_{c} candidates mass"+(TString)((k==0)?", no BDT cuts":(" with BDT #in "+(TString)((k==1)?"]-#infty":("["+_BDTcut_s(ispp,b,(metafitSyst=="_BDTuncorrFromM"))[k-1]))+","+(TString)((k==_nChan(ispp))?"+#infty[":(_BDTcut_s(ispp,b,(metafitSyst=="_BDTuncorrFromM"))[k]+"]"))) ));
       h_BcM[3][b][k]->GetXaxis()->SetTitle("trimuon mass [GeV]");
       h_BcM[3][b][k]->GetYaxis()->SetTitle("candidates/("+(TString)Form("%.2f",(m_Bc-3.3)/_nbinMSR(ispp)) +" GeV)");
       h_BcM[3][b][k]->GetYaxis()->SetRangeUser(0, 1.1*((h_BcM[3][b][k]->GetMaximum() > h_BcM_prefit[nPiled-1][b][k]->GetMaximum())?h_BcM[3][b][k]->GetMaximum():h_BcM_prefit[nPiled-1][b][k]->GetMaximum())  );
@@ -244,11 +242,11 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
       CMStag.DrawLatex(0.13,0.80,"#font[52]{Work in progress}");
 
       //Save canvas
-      ((k==0)?c4:(c3->cd(k)))->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+(TString)((k==0)?"_noBDTcut":"_BDTbin"+(TString)(to_string(k)))+"_PREFIT.pdf");
-      ((k==0)?c4:(c3->cd(k)))->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+(TString)((k==0)?"_noBDTcut":"_BDTbin"+(TString)(to_string(k)))+"_PREFIT.png");
+      ((k==0)?c4:(c3->cd(k)))->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+(TString)((k==0)?"_noBDTcut":"_BDTbin"+(TString)(to_string(k)))+"_PREFIT"+metafitSyst+systExt+".pdf");
+      ((k==0)?c4:(c3->cd(k)))->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+(TString)((k==0)?"_noBDTcut":"_BDTbin"+(TString)(to_string(k)))+"_PREFIT"+metafitSyst+systExt+".png");
       if(k==_nChan(ispp)) {
-	c3->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_allBDTbins_PREFIT.png");
-	c3->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_allBDTbins_PREFIT.pdf");}
+	c3->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_allBDTbins_PREFIT"+metafitSyst+systExt+".png");
+	c3->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_allBDTbins_PREFIT"+metafitSyst+systExt+".pdf");}
 
     }
     //if(b<_NanaBins) {c3->Delete(); c4->Delete();}
@@ -257,7 +255,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
   //********************************************************
   //Extract results (POSTFIT NORMALISATIONS & SHAPES) from combine output
   //********************************************************
-  TString normFileName = "./CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(bToJpsiOnly?"bToJpsi":"NonPromptJpsi")+(TString)(useFlipJpsi?(flipJpsiSameSide?"_flipJpsiSameSide":"_flipJpsi"):(ispp?"":"_PromptJpsi"))+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(ignoreBin2?"_ignoreBin1-2":(ignoreBin1?"_ignoreBin1":""))+(TString)(ispp?"_pp":"_PbPb")+"_2bins"+(TString)(_preFitCorrAE?"_wAccEff":"")+".root";
+  TString normFileName = "./CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(bToJpsiOnly?"bToJpsi":"NonPromptJpsi")+(TString)(useFlipJpsi?(flipJpsiSameSide?"_flipJpsiSameSide":"_flipJpsi"):(ispp?"":"_PromptJpsi"))+(TString)(ispp?"_pp":"_PbPb")+"_2bins"+metafitSyst+systExt+(TString)(_preFitCorrAE?"_wAccEff":"")+".root";
     cout<<"Extract normalisations from file "<<normFileName<<endl;
   auto normFile = TFile::Open(normFileName);
   RooArgSet *Yields = (RooArgSet*)normFile->Get("norm_fit_"+(TString)(bkgOnly?"b":"s"));
@@ -314,10 +312,10 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
 
       //extrapolate the yields for the bins not used in fit
       for(int b=0;b<=_NanaBins;b++){
-	if(ignoreBin1){
-	  yields[i][b][1] *= yields[i][b][ignoreBin2?3:2]/yields_prefit[i][b][ignoreBin2?3:2];
+	if(systExt=="_noBDT1"){
+	  yields[i][b][1] *= yields[i][b][(systExt=="_noBDT12")?3:2]/yields_prefit[i][b][(systExt=="_noBDT12")?3:2];
 	  yields[i][b][0] += yields[i][b][1];}
-	if(ignoreBin2){
+	if(systExt=="_noBDT12"){
 	  yields[i][b][2] *= yields[i][b][3]/yields_prefit[i][b][3];
 	  yields[i][b][0] += yields[i][b][2];}	
       }
@@ -470,7 +468,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
 	c6->cd(k);
       }
 
-      cout<<"\n **** For BDTval in ["<<_BDTcut_s(ispp,b,BDTuncorrFromM)[max(k-1,0)]<<", "<<_BDTcut_s(ispp,b,BDTuncorrFromM)[(k==0)?_nChan(ispp):k]<<"]"<<endl;
+      cout<<"\n **** For BDTval in ["<<_BDTcut_s(ispp,b,(metafitSyst=="_BDTuncorrFromM"))[max(k-1,0)]<<", "<<_BDTcut_s(ispp,b,(metafitSyst=="_BDTuncorrFromM"))[(k==0)?_nChan(ispp):k]<<"]"<<endl;
       cout<<"background rejection = "<<rejBkg[b]->GetBinContent(k+1)<<endl;
       if(!bkgOnly) cout<<"MC signal efficiency = "<<effSig[b]->GetBinContent(k+1)<<endl;
       if(!bkgOnly) cout<<"Number of expected (MC postfit norm) signal events = "<<nSig[b][k]<<endl;
@@ -565,8 +563,8 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
       //SAVE canvases
       //For inclusive plot
       if(k==0){
-	c7->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_noBDTcut_POSTFIT"+(TString)(bkgOnly?"_bkgOnly":"")+".pdf");
-	c7->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_noBDTcut_POSTFIT"+(TString)(bkgOnly?"_bkgOnly":"")+".png");}
+	c7->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_noBDTcut_POSTFIT"+(TString)(bkgOnly?"_bkgOnly":"")+metafitSyst+systExt+".pdf");
+	c7->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_noBDTcut_POSTFIT"+(TString)(bkgOnly?"_bkgOnly":"")+metafitSyst+systExt+".png");}
     
       //For each BDT bin
       else{    
@@ -580,15 +578,15 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
 	ctmp->cd(); 
 	ctmp2->DrawClone();
       
-	ctmp->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_BDTbin"+(TString)(to_string(k))+"_POSTFIT"+(TString)(bkgOnly?"_bkgOnly":"")+".pdf");
-	ctmp->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_BDTbin"+(TString)(to_string(k))+"_POSTFIT"+(TString)(bkgOnly?"_bkgOnly":"")+".png");
+	ctmp->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_BDTbin"+(TString)(to_string(k))+"_POSTFIT"+(TString)(bkgOnly?"_bkgOnly":"")+metafitSyst+systExt+".pdf");
+	ctmp->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_BDTbin"+(TString)(to_string(k))+"_POSTFIT"+(TString)(bkgOnly?"_bkgOnly":"")+metafitSyst+systExt+".png");
 	delete ctmp,ctmp1,ctmp2;
       }
     
       //Canvas with all BDT bins
       if(k==_nChan(ispp)) {
-	c6->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_allBDTbins_POSTFIT"+(TString)(bkgOnly?"_bkgOnly":"")+".pdf");
-	c6->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_allBDTbins_POSTFIT"+(TString)(bkgOnly?"_bkgOnly":"")+".png");}
+	c6->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_allBDTbins_POSTFIT"+(TString)(bkgOnly?"_bkgOnly":"")+metafitSyst+systExt+".pdf");
+	c6->SaveAs("figs/Bc_mass_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_allBDTbins_POSTFIT"+(TString)(bkgOnly?"_bkgOnly":"")+metafitSyst+systExt+".png");}
 
     } //end loop on BDT bins
 
@@ -641,8 +639,8 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, bool BDTuncorrFromM=f
     legend2->Draw("same");
 
     if(!bkgOnly){
-      c5->SaveAs("figs/efficiencySigBkgAndSignificance_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_vs_BDTbin.png");
-      c5->SaveAs("figs/efficiencySigBkgAndSignificance_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_vs_BDTbin.pdf");}
+      c5->SaveAs("figs/efficiencySigBkgAndSignificance_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_vs_BDTbin"+metafitSyst+systExt+".png");
+      c5->SaveAs("figs/efficiencySigBkgAndSignificance_"+(TString)(ispp?"pp":"PbPb")+(TString)((b==0)?"_integrated":("_KinBin"+(TString)to_string(b)))+"_vs_BDTbin"+metafitSyst+systExt+".pdf");}
 
     if(b<_NanaBins) delete c5,c6,c7;
   }

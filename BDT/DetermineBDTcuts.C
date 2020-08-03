@@ -43,7 +43,12 @@ vector<float> DetermineCuts(bool ispp=true, bool BDTuncorrFromM=false, int kinBi
   //*******************************************
   //Fetch BDT correction = f(M) to be subtracted from BDT, to uncorrelate it from mass
   TFile* f_BDTuncorrel = new TFile("../templateFit/BDTuncorrFromM_"+(TString)(ispp?"pp":"PbPb")+".root","READ");
-  TH1F* h_correctBDT = BDTuncorrFromM?( (TH1F*) f_BDTuncorrel->Get("avBDTvsM_bkg") ):NULL; //make the BDT of the expected background (postfit) uncorrelated with mass
+  TH1F* h_correctBDT = BDTuncorrFromM?( (TH1F*) f_BDTuncorrel->Get("avBDTvsM_bkg_KinBin"+(TString)to_string((kinBin==0)?1:kinBin)) ):NULL; //make the BDT of the expected background (postfit) uncorrelated with mass
+  if(kinBin==0 && BDTuncorrFromM) {
+    for(int b=2;b<=_NanaBins;b++)
+      h_correctBDT->Add((TH1F*) f_BDTuncorrel->Get("avBDTvsM_bkg_KinBin"+(TString)to_string(b)));
+    h_correctBDT->Scale(1/_NanaBins); //average of correction functions of all bins
+  }
 
   TH1F* h_BDT = new TH1F("bdt","bdt",300,-1.5,1.5);
 
@@ -54,12 +59,7 @@ vector<float> DetermineCuts(bool ispp=true, bool BDTuncorrFromM=false, int kinBi
     float bdtcorr = BDTuncorrFromM?( h_correctBDT->GetBinContent(h_correctBDT->FindBin(Bc_M)) ):0;    
 
     //Keep events from the wanted analysis bin
-    if(kinBin>0 && !( Bc_Pt>_BcPtmin[kinBin] && Bc_Pt<_BcPtmax[kinBin] && fabs(Bc_Y)>_BcYmin[kinBin] && fabs(Bc_Y)<_BcYmax[kinBin])) continue;
-    if(kinBin==0){//integrated bin
-      bool inFidCuts = Bc_Pt>_BcPtmin[0] && Bc_Pt<_BcPtmax[0] && fabs(Bc_Y)>_BcYmin[0] && fabs(Bc_Y)<_BcYmax[0];
-      inFidCuts = inFidCuts || (Bc_Pt>_BcPtmin[1] && Bc_Pt<_BcPtmax[1] && fabs(Bc_Y)>_BcYmin[1] && fabs(Bc_Y)<_BcYmax[1]);
-      if(!inFidCuts) continue;
-    }
+    if(!inFidCuts(kinBin,Bc_Pt,Bc_Y)) continue;
 
     h_BDT->Fill(BDT-bdtcorr, firstTime?w_simple2:weight);
 

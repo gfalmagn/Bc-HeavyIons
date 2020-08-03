@@ -354,12 +354,12 @@ void BDTweighting(bool ispp=true, bool step2=false){
   // for(int b=1;b<=_NanaBins;b++){
   for(int b=0;b<1;b++){
     //in PbPb: replace flipJpsi by PromptMC
-    BDTweight(ispp, (ispp?0:3) , (ispp?0:3) , scaleJMC, scaleFlipJ, scaleSig[b], b, step2); 
-    BDTweight(ispp, (ispp?0:3) , (ispp?2:4) , scaleJMC, scaleFlipJ, scaleSig[b], b, step2);
+    // BDTweight(ispp, (ispp?0:3) , (ispp?0:3) , scaleJMC, scaleFlipJ, scaleSig[b], b, step2); 
+    // BDTweight(ispp, (ispp?0:3) , (ispp?2:4) , scaleJMC, scaleFlipJ, scaleSig[b], b, step2);
     BDTweight(ispp, (ispp?0:3) ,1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2); //NonPromptMC - bToJpsi
 
-    BDTweight(ispp, 1, 1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2); //flipJpsi method variation: nonpromptMC-bToJpsi is nominal in pp and PbPb
-    BDTweight(ispp, 2, 1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2);
+    //  BDTweight(ispp, 1, 1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2); //flipJpsi method variation: nonpromptMC-bToJpsi is nominal in pp and PbPb
+    // BDTweight(ispp, 2, 1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2);
   }
 
 }

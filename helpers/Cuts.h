@@ -5,6 +5,18 @@ vector<float> _BcYmax{2.3, 2.3, 2.3};
 vector<float> _BcPtmin{6, 6,  11};
 vector<float> _BcPtmax{50, 11, 50};
 
+bool inFidCuts(int kinBin, float pt, float rap){
+  if(kinBin>0)
+    return (pt>_BcPtmin[kinBin] && pt<_BcPtmax[kinBin] && fabs(rap)>_BcYmin[kinBin] && fabs(rap)<_BcYmax[kinBin]);
+  if(kinBin==0){//integrated bin
+    bool inFidCuts = false;
+    for(int B=1;B<=_NanaBins;B++){
+      inFidCuts = inFidCuts || (pt>_BcPtmin[B] && pt<_BcPtmax[B] && fabs(rap)>_BcYmin[B] && fabs(rap)<_BcYmax[B]);}
+    return inFidCuts;
+  }
+  return false; 
+}
+
 //BEGIN Pre-selection
 float _ctauSignif_cut = 1.5;
 float _ctauSignif3D_cut = 1.5;
