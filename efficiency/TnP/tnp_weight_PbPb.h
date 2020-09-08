@@ -15,6 +15,7 @@
 //   * idx = +1: stat variation, +1 sigma
 //   * idx = +2: stat variation, -1 sigma
 //   * idx = 99: syst variation, tag selection
+//   * idx = 3: MC efficiency
 // - MuID: (tnp_weight_muid_pbpb)
 //   * idx = 0:  nominal
 //   * idx = -1: syst variation, +1 sigma
@@ -22,6 +23,7 @@
 //   * idx = +1: stat variation, +1 sigma
 //   * idx = +2: stat variation, -1 sigma
 //   * idx = 99: syst variation, tag selection
+//   * idx = 3: MC efficiency
 // - Inner tracking: (tnp_weight_trk_pbpb)
 //   * idx = 0:  nominal
 //   * idx = -1: syst variation, +1 sigma
@@ -29,6 +31,7 @@
 //   * idx = +1: stat variation, +1 sigma
 //   * idx = +2: stat variation, -1 sigma
 //   * idx = 99: syst variation, tag selection
+//   * idx = 3: MC efficiency
 // +++++++++++++++++++++++++++++++++++++++
 
 double tnp_weight_muid_pbpb(double pt, double eta, int idx=0);
@@ -204,11 +207,14 @@ if (fabs(eta) >= 0 && fabs(eta) < 1.2) {
    }
  }
  double syst_factor = 0; double stat_factor = 0;
+ if (idx == 3){return den;}
+ else {
  if (idx == -1) syst_factor = syst;
  else if (idx == -2) syst_factor = -1*syst;
  else if (idx == +1) stat_factor = statUp;
  else if (idx == +2) stat_factor = -1*statDown;
  return ((num+syst_factor+stat_factor)/den);
+ }
 }
 
 ///////////////////////////////////////////////////
@@ -329,11 +335,13 @@ else {
 
 
 double syst_factor = 0; double stat_factor = 0;
+if (idx == 3){return den;}
+else{
 if (idx == -1) syst_factor = syst;
 else if (idx == -2) syst_factor = -1*syst;
 else if (idx == +1) stat_factor = statUp;
 else if (idx == +2) stat_factor = -1*statDown;
-return ((num+syst_factor+stat_factor)/den);
+return ((num+syst_factor+stat_factor)/den);}
 }
 
 ///////////////////////////////////////////////////
@@ -862,11 +870,14 @@ double tnp_weight_trg_pbpb(double pt, double eta, int filterId,int idx) {
     }
   }
   double syst_factor = 0; double stat_factor = 0;
+  if (idx == 3){return den;}
+  else{
   if (idx == -1) syst_factor = syst;
   else if (idx == -2) syst_factor = -1*syst;
   else if (idx == +1) stat_factor = statUp;
   else if (idx == +2) stat_factor = -1*statDown;
   return ((num+syst_factor+stat_factor)/den);
+  }
 }
 
 ///////////////////////////////////////////////////
@@ -919,12 +930,16 @@ double tnp_weight_trk_pbpb(double eta, int idx) {
   }
 
   double syst_factor = 0; double stat_factor = 0;
+  if (idx == 3){return den;}
+  else{
   if (idx == -1) syst_factor = syst;
   else if (idx == -2) syst_factor = -1*syst;
   else if (idx == +1) stat_factor = statUp;
   else if (idx == +2) stat_factor = -1*statDown;
   return ((num+syst_factor+stat_factor)/den);
+  }
 }
+
 ///////////////////////////////////////////////////
 //       T R K     P b P b    LooseAcceptance    //
 ///////////////////////////////////////////////////
@@ -975,11 +990,14 @@ if (x >= 1.6 && x < 2.4) {num = 0.998071; den = 0.998608; statUp = 0.00192877; s
 }
 
 double syst_factor = 0; double stat_factor = 0;
+ if (idx == 3){return den;}
+ else{
 if (idx == -1) syst_factor = syst;
 else if (idx == -2) syst_factor = -1*syst;
 else if (idx == +1) stat_factor = statUp;
 else if (idx == +2) stat_factor = -1*statDown;
 return ((num+syst_factor+stat_factor)/den);
+ }
 }
 ///////////////////////////////////////////////////
 //       T M       P b P b    LooseAcceptance    //
@@ -1030,11 +1048,14 @@ if (x >= 1.1 && x < 1.6) {num = 0.902553; den = 0.967751; statUp = 0.0974474; st
 if (x >= 1.6 && x < 2.4) {num = 0.919948; den = 0.981985; statUp = 0.0800519; statDown = 0.14527;}
 }
 double syst_factor = 0; double stat_factor = 0;
+ if (idx == 3){return den;}
+ else{
 if (idx == -1) syst_factor = syst;
 else if (idx == -2) syst_factor = -1*syst;
 else if (idx == +1) stat_factor = statUp;
 else if (idx == +2) stat_factor = -1*statDown;
 return ((num+syst_factor+stat_factor)/den);
+ }
 }
 
 ///////////////////////////////////////////////////
@@ -1044,30 +1065,32 @@ double tnp_weight_softid_looseacceptance_pbpb(double pt, double eta, int idx) {
 double x = pt;
 double num=1, den=1, syst=0, statUp=0, statDown=0;
 if (idx != 99) {
-//Central scale-factor value, statistical error, systematic error, total error
-if( (fabs(eta) > 0) && (fabs(eta) < 1.1) ){
-if (pt<5) return std::make_tuple(1.00394, 0.00295552, 0.000453098, 0.00299005);
-else if (pt<7) return std::make_tuple(1.0036, 0.00247736, 0.00154727, 0.00292085);
-else if (pt<10.5) return std::make_tuple(0.99522, 0.00309504, 0.000302585, 0.00310979);
-else if (pt<14.5) return std::make_tuple(1.00514, 0.00424409, 0.00140148, 0.0044695);
-else if (pt<30) return std::make_tuple(0.999627, 0.00655967, 0.000588925, 0.00658605);
-}
-//Central scale-factor value, statistical error, systematic error, total error
-if( (fabs(eta) > 1.1) && (fabs(eta) < 1.8) ){
-if (pt<2.5) return std::make_tuple(0.978638, 0.0183939, 0.0196463, 0.026913);
-else if (pt<3.3) return std::make_tuple(0.993175, 0.0106074, 0.00220443, 0.010834);
-else if (pt<5) return std::make_tuple(0.998543, 0.00615995, 0.00339968, 0.00703582);
-else if (pt<10) return std::make_tuple(0.993294, 0.00633176, 0.0064891, 0.0090664);
-else if (pt<30) return std::make_tuple(0.997563, 0.0138657, 0.00250173, 0.0140896);
-}
-//Central scale-factor value, statistical error, systematic error, total error
-if( (fabs(eta) > 1.8) && (fabs(eta) < 2.4) ){
-if (pt<2.2) return std::make_tuple(1.03518, 0.00483195, 0.0184352, 0.019058);
-else if (pt<3.3) return std::make_tuple(0.992809, 0.017015, 0.0110493, 0.0202878);
-else if (pt<5) return std::make_tuple(0.999142, 4.41165e-05, 0.00303283, 0.00303316);
-else if (pt<7.5) return std::make_tuple(0.990781, 0.0133825, 0.0078716, 0.0155259);
-else if (pt<30) return std::make_tuple(0.961168, 0.0193244, 0.0158288, 0.0249796);
-}
+  // SF for 0 < |eta| < 1.1
+  if (fabs(eta) >= 0 && fabs(eta) < 1.1) {
+    if (x >= 3.3 && x <5) {num = 0.991088; den = 0.987199; statUp = 0.00287969; statDown = 0.00295641;}
+    else if (x >= 5 && x <7) {num = 0.994287; den = 0.990721; statUp = 0.00238246; statDown = 0.00252805;}
+    else if (x >= 7 && x <10.5) {num = 0.987728; den = 0.992473; statUp = 0.00295414; statDown = 0.00319167;}
+    else if (x >= 10.5 && x <14.5) {num = 0.997966; den = 0.99286; statUp = 0.00203393; statDown = 0.00461196;}
+    else {num = 0.993162; den = 0.993533; statUp = 0.00587025; statDown = 0.00720365;}
+  }
+  // SF for 1.1 < |eta| < 1.8
+  if (fabs(eta) >= 1.1 && fabs(eta) < 1.8) {
+    if (x >= 1.75 && x <2.5) {num = 0.965542; den = 0.986618; statUp = 0.0180178; statDown = 0.018272;}
+    else if (x >= 2.5 && x <3.3) {num = 0.976807; den = 0.98352; statUp = 0.0104694; statDown = 0.0104097;}
+    else if (x >= 3.3 && x <5) {num = 0.982639; den = 0.984073; statUp = 0.00602683; statDown = 0.00610295;}
+    else if (x >= 5 && x <10) {num = 0.982339; den = 0.988972; statUp = 0.00621095; statDown = 0.00631964;}
+    else {num = 0.990736; den = 0.993156; statUp = 0.00926409; statDown = 0.014125;}
+  }
+  // SF for 1.8 < |eta| < 2.4
+  if (fabs(eta) >= 1.8 && fabs(eta) < 2.4) {
+    if (x >= 1.2 && x <2.2) {num = 0.999946; den = 0.96596; statUp = 5.41262e-05; statDown = 0.0229488;}
+    else if (x >= 2.2 && x <3.3) {num = 0.98817; den = 0.995328; statUp = 0.0118296; statDown = 0.0170375;}
+    else if (x >= 3.3 && x <5) {num = 0.996785; den = 0.997641; statUp = 0.00321535; statDown = 0.0130782;}
+    else if (x >= 5 && x <7.5) {num = 0.989315; den = 0.998521; statUp = 0.0106845; statDown = 0.0135617;}
+    else {num = 0.961102; den = 0.999932; statUp = 0.0193714; statDown = 0.0193525;}
+  }
+
+
 
 if (fabs(eta) >= 0 && fabs(eta) < 1.1) {
 // syst uncertainties
@@ -1095,38 +1118,39 @@ else syst = 0.0714618;
 }
 }
 else {
-//Central scale-factor value, statistical error, systematic error, total error
-if( (fabs(eta) > 0) && (fabs(eta) < 1.1) ){
-if (pt<5) return std::make_tuple(1.00394, 0.00295552, 0.000453098, 0.00299005);
-else if (pt<7) return std::make_tuple(1.0036, 0.00247736, 0.00154727, 0.00292085);
-else if (pt<10.5) return std::make_tuple(0.99522, 0.00309504, 0.000302585, 0.00310979);
-else if (pt<14.5) return std::make_tuple(1.00514, 0.00424409, 0.00140148, 0.0044695);
-else if (pt<30) return std::make_tuple(0.999627, 0.00655967, 0.000588925, 0.00658605);
+  // SF for 0 < |eta| < 1.1
+  if (fabs(eta) >= 0 && fabs(eta) < 1.1) {
+    if (x >= 3.3 && x <5) {num = 0.991088; den = 0.987199; statUp = 0.00287969; statDown = 0.00295641;}
+    else if (x >= 5 && x <7) {num = 0.994287; den = 0.990721; statUp = 0.00238246; statDown = 0.00252805;}
+    else if (x >= 7 && x <10.5) {num = 0.987728; den = 0.992473; statUp = 0.00295414; statDown = 0.00319167;}
+    else if (x >= 10.5 && x <14.5) {num = 0.997966; den = 0.99286; statUp = 0.00203393; statDown = 0.00461196;}
+    else {num = 0.993162; den = 0.993533; statUp = 0.00587025; statDown = 0.00720365;}
+  }
+  // SF for 1.1 < |eta| < 1.8
+  if (fabs(eta) >= 1.1 && fabs(eta) < 1.8) {
+    if (x >= 1.75 && x <2.5) {num = 0.965542; den = 0.986618; statUp = 0.0180178; statDown = 0.018272;}
+    else if (x >= 2.5 && x <3.3) {num = 0.976807; den = 0.98352; statUp = 0.0104694; statDown = 0.0104097;}
+    else if (x >= 3.3 && x <5) {num = 0.982639; den = 0.984073; statUp = 0.00602683; statDown = 0.00610295;}
+    else if (x >= 5 && x <10) {num = 0.982339; den = 0.988972; statUp = 0.00621095; statDown = 0.00631964;}
+    else {num = 0.990736; den = 0.993156; statUp = 0.00926409; statDown = 0.014125;}
+  }
+  // SF for 1.8 < |eta| < 2.4
+  if (fabs(eta) >= 1.8 && fabs(eta) < 2.4) {
+    if (x >= 1.2 && x <2.2) {num = 0.999946; den = 0.96596; statUp = 5.41262e-05; statDown = 0.0229488;}
+    else if (x >= 2.2 && x <3.3) {num = 0.98817; den = 0.995328; statUp = 0.0118296; statDown = 0.0170375;}
+    else if (x >= 3.3 && x <5) {num = 0.996785; den = 0.997641; statUp = 0.00321535; statDown = 0.0130782;}
+    else if (x >= 5 && x <7.5) {num = 0.989315; den = 0.998521; statUp = 0.0106845; statDown = 0.0135617;}
+    else {num = 0.961102; den = 0.999932; statUp = 0.0193714; statDown = 0.0193525;}
+  }
+ }
+ double syst_factor = 0; double stat_factor = 0;
+ if (idx==3) return den;
+ else{
+   if (idx == -1) syst_factor = syst;
+   else if (idx == -2) syst_factor = -1*syst;
+   else if (idx == +1) stat_factor = statUp;
+   else if (idx == +2) stat_factor = -1*statDown;
+   return ((num+syst_factor+stat_factor)/den);
+ }
 }
-//Central scale-factor value, statistical error, systematic error, total error
-if( (fabs(eta) > 1.1) && (fabs(eta) < 1.8) ){
-if (pt<2.5) return std::make_tuple(0.978638, 0.0183939, 0.0196463, 0.026913);
-else if (pt<3.3) return std::make_tuple(0.993175, 0.0106074, 0.00220443, 0.010834);
-else if (pt<5) return std::make_tuple(0.998543, 0.00615995, 0.00339968, 0.00703582);
-else if (pt<10) return std::make_tuple(0.993294, 0.00633176, 0.0064891, 0.0090664);
-else if (pt<30) return std::make_tuple(0.997563, 0.0138657, 0.00250173, 0.0140896);
-}
-//Central scale-factor value, statistical error, systematic error, total error
-if( (fabs(eta) > 1.8) && (fabs(eta) < 2.4) ){
-if (pt<2.2) return std::make_tuple(1.03518, 0.00483195, 0.0184352, 0.019058);
-else if (pt<3.3) return std::make_tuple(0.992809, 0.017015, 0.0110493, 0.0202878);
-else if (pt<5) return std::make_tuple(0.999142, 4.41165e-05, 0.00303283, 0.00303316);
-else if (pt<7.5) return std::make_tuple(0.990781, 0.0133825, 0.0078716, 0.0155259);
-else if (pt<30) return std::make_tuple(0.961168, 0.0193244, 0.0158288, 0.0249796);
-}
-}
-
-double syst_factor = 0; double stat_factor = 0;
-if (idx == -1) syst_factor = syst;
-else if (idx == -2) syst_factor = -1*syst;
-else if (idx == +1) stat_factor = statUp;
-else if (idx == +2) stat_factor = -1*statDown;
-return ((num+syst_factor+stat_factor)/den);
-}
-
 #endif
