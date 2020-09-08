@@ -1,4 +1,4 @@
-COL="PbPb"
+COL=${1:-"pp"} #"PbPb" or "pp"
 basename=""
 if [ $COL = "PbPb" ]
 then 

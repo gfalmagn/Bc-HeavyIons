@@ -195,13 +195,13 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 				     (vector<TString>){"WrongSign","J/#psi sidebands","High mass control","signal region","MC signal expectation",
 					 JMCname[1],JMCname[0],"MC prompt J/#psi",JMCname[5], 
 					 JMCname[JMCcontent[0]], JMCname[JMCcontent[1]]+" flipJSameSideUp", JMCname[JMCcontent[2]]+" flipJSameSideDown", JMCname[JMCcontent[3]], JMCname[JMCcontent[4]],
-					 "flipped J/#psi","flipped J/#psi same-#eta side","flipped J/#psi opposite-#eta side","flipped J/#psi wPromptMCUp","flipped J/#psi wPromptMCDown",
+					 "flipped J/#psi","flipped J/#psi close-#phi side","flipped J/#psi opposite-#phi side","flipped J/#psi wPromptMCUp","flipped J/#psi wPromptMCDown",
 					 "J/#psi upper sidebands","J/#psi lower sideband"}
 				     ):(//PbPb
 				     (vector<TString>){"WrongSign","J/#psi sidebands","High mass control","signal region","MC signal expectation",
 					 JMCname[1],JMCname[0],"MC prompt J/#psi",JMCname[5], 
 					 JMCname[JMCcontent[0]], JMCname[JMCcontent[1]]+" PromptOrFlipJUp", JMCname[JMCcontent[2]]+" PromptOrFlipJDown", JMCname[JMCcontent[3]], JMCname[JMCcontent[4]],
-					 "Prompt J/#psi","flipped J/#psi same-#eta side","flipped J/#psi opposite-#eta side","Prompt J/#psi bJpsiFracUp","Prompt J/#psi bJpsiFracDown",
+					 "Prompt J/#psi","flipped J/#psi close-#phi side","flipped J/#psi opposite-#phi side","Prompt J/#psi bJpsiFracUp","Prompt J/#psi bJpsiFracDown",
 					 "J/#psi upper sidebands","J/#psi lower sideband"}
 					);
 
@@ -352,8 +352,8 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 	iProc.erase(iProc.begin());
 	if(ispp) {iProc.push_back(14);
 	  iProc.push_back(17); iProc.push_back(18);} //change BDT weights when the nominal Jpsi MC changes
-	if(flipJpsi[iT]>4) iProc.push_back(15); //flipJpsi same-side
-	else iProc.push_back(16); //flipJpsi opposite-side
+	if(flipJpsi[iT]==1 || flipJpsi[iT]==6) iProc.push_back(16); //flipJpsi opposite-side
+	else iProc.push_back(15); //flipJpsi same-side
       }
 
       //*******************************************
@@ -371,8 +371,8 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 	// }
 
 	if(iT>=5){ //weights of Jpsi MC or flipJpsi events
-	  if(iproc==15) w *= 7/3.;// *(ispp?1.:0.4);
-	  if(iproc==16) w *= 7/4.;// *(ispp?1.:0.4);	
+	  if(iproc==15) w *= 7/5.;// *(ispp?1.:0.4);
+	  if(iproc==16) w *= 7/2.;// *(ispp?1.:0.4);	
 	  //BDT weights for flipJpsi
 	  for(int flipMeth=0; flipMeth<5;flipMeth++){
 	    if(iproc==(14+flipMeth) && applyBDTweights){

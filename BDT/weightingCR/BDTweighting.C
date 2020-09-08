@@ -170,10 +170,10 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., flo
       if(iT==8){
 	w *= flipJpsiSF;
 	if(flipJ==1){
-	  if(flipJpsi[iT]>4) {w *= 7/3.;} else {continue;}
+	  if(!(flipJpsi[iT]==1 || flipJpsi[iT]==6)) {w *= 7/5.;} else {continue;} //same-side
 	}
 	else if(flipJ==2){
-	  if(flipJpsi[iT]<=4) {w *= 7/4.;} else {continue;}
+	  if(flipJpsi[iT]==1 || flipJpsi[iT]==6) {w *= 7/2.;} else {continue;} //opposite-side
 	}
       }
 
@@ -354,12 +354,12 @@ void BDTweighting(bool ispp=true, bool step2=false){
   // for(int b=1;b<=_NanaBins;b++){
   for(int b=0;b<1;b++){
     //in PbPb: replace flipJpsi by PromptMC
-    // BDTweight(ispp, (ispp?0:3) , (ispp?0:3) , scaleJMC, scaleFlipJ, scaleSig[b], b, step2); 
-    // BDTweight(ispp, (ispp?0:3) , (ispp?2:4) , scaleJMC, scaleFlipJ, scaleSig[b], b, step2);
+    BDTweight(ispp, (ispp?0:3) , (ispp?0:3) , scaleJMC, scaleFlipJ, scaleSig[b], b, step2); 
+    BDTweight(ispp, (ispp?0:3) , (ispp?2:4) , scaleJMC, scaleFlipJ, scaleSig[b], b, step2);
     BDTweight(ispp, (ispp?0:3) ,1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2); //NonPromptMC - bToJpsi
 
-    //  BDTweight(ispp, 1, 1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2); //flipJpsi method variation: nonpromptMC-bToJpsi is nominal in pp and PbPb
-    // BDTweight(ispp, 2, 1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2);
+    BDTweight(ispp, 1, 1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2); //flipJpsi method variation: nonpromptMC-bToJpsi is nominal in pp and PbPb
+    BDTweight(ispp, 2, 1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2);
   }
 
 }

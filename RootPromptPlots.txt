@@ -1,0 +1,18 @@
+### Jpsi sidebands
+bkgBCMASS->Draw("Bc_M>>(30,3.3,7.3)","weight*(QQ_M>3.1)","E")
+bkgBCMASS->Draw("Bc_M>>(30,3.3,7.3)","weight*(QQ_M<3.1)","E")
+
+### b->Jpsi plots
+bToJpsi_MC->Draw("Bc_M>>(35,3.2,6.3)","weight*(muW_isJpsiBro)","histE")
+bToJpsi_MC->Draw("Bc_M>>(30,3.1,7.3)","weight*(!muW_isJpsiBro)","histE")
+
+### dimuon+track mass, checks of high trimuon mass
+### on files: /data_CMS/cms/falmagne/tuples/pp17/Bc/DimuonTrk/forTrimuon/DoubleMu_Run2017G_AOD_Run_306546_306826_OniaTree_DimuonTrkBc_TrimuonWay_21112019.root and BJPsiMM_TuneCUETP8M1_5p02TeV_pythia8_12092019_ptHatMin2_ONIATREE_DimuonTrk_TrimuonWay.root
+
+## VtxProb>0.01
+myTree->Draw("Reco_3mu_4mom.M()>>(170,3.2,7.3)", "(fabs(Reco_QQ_ctau3D[Reco_3mu_QQ1_idx]/Reco_QQ_ctauErr3D[Reco_3mu_QQ1_idx])>3 && Reco_3mu_VtxProb>0.01 && Reco_trk_InLooseAcc[Reco_3mu_muW_idx] && Reco_mu_InTightAcc[Reco_3mu_mumi_idx] && Reco_mu_InTightAcc[Reco_3mu_mupl_idx] && Reco_QQ_VtxProb[Reco_3mu_QQ1_idx]>0.005 && Reco_QQ_dca[Reco_3mu_QQ1_idx]<0.3 && fabs(Reco_3mu_muW_dz_muonlessVtx)<0.6 &&fabs(Reco_3mu_ctau3D/Reco_3mu_ctauErr3D)>1.5) * ( ( fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M()-3.097)<0.13 )?1:( ( fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M()-3.097)<0.3 && fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M()-3.097)>0.17 )?-1:0 ) )","hist")
+myTree->Draw("Reco_3mu_4mom.M()>>(170,3.2,7.3)", "(fabs(Reco_QQ_ctau3D[Reco_3mu_QQ1_idx]/Reco_QQ_ctauErr3D[Reco_3mu_QQ1_idx])>3 && Reco_3mu_VtxProb>0.01 && Reco_trk_InLooseAcc[Reco_3mu_muW_idx] && Reco_mu_InTightAcc[Reco_3mu_mumi_idx] && Reco_mu_InTightAcc[Reco_3mu_mupl_idx] && Reco_QQ_VtxProb[Reco_3mu_QQ1_idx]>0.005 && Reco_QQ_dca[Reco_3mu_QQ1_idx]<0.3 && fabs(Reco_3mu_muW_dz_muonlessVtx)<0.6 &&fabs(Reco_3mu_ctau3D/Reco_3mu_ctauErr3D)>1.5) * ( ( fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M()-3.097)<0.13 )?1:( ( fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M()-3.097)<0.3 && fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M()-3.097)>0.17 )?-1:0 ) ) * (3100/2800.)","histsame")
+
+## 0.01<VtxProb<0.04
+myTree->Draw("Reco_3mu_4mom.M()>>(100,3.2,7.3)", "(fabs(Reco_QQ_ctau3D[Reco_3mu_QQ1_idx]/Reco_QQ_ctauErr3D[Reco_3mu_QQ1_idx])>3 && Reco_3mu_VtxProb<0.04 && Reco_3mu_VtxProb>0.01 && Reco_trk_InLooseAcc[Reco_3mu_muW_idx] && Reco_mu_InTightAcc[Reco_3mu_mumi_idx] && Reco_mu_InTightAcc[Reco_3mu_mupl_idx] && Reco_QQ_VtxProb[Reco_3mu_QQ1_idx]>0.005 && Reco_QQ_dca[Reco_3mu_QQ1_idx]<0.3 && fabs(Reco_3mu_muW_dz_muonlessVtx)<0.6 &&fabs(Reco_3mu_ctau3D/Reco_3mu_ctauErr3D)>1.5) * ( ( fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M()-3.097)<0.13 )?1:( ( fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M()-3.097)<0.3 && fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M()-3.097)>0.17 )?-1:0 ) )","hist")
+myTree->Draw("Reco_3mu_4mom.M()", "(fabs(Reco_QQ_ctau3D[Reco_3mu_QQ1_idx]/Reco_QQ_ctauErr3D[Reco_3mu_QQ1_idx])>3 && Reco_3mu_VtxProb<0.04 && Reco_3mu_VtxProb>0.01 && Reco_trk_InLooseAcc[Reco_3mu_muW_idx] && Reco_mu_InTightAcc[Reco_3mu_mumi_idx] && Reco_mu_InTightAcc[Reco_3mu_mupl_idx] && Reco_QQ_VtxProb[Reco_3mu_QQ1_idx]>0.005 && Reco_QQ_dca[Reco_3mu_QQ1_idx]<0.3 && fabs(Reco_3mu_muW_dz_muonlessVtx)<0.6 &&fabs(Reco_3mu_ctau3D/Reco_3mu_ctauErr3D)>1.5) * ( ( fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M()-3.097)<0.13 )?1:( ( fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M()-3.097)<0.3 && fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M()-3.097)>0.17 )?-1:0 ) * (240/200.) )","histsame")

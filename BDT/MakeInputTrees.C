@@ -376,7 +376,7 @@ void MakeInputTrees(bool ispp = true){
 
   //**************************************************************
   //Create the output file and trees
-  TFile out_file( "BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+(TString)(_withTM?"_withTM":"")+".root","RECREATE");
+  //  TFile out_file( "BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+(TString)(_withTM?"_withTM":"")+".root","RECREATE");
   std::vector<TTree*> out_trees;
   out_trees.push_back(new TTree("bkgWRONGSIGN","tree with wrongsign background"));
   out_trees.push_back(new TTree("bkgBCMASS","tree with background from Jpsi mass sidebands"));
@@ -625,6 +625,7 @@ void MakeInputTrees(bool ispp = true){
   std::pair<TF1*,float> scalePbPbPrompt (SFPbPbPrompt, 208*208 * 1.501 * 0.06/1000);// SF(data/MC)(Non prompt Jpsi XS PbPb) * A^2 * Lumi_PbPb[nb-1] * MC in pb->nb / BF(Jpsi-> mu mu)
   std::map<bool, std::pair<TF1*,float> > scaleMCprompt = {{ true, scaleppPrompt }, 
 							  { false, scalePbPbPrompt } }; 
+  float nall=0,npass=0,nside=0;
 
   //**************************************************************
   //For each input tree, redirect data/MC events to the right tree, and write into branches
@@ -897,6 +898,12 @@ void MakeInputTrees(bool ispp = true){
 		  QQ3_M[i] = (Reco_mu_charge[iIpt][muWidx]>0)?((*recBc_mupl+*recBc_muW).M()):((*recBc_mumi+*recBc_muW).M()); //QQ3 is the SS pair
 		}
 		
+		// //**** Measure efficiency of dimuon mass signal region //needs to remove previous Jpsi mass cuts 
+		// if(k==0){
+		//   nall += w_simple[i];
+		//   if(inJpsiMassRange(QQ_M[i], maxEta<1.5) || inJpsiMassRange(QQ2_M[i], maxEta<1.5)) npass +=w_simple[i];
+		//   if(!inJpsiMassRange(QQ_M[i], maxEta<1.5) && !inJpsiMassRange(QQ2_M[i], maxEta<1.5) && (inJpsiMassSB(QQ_M[i], maxEta<1.5) || inJpsiMassSB(QQ2_M[i], maxEta<1.5)) ) nside +=w_simple[i];
+		// }
 		//**** Deal with the Jpsi dimuon choice
 		//		weightJpsiChoice[i] = 1;
 		if((i==0 || i==2 || i==3) && inJpsiMassRange(QQ_M[i], maxEta<1.5) && inJpsiMassRange(QQ2_M[i], maxEta<1.5) 
@@ -1057,8 +1064,9 @@ void MakeInputTrees(bool ispp = true){
 	} //end loop on Bc candidates
       } //end loop on selection of output trees 
     } //end loop on entries
+    // cout<<"Jpsi mass signal region nall,npass,efficiency = "<<nall<<" "<<npass<<" "<<npass/nall<<endl;
+    // cout<<"Jpsi mass sidebands nall,npass,efficiency = "<<nall<<" "<<nside<<" "<<nside/nall<<endl;
   } //end loop on input trees
-
 
   //**************************************************************
   //Save trees and close file 
@@ -1067,6 +1075,6 @@ void MakeInputTrees(bool ispp = true){
     out_trees[i]->AutoSave();
   }
 
-  out_file.Close();
+  // out_file.Close();
 
 }

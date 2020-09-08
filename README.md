@@ -1,5 +1,5 @@
 * `rt` stands for `root -l`
-* Everything is shown for pp, but has to be reproduced with PbPb by changing the first option `ispp=true` (expect for the scripts gathering pp and PbPb info)
+* Everything is shown for pp, but has to be reproduced with PbPb by changing the first option `ispp=true` (except for the scripts gathering pp and PbPb info)
 * `cd ~` means returning to the base directory
 
 ## Produce pre-selected samples
@@ -23,6 +23,8 @@
 - Determine the BDT binning (written in a header file), for each strategy and kinematic bin. The first time, when the header file does not exist yet, have to run it with option `firstTime=true`, before the second addJpsiChoiceWeight.C running 
   * `cd ~/BDT/`
   * `rt DetermineBDTcuts.C`
+- Weight the BDT distribution of the [true Jpsi + muon from different vertex] background, i.e. flipJpsi or Prompt+(uncorrelated)Non-prompt MC, to data in the mass control region (or in the signal reigon)
+  * `rt -b "BDTweighting.C(true)"'
 
 ## Acceptance and efficiency
 - Make the acceptance and efficiency maps. Only needs the pre-selected samples, and the BDT binning. Need to run twice, with or without BDTuncorrelatedFromM (changes BDT binning, hence BDT efficiency)
@@ -33,23 +35,25 @@
 
 ## Template fitting 
 - Make the templates histos for combine. Includes histos with acc eff corrections
-  *`cd ~/templateFit`
-  *`rt HistsForCombine.C`
+  * `cd ~/templateFit`
+  * `rt HistsForCombine.C`
 - Make the template fit, without acc eff corrections
-  *`cd ~/templateFit`
-  *`cmsrel CMSSW_10_3_4; cd CMSSW_10_3_4/src'
-  *`cmsenv'
-  *`git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit'
-  *`cd HiggsAnalysis/CombinedLimit/test'
-  *`ln -s /home/llr/cms/falmagne/Bc/templateFit/combineFit/runCombine.sh runCombine.sh'
-  *`source runCombine.sh'
+  * `cd ~/templateFit`
+  * `cmsrel CMSSW_10_3_4; cd CMSSW_10_3_4/src'
+  * `cmsenv'
+  * `git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit'
+  * `cd HiggsAnalysis/CombinedLimit/test'
+  * `ln -s /home/llr/cms/falmagne/Bc/templateFit/combineFit/runCombine.sh runCombine.sh'
+  * `source runCombine.sh "pp"'
+  * `source runCombine.sh "PbPb"'
 
 ## Yields and errors
 - Correct yields with event-by-event acc eff corrections
-  *`rt -b runMetafitSysts.C'
+  * `cd ~/AccEffCorr/'
+  * `rt -b runMetafitSysts.C'
 - Draw corrected yields for various acc eff methods, and get a systematic from it
-  *`rt "Draw_corrYields.C(true)"'
-  *`rt "Draw_corrYields.C(false)"'
+  * `rt "Draw_corrYields.C(true)"'
+  * `rt "Draw_corrYields.C(false)"'
 - Draw R_PbPb:
   * `cd ~/RAA/`
-  *`rt Draw_XSandRAA.C'
+  * `rt Draw_XSandRAA.C'
