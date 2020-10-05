@@ -36,7 +36,7 @@ void addBDTvariable(bool ispp=true, bool withTM=false){
   //gSystem->Exec("cp BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+"_copystep1.root");  
   auto fullFile = TFile::Open("BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root","UPDATE");
   //  fullFile->Cp("BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+"_copystep1.root");
-  int ntrees = 9;
+  int ntrees = ispp?10:9;
 
   //Initialization of variables
   float Bc_CorrM[ntrees];
@@ -80,9 +80,9 @@ void addBDTvariable(bool ispp=true, bool withTM=false){
 
   //Which BDT is used, and what fitting strategy
   TString weightFile = "BDT"+(TString)(withTM?"finer":"finerShallow")+(TString)(ispp?"":"_PbPb")+"_withJpsiMC"+(TString)(useVarCorrWMass?"":"_dropVarCorrWMass")+(TString)(withTM?"_withTM":""); //BDTfinerShallow
-  TString treeName[] = {"bkgWRONGSIGN","bkgBCMASS","bkgTRUEJPSI","sigRegion","signal_MC","bToJpsi_MC","PromptJpsi_MC","dimuonTrk","flipJpsi"};
+  TString treeName[] = {"bkgWRONGSIGN","bkgBCMASS","bkgTRUEJPSI","sigRegion","signal_MC","bToJpsi_MC","PromptJpsi_MC","dimuonTrk","flipJpsi","flipJpsibMC"};
   TString prettyName[] = {"WRONGSIGN","J/Psi sidebands","High mass control","signal region","MC signal expectation",
-			  "MC NonPromptJpsi","MC PromptJpsi","dimuon+track (misID)","flipped J/Psi"};
+			  "MC NonPromptJpsi","MC PromptJpsi","dimuon+track (misID)","flipped J/Psi","flipped J/Psi nonprompt MC"};
   vector<TTree*> T;
   for(int itree=0;itree<ntrees;itree++){
     T.push_back((TTree*)fullFile->Get(treeName[itree]));
@@ -97,7 +97,7 @@ void addBDTvariable(bool ispp=true, bool withTM=false){
 
   //*******************************************
   //For the signal region and the tmva output, fill the branches for BDT
-  for(int iT=0; iT<(int)T.size(); iT++){
+  for(int iT=0; iT<(int)ntrees; iT++){
     std::cout << "--- Processing: " << T[iT]->GetEntries() << " events of tree "<< treeName[iT] << std::endl;
 
     b_BDT.push_back( T[iT]->Branch("BDT",&BDT[iT],"BDT/F") );

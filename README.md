@@ -19,9 +19,11 @@
   * `rt "addJpsiChoiceWeight.C(true,true)"`
   * `cp BDT_InputTree_pp.root BDT_InputTree_pp_copystep3.root`
 
-## Preliminaries
-- Determine the BDT binning (written in a header file), for each strategy and kinematic bin. The first time, when the header file does not exist yet, have to run it with option `firstTime=true`, before the second addJpsiChoiceWeight.C running 
+## Preliminaries (BDT-linked)
+- Determine a less powerful version of BDT variable, but that is uncorrelated from the mass
   * `cd ~/BDT/`
+  * `rt -b "UncorrelateBDTfromM.C(true)"'
+- Determine the BDT binning (written in a header file), for each strategy and kinematic bin. The first time, when the header file does not exist yet, have to run it with option `firstTime=true`, before the second addJpsiChoiceWeight.C running 
   * `rt DetermineBDTcuts.C`
 - Weight the BDT distribution of the [true Jpsi + muon from different vertex] background, i.e. flipJpsi or Prompt+(uncorrelated)Non-prompt MC, to data in the mass control region (or in the signal reigon)
   * `rt -b "BDTweighting.C(true)"'
@@ -46,6 +48,8 @@
   * `ln -s /home/llr/cms/falmagne/Bc/templateFit/combineFit/runCombine.sh runCombine.sh'
   * `source runCombine.sh "pp"'
   * `source runCombine.sh "PbPb"'
+- Plot postfit trimuon mass shapes. The two string options correspond different fit strategies (metafit systematic variations)
+  *`rt -b "plotCombineOutput.C(true,false,\"\",\"\")"'
 
 ## Yields and errors
 - Correct yields with event-by-event acc eff corrections

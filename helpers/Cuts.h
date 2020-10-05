@@ -20,13 +20,14 @@ bool inFidCuts(int kinBin, float pt, float rap){
 //BEGIN Pre-selection
 float _ctauSignif_cut = 1.5;
 float _ctauSignif3D_cut = 1.5;
-float _alpha_cut = 0.8;
-float _alpha3D_cut = 0.8;
+float _alpha_cut(bool ispp=true){return ispp?0.6:0.5;}
+float _alpha3D_cut(bool ispp=true){return ispp?0.35:0.25;}
 float _vtxProb_cut = 0.01;
 float _vtxProb_cutLoose = 0.001;
 float _QQvtxProb_cut = 0.005;
 float _QQvtxProb_cutTight = 0.02;
 float _QQdca_cut = 0.3;
+float _BcCorrM_cut(bool ispp=true){return ispp?20:18;}
 //END Pre-selection
 
 //Jpsi mass peak and sidebands regions

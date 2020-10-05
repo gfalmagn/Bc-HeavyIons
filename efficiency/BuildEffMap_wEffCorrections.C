@@ -23,7 +23,7 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 
   //**************************************************************  
   //Create Tree and branches
-  TFile *fileMC = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/Oniatree_MC_Bc_trimuons_21112019.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/BcToJpsiMuNu_BCVEGPY_PYTHIA8_2018PbPb5TeV_09012020_1948k_ONIATREE.root");
+  TFile *fileMC = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/Oniatree_MC_Bc_trimuons_21112019.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/BcToJpsiMuNu_BCVEGPY_PYTHIA8_2018PbPb5TeV_HINPbPbAutumn18DR-00196_08092020_4200k_ONIATREE.root");
   TTree* T = (TTree*)fileMC->Get("hionia/myTree");
   int nentries = T->GetEntries();
   std::cout<<"nevents MC = "<<nentries<<"\n";
@@ -487,9 +487,14 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 		  ( muW_trig && mumi_trig && muW_inTightAcc && mumi_inTightAcc ) ||
 		  ( mumi_trig && mupl_trig && mumi_inTightAcc && mupl_inTightAcc ) //only this last option can be true for dimuon+trk
 		  )
-	     && fabs(muW_dz)<(ispp?0.6:0.8) && fabs(mumi_dz)<(ispp?0.6:0.8) && fabs(mupl_dz)<(ispp?0.6:0.8)
+	     && fabs(muW_dz)<0.6 && fabs(mumi_dz)<0.6 && fabs(mupl_dz)<0.6
 	     && (!ispp || (HLTriggers&(ispp?8:4096))>0) //the event must fire the trigger as well
 	     ){
+
+            float PperpTrimu = TMath::Sin(Bc_alpha3D) * recBc.P();
+            float Bc_CorrM = sqrt(BcCandM*BcCandM + PperpTrimu*PperpTrimu) + PperpTrimu;
+	    if(Bc_CorrM>25) continue;
+            if(!ispp && Centrality>180) continue; //keep 0-90% centrality
 
 	    float QQ2_M = (Reco_mu_charge[muWidx]>0)?((*recBc_mumi+*recBc_muW).M()):((*recBc_mupl+*recBc_muW).M()); //QQ2 is the second OS pair
 	    float QQ3_M = (Reco_mu_charge[muWidx]>0)?((*recBc_mupl+*recBc_muW).M()):((*recBc_mumi+*recBc_muW).M()); //QQ3 is the SS pair

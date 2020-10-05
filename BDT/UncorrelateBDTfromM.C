@@ -64,7 +64,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
   //Extract BcM HISTOGRAMS used as combine input
   //********************************************************
   vector<vector<TH1F*> > h_BcM_prefit(ntrees, vector<TH1F*>(_nChan(ispp)+1));
-  auto histFile = TFile::Open("InputForCombine_"+(TString)(ispp?"pp":"PbPb")+".root");
+  auto histFile = TFile::Open("../templateFit/InputForCombine_"+(TString)(ispp?"pp":"PbPb")+".root");
   for(int i=0; i<ntrees; i++){
     if(!usedForFit[i]) continue;
     for(int k=0;k<=_nChan(ispp);k++){
@@ -78,7 +78,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
   //********************************************************
   //Extract (POSTFIT NORMALISATIONS & SHAPES) from combine output
   //********************************************************
-  TString normFileName = "./CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(bToJpsiOnly?"bToJpsi":"NonPromptJpsi")+(TString)(useFlipJpsi?(flipJpsiSameSide?"_flipJpsiSameSide":"_flipJpsi"):(ispp?"":"_PromptJpsi"))+(TString)(ignoreBin2?"_noBDT1-2":(ignoreBin1?"_noBDT1":""))+(TString)(ispp?"_pp":"_PbPb")+"_2bins.root";
+  TString normFileName = "../templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(bToJpsiOnly?"bToJpsi":"NonPromptJpsi")+(TString)(useFlipJpsi?(flipJpsiSameSide?"_flipJpsiSameSide":"_flipJpsi"):(ispp?"":"_PromptJpsi"))+(TString)(ignoreBin2?"_noBDT1-2":(ignoreBin1?"_noBDT1":""))+(TString)(ispp?"_pp":"_PbPb")+"_2bins.root";
   cout<<"Extract normalisations from file "<<normFileName<<endl;
   auto normFile = TFile::Open(normFileName,"READ");
   

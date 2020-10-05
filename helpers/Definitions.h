@@ -34,11 +34,11 @@ float* _Mbinning(bool ispp){
   return Mbins;
 }
 
-bool isSoft(bool includeTM, bool isGlb, bool isTrk, bool TMOneStaTight, bool highP, float dxy, float dz, int nPix, int nTrk){
+bool isSoft(bool includeTMOST, bool isGlb, bool isTrk, bool TMOneStaTight, bool highP, float dxy, float dz, int nPix, int nTrk){
 
-  if(includeTM){//pp
+  if(includeTMOST){//soft
     return TMOneStaTight && highP && dxy<0.3 && dz<20 && nPix>0 && nTrk>5;
-  } else{ //PbPb
+  } else{ //hybrid-soft, with or without global
     if(isGlb) {return isTrk && dxy<0.3 && dz<20 && nPix>0 && nTrk>5;}
     else {return TMOneStaTight && highP && dxy<0.3 && dz<20 && nPix>0 &&nTrk>5;} //if not global, return to standard softID
   }

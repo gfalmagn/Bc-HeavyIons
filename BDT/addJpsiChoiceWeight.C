@@ -27,7 +27,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
   //if(useBDTbins) System->Exec("cp BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+"_copystep2.root");
   auto fullFile = TFile::Open("BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root","UPDATE");
   //  fullFile->Cp("BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+"_copystep"+(TString)(useBDTbins?"2":"0")+".root");
-  int ntrees = 9;
+  int ntrees = ispp?10:9;
 
   float muW_eta[ntrees];
   float mumi_eta[ntrees];
@@ -43,9 +43,9 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
   float weight[ntrees];
   float BDT[ntrees];
 
-  TString treeName[] = {"bkgWRONGSIGN","bkgBCMASS","bkgTRUEJPSI","sigRegion","signal_MC","bToJpsi_MC","PromptJpsi_MC","dimuonTrk","flipJpsi"};
+  TString treeName[] = {"bkgWRONGSIGN","bkgBCMASS","bkgTRUEJPSI","sigRegion","signal_MC","bToJpsi_MC","PromptJpsi_MC","dimuonTrk","flipJpsi","flipJpsibMC"};
   TString prettyName[] = {"WRONGSIGN","J/Psi sidebands","High mass control","signal region","MC signal expectation",
-			  "MC NonPromptJpsi","MC PromptJpsi","dimuon+track (misID)","flipped J/Psi"};
+			  "MC NonPromptJpsi","MC PromptJpsi","dimuon+track (misID)","flipped J/Psi","flipped J/Psi on Nonprompt MC"};
   vector<TTree*> T;
   for(int itree=0;itree<ntrees;itree++){
     T.push_back((TTree*)fullFile->Get(treeName[itree]));
@@ -89,7 +89,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
   vector<TH1F*> JpsiM_tight; //goes in output file
 
   //***************** Extract needed branches
-  for(int iT=0; iT<(int)T.size(); iT++){
+  for(int iT=0; iT<(int)ntrees; iT++){
     T[iT]->SetBranchAddress("muW_eta", &muW_eta[iT]);
     T[iT]->SetBranchAddress("mumi_eta", &mumi_eta[iT]);
     T[iT]->SetBranchAddress("mupl_eta", &mupl_eta[iT]);
@@ -116,7 +116,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
 
   //*******************************************
   //Fill the QQ_M histograms
-  for(int iT=1; iT<(int)T.size(); iT++){
+  for(int iT=1; iT<(int)ntrees; iT++){
     if(iT!=1 && iT!=3) continue;//consider ONLY DATA unambiguous events    //if(iT==0 || iT==7) continue; //forget WRONGSIGN and dimuon+track and MCs
     for(int j=0; j<T[iT]->GetEntries(); j++){//T[iT]->GetEntries()
 
@@ -163,7 +163,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
       JpsiM.push_back((TH1F*)h_QQM[k][3]->Clone("JpsiM_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
     }
     else{
-      if(h_QQM[0][3]->GetEntries() >100){
+      if(h_QQM[0][3]->GetEntries() >70){
 	//if the histo from this BDT bin is not good enough, take the histo for integrated
 	JpsiM.push_back((TH1F*)h_QQM[0][3]->Clone("JpsiM_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
       } else{ 
@@ -184,16 +184,16 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
     if(h_QQM_tight[k][3]->GetEntries() >100){
       JpsiM_tight.push_back((TH1F*)h_QQM_tight[k][3]->Clone("JpsiM_tight_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
     }
-    else if(h_QQM[k][3]->GetEntries() >100){
-      //first try if the Jpsi proba from the loose SB histo is ok
-      JpsiM_tight.push_back((TH1F*)h_QQM[k][3]->Clone("JpsiM_tight_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
-    } 
-    else if(h_QQM_tight[0][3]->GetEntries() >100){//if not, then take the integrated BDT bin histos for tight SB
+    // else if(h_QQM[k][3]->GetEntries() >100){
+    //   //first try if the Jpsi proba from the loose SB histo is ok
+    //   JpsiM_tight.push_back((TH1F*)h_QQM[k][3]->Clone("JpsiM_tight_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
+    // } 
+    else if(h_QQM_tight[0][3]->GetEntries() >70){//if not, then take the integrated BDT bin histos for tight SB
       JpsiM_tight.push_back((TH1F*)h_QQM_tight[0][3]->Clone("JpsiM_tight_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));	    
     }
-    else if(h_QQM[0][3]->GetEntries() >100){//finally, try loose SB integrated BDT
-      JpsiM_tight.push_back((TH1F*)h_QQM[0][3]->Clone("JpsiM_tight_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
-    }
+    // else if(h_QQM[0][3]->GetEntries() >100){//finally, try loose SB integrated BDT
+    //   JpsiM_tight.push_back((TH1F*)h_QQM[0][3]->Clone("JpsiM_tight_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
+    // }
     else { 
       //if nothing is good enough, a bit arbitrary here
       JpsiM_tight.push_back((TH1F*)h_QQM_tight[0][3]->Clone("JpsiM_tight_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)) ) ));
@@ -213,7 +213,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
   //Fill the weight branch, with weights containing the weight for Jpsi choice
   vector<TBranch*> b_weight;
 
-  for(int iT=0; iT<(int)T.size(); iT++){
+  for(int iT=0; iT<(int)ntrees; iT++){
     std::cout << "--- Processing: " << T[iT]->GetEntries() << " events of tree "<< treeName[iT] << std::endl;
 
     b_weight.push_back( T[iT]->Branch(((useBDTbins)?"weight":"w_simple2"),&weight[iT],((useBDTbins)?"weight/F":"w_simple2/F") ) );
@@ -266,22 +266,27 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
     T[iT]->Write("",TObject::kOverwrite); //overwrite, or two versions of the trees are saved 
   } 
   //END loop on trees
-  
+
+  //******* DRAW
+  if(useBDTbins) gStyle->SetOptStat(0);  
+
   TCanvas *c1 = new TCanvas("c1","c1",1000,1000);
   TLegend *leg1 = new TLegend(0.7,0.7,0.9,0.9);
   //  c1->Divide(3,2);
   int ic=1;
-  for(int iT=1; iT<(int)T.size(); iT++){
+  for(int iT=1; iT<(int)ntrees; iT++){
     if(iT!=3) continue;
     //if(iT<2 || iT==7) continue; //forget WRONGSIGN and dimuon+track and MCs
     //c1->cd(ic);
     h_QQM[useBDTbins?1:0][iT]->GetXaxis()->SetTitle("M(#mu#mu) [GeV]");
+    h_QQM[useBDTbins?1:0][iT]->GetYaxis()->SetTitle("N");
     h_QQM[useBDTbins?1:0][iT]->SetTitle("Dimuon mass of unambiguous candidates");
     if(!useBDTbins) h_QQM[0][iT]->Draw();
     else{
       for(int k=1; k<=nBDTb; k++){
-	h_QQM[k][iT]->SetLineColor(k);
+	h_QQM[k][iT]->SetLineColor((k==3)?(kGreen+2):k);
 	h_QQM[k][iT]->Draw((k==1)?"":"same");
+	h_QQM[k][iT]->SetLineWidth(2);
 	leg1->AddEntry(h_QQM[k][iT],"BDT bin"+(TString)to_string(k));
       }
       leg1->Draw("same");
@@ -294,17 +299,19 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
   TLegend *leg2 = new TLegend(0.7,0.7,0.9,0.9);
   //c2->Divide(3,2);
   int ic2=1;
-  for(int iT=1; iT<(int)T.size(); iT++){
+  for(int iT=1; iT<(int)ntrees; iT++){
     if(iT!=3) continue;
     //if(iT<2 || iT==7) continue; //forget WRONGSIGN and dimuon+track and MCs
     //c2->cd(ic2);
     h_QQM_tight[useBDTbins?1:0][iT]->GetXaxis()->SetTitle("M(#mu#mu) [GeV]");
+    h_QQM_tight[useBDTbins?1:0][iT]->GetYaxis()->SetTitle("N");
     h_QQM_tight[useBDTbins?1:0][iT]->SetTitle("Dimuon mass of unambiguous candidates");
     if(!useBDTbins) h_QQM_tight[0][iT]->Draw();
     else{
       for(int k=1; k<=nBDTb; k++){
-	h_QQM_tight[k][iT]->SetLineColor(k);
+	h_QQM_tight[k][iT]->SetLineColor((k==3)?(kGreen+2):k);
 	h_QQM_tight[k][iT]->Draw((k==1)?"":"same"); 
+	h_QQM_tight[k][iT]->SetLineWidth(2);
 	leg2->AddEntry(h_QQM_tight[k][iT],"BDT bin"+(TString)to_string(k));
       }
       leg1->Draw("same");
