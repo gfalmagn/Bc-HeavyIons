@@ -93,8 +93,8 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., flo
     else{
       TString idx_s = (TString)(to_string(iT)); 
       h_bdt.push_back((vector<TH1F*>){
-	                              new TH1F("bdtSR"+idx_s,"bdtSR"+idx_s,(ispp?20:13),_withTM?-0.48:-1,_withTM?0.3:1.),
-				      new TH1F("bdtCR"+idx_s,"bdtCR"+idx_s,(ispp?20:13),_withTM?-0.48:-1,_withTM?0.3:1.)
+	                              new TH1F("bdtSR"+idx_s,"bdtSR"+idx_s,(ispp?18:13),_withTM?-0.48:-0.8,_withTM?0.3:0.8),
+				      new TH1F("bdtCR"+idx_s,"bdtCR"+idx_s,(ispp?18:13),_withTM?-0.48:-0.8,_withTM?0.3:0.8)
 					});
     }
     h_bdt[iT][0]->SetDirectory(0);
@@ -177,6 +177,8 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., flo
 	}
       }
 
+      AddMCtoFlipJ = !ispp && flipJ==3; //only add the uncorrelated NP MC when the prompt Jpsi MC replaces flipJpsi
+
       if(Bc_M[iT]>6.3) h_bdt[ifill][1]->Fill(BDT[iT], w);
       else h_bdt[ifill][0]->Fill(BDT[iT], w);
       
@@ -199,10 +201,10 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., flo
       if(JpsiMC>=1) h_bdt[8][i]->Add(h_bdt[7][i]); //add rest of nonprompt JpsiMC to flipJpsi
       if(JpsiMC==2) h_bdt[8][i]->Add(h_bdt[6][i]); //add prompt JpsiMC to flipJpsi
     }
-    else{      
-      if(JpsiMC>=1) h_bdt[2][i]->Add(h_bdt[7][i], -1 ); //subtract rest of nonprompt JpsiMC from data
-      if(JpsiMC==2) h_bdt[2][i]->Add(h_bdt[6][i], -1 ); //subtract prompt JpsiMC from data
-    }
+    // else{      
+    //   if(JpsiMC>=1) h_bdt[2][i]->Add(h_bdt[7][i], -1 ); //subtract rest of nonprompt JpsiMC from data
+    //   if(JpsiMC==2) h_bdt[2][i]->Add(h_bdt[6][i], -1 ); //subtract prompt JpsiMC from data
+    // }
 
     //Now 7=full Jpsi MC
     h_bdt[7][i]->Add(h_bdt[6][i]); //add prompt to full JpsiMC
@@ -236,7 +238,7 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., flo
   leg->SetFillStyle(0);
   leg->SetTextSize(0.04);
 
-  TString title[4] = {"data", "data ("+(TString)(AddMCtoFlipJ?"Bc":"")+"MC&SB-subtracted)" , "J/#psi MC", (TString)((flipJ==3)?"uncorrelated J/#psi MC":("flipped J/#psi"+(TString)(AddMCtoFlipJ?" + J/#psi MC":""))) };
+  TString title[4] = {"data", "data ("+(TString)(AddMCtoFlipJ?"Bc":"Bc")+"MC&SB-subtracted)" , "J/#psi MC", (TString)((flipJ==3)?"uncorrelated J/#psi MC":("flipped J/#psi"+(TString)(AddMCtoFlipJ?" + J/#psi MC":""))) };
   int drawIdx[4] = {3,2,7,8};
 
   for(int p=0;p<4;p++){
@@ -295,12 +297,12 @@ void BDTweight(bool ispp=true, int flipJ=0, int JpsiMC=0, float JpsiMCSF=1., flo
     c2->cd(4-i);
     gPad->SetGridy();
     gPad->SetLogy();
-    dataOverFlipJ[i]->SetTitle("data / "+(TString)((flipJ==3)?"(uncorrelated J/#psi MC)":"(flipped-J/#psi + MC J/#psi)"));
+    dataOverFlipJ[i]->SetTitle("data / "+(TString)((flipJ==3)?"(uncorrelated J/#psi MC)":((flipJ==0)?"flipped-J/#psi":"(flipped-J/#psi + MC J/#psi)")));
     dataOverFlipJ[i]->SetTitleSize(0.1);
     dataOverFlipJ[i]->SetLineColor(kBlack);
     dataOverFlipJ[i]->SetMarkerColor(kBlack);
     dataOverFlipJ[i]->GetYaxis()->SetRangeUser(0.3,10.1);
-    dataOverFlipJ[i]->GetYaxis()->SetTitle("data / "+(TString)((flipJ==3)?"(uncorr. J/#psi MC)":"(flipped+MC)-J/#psi"));
+    dataOverFlipJ[i]->GetYaxis()->SetTitle("data / "+(TString)((flipJ==3)?"(uncorr. J/#psi MC)":((flipJ==0)?"flipped-J/#psi":"(flipped+MC)-J/#psi")));
     dataOverFlipJ[i]->GetXaxis()->SetTitle("BDT");
     dataOverFlipJ[i]->Draw("PE");
   }  
@@ -354,12 +356,17 @@ void BDTweighting(bool ispp=true, bool step2=false){
   // for(int b=1;b<=_NanaBins;b++){
   for(int b=0;b<1;b++){
     //in PbPb: replace flipJpsi by PromptMC
-    BDTweight(ispp, (ispp?0:3) , (ispp?0:3) , scaleJMC, scaleFlipJ, scaleSig[b], b, step2); 
-    BDTweight(ispp, (ispp?0:3) , (ispp?2:4) , scaleJMC, scaleFlipJ, scaleSig[b], b, step2);
+    BDTweight(ispp, 0 , 0 , scaleJMC, scaleFlipJ, scaleSig[b], b, step2); 
     BDTweight(ispp, (ispp?0:3) ,1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2); //NonPromptMC - bToJpsi
 
-    BDTweight(ispp, 1, 1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2); //flipJpsi method variation: nonpromptMC-bToJpsi is nominal in pp and PbPb
-    BDTweight(ispp, 2, 1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2);
+    if(ispp){
+      BDTweight(ispp, 0 , 2 , scaleJMC, scaleFlipJ, scaleSig[b], b, step2);
+      BDTweight(ispp, 1, 1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2); //flipJpsi method variation: nonpromptMC-bToJpsi is nominal in pp and PbPb
+      BDTweight(ispp, 2, 1, scaleJMC, scaleFlipJ, scaleSig[b], b, step2);
+    }
+
+    //flipJ: 0: all, 1: same-side, 2: opposite-side, 3: flipJpsi is replaced by prompt MC
+    //JpsiMC: 0:none, 1: uncorrelated nonprompt MC, 2: uncorrelated nonprompt + prompt MC, 3 and 4: correlated nonprompt MC is subtracted with a factor 0.33 or 3 (old PbPb shape variation)
   }
 
 }

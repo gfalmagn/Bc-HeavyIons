@@ -44,6 +44,7 @@
   * `cmsrel CMSSW_10_3_4; cd CMSSW_10_3_4/src'
   * `cmsenv'
   * `git clone https://github.com/cms-analysis/HiggsAnalysis-CombinedLimit.git HiggsAnalysis/CombinedLimit'
+  * `cp ../../FitDiagnostics_modified.cc HiggsAnalysis/CombinedLimit/src/FitDiagnostics.cc; cp ../../FitDiagnostics_modified.h HiggsAnalysis/CombinedLimit/interface/FitDiagnostics.h' (to record r2 in the toys tree in FitDiagnostics)
   * `cd HiggsAnalysis/CombinedLimit/test'
   * `ln -s /home/llr/cms/falmagne/Bc/templateFit/combineFit/runCombine.sh runCombine.sh'
   * `source runCombine.sh "pp"'

@@ -14,22 +14,34 @@ float Leq_PbPb = 208*208*L_PbPb;
 float NMB_PbPb = 1.1194e+10; //+-1.26% https://indico.cern.ch/event/935265/contributions/3930641/attachments/2068596/3472117/PAG_200703_NMB.pdf
 float TAA_090 = 6.27e-9; //pb-1 //6.27+-0.14 mb-1 (2.2%), HIN-19-007-pas-v5
 
-int _nbinMSR(bool ispp){return _withTM?(ispp?25:16):(ispp?(_preFitCorrAE?10:16):(_preFitCorrAE?7:10));}
-int _nbinMCR(bool ispp){return _withTM?(ispp?5:4):(ispp?(_preFitCorrAE?2:4):2);}
-int _nbinM(bool ispp){return _nbinMSR(ispp) + (int)_keepFirstMassBin + _nbinMCR(ispp);}
+vector<int> _nbinMSR(bool ispp){
+  if(_withTM) return (ispp?vector<int>{25,23,20}:vector<int>{16,15,13});
+  else return (ispp?(_preFitCorrAE?vector<int>{10,8,7}:vector<int>{16,15,13}):(
+		     _preFitCorrAE?vector<int>{7,6,6}:vector<int>{10,8,7}));
+}
+vector<int> _nbinMCR(bool ispp){
+  if(_withTM) return (ispp?vector<int>{5,5,4}:vector<int>{4,3,2});
+  else return (ispp?(_preFitCorrAE?vector<int>{10,8,7}:vector<int>{4,3,2}):(
+		     _preFitCorrAE?vector<int>{2,1,1}:vector<int>{2,1,1}));
+}
+vector<int> _nbinM(bool ispp){
+  return vector<int>{_nbinMSR(ispp)[0] + (int)_keepFirstMassBin + _nbinMCR(ispp)[0],
+                     _nbinMSR(ispp)[1] + (int)_keepFirstMassBin + _nbinMCR(ispp)[1],
+                     _nbinMSR(ispp)[2] + (int)_keepFirstMassBin + _nbinMCR(ispp)[2]};}
 float _mBcMax = 6.2;
 float _mBcMin = 3.5;
+float _mMax = 7.3;
 
 float Mbins[100];//max number of mass bins = 100
-float* _Mbinning(bool ispp){
-  int nbinsCR = _nbinMCR(ispp);
-  int nbinsSR = _nbinMSR(ispp);
+float* _Mbinning(bool ispp, int BDTbin){
+  int nbinsCR = _nbinMCR(ispp)[BDTbin];
+  int nbinsSR = _nbinMSR(ispp)[BDTbin];
   float Mstep = (_mBcMax-_mBcMin)/(float)nbinsSR;
   if(_keepFirstMassBin) Mbins[0] = _mBcMin - Mstep;
   for(int b=0; b<=nbinsSR; b++)
     Mbins[b+(int)_keepFirstMassBin] = _mBcMin + b*Mstep;
   for(int b=(int)_keepFirstMassBin; b<=nbinsCR; b++)
-    Mbins[b+(int)_keepFirstMassBin+nbinsSR] = _mBcMax + b*1./(float)nbinsCR; //CR is 1GeV wide
+    Mbins[b+(int)_keepFirstMassBin+nbinsSR] = _mBcMax + b*(_mMax-_mBcMax)/(float)nbinsCR;
 
   return Mbins;
 }
@@ -37,10 +49,10 @@ float* _Mbinning(bool ispp){
 bool isSoft(bool includeTMOST, bool isGlb, bool isTrk, bool TMOneStaTight, bool highP, float dxy, float dz, int nPix, int nTrk){
 
   if(includeTMOST){//soft
-    return TMOneStaTight && highP && dxy<0.3 && dz<20 && nPix>0 && nTrk>5;
+    return TMOneStaTight && highP && fabs(dxy)<0.3 && fabs(dz)<20 && nPix>0 && nTrk>5;
   } else{ //hybrid-soft, with or without global
     if(isGlb) {return isTrk && dxy<0.3 && dz<20 && nPix>0 && nTrk>5;}
-    else {return TMOneStaTight && highP && dxy<0.3 && dz<20 && nPix>0 &&nTrk>5;} //if not global, return to standard softID
+    else {return TMOneStaTight && highP && fabs(dxy)<0.3 && fabs(dz)<20 && nPix>0 &&nTrk>5;} //if not global, return to standard softID
   }
 
 }

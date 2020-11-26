@@ -16,7 +16,7 @@ process  	     BcSig     FakeJpsi  JpsiMC    flipJpsi  BcSig     FakeJpsi  JpsiM
 process  	     0         1	 2	   3         0         1	 2	   3         0         1	 2	   3         0         1	 2	   3         0         1	 2	   3         0         1	 2	   3         
 rate	             -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        
 --------------------------------
-lumi	      lnN    1.015     1.015     -	   -         1.015     1.015     -	   -         1.015     1.015     -	   -         1.015     1.015     -	   -         1.015     1.015     -	   -         1.015     1.015     -	   -         
+lumi	      lnN    1.015     1.015     -	   1.015     1.015     1.015     -	   1.015     1.015     1.015     -	   1.015     1.015     1.015     -	   1.015     1.015     1.015     -	   1.015     1.015     1.015     -	   1.015         
 wPromptMC     shape  -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     
 flipJSameSide shape  -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     
 JpsiSB	      shape  -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     #2 sigma variation
@@ -25,7 +25,7 @@ JpsiSB	      shape  -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	
 
 misID		rateParam *     JpsiMC   1.8
 highMassControl	rateParam *   	flipJpsi 1.
-misID		param 1.8 0.8
+misID		param 1.7 0.5
 highMassControl	param 1. 0.5
 
 * autoMCStats 10 #Poisson threshold on typical number of events in binomial

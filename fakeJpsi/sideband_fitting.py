@@ -199,7 +199,7 @@ for f in normfuncvect:
 biaslegend.Draw()
 c2.Modified()
 c2.Update()
-c2.SaveAs('BiasedFits.pdf')
+c2.SaveAs('figs/BiasedFits.pdf')
 
 #define canvas, pads, and labels
 c1 = TCanvas ('c1', 'Sideband fitting',1000,650)
@@ -236,7 +236,7 @@ c1label3.Draw()
 
 c1.cd(3).Modified()
 c1.cd(3).Update()
-c1.cd(3).SaveAs("ComparedSidebandFits.pdf")
+c1.cd(3).SaveAs("figs/ComparedSidebandFits.pdf")
 
 c1.cd(4)
 normleftfit.GetYaxis().SetRangeUser(0,1.1*normleftfit.GetMaximum())
@@ -252,7 +252,7 @@ c1label4.Draw()
 
 c1.Modified()
 c1.Update()
-c1.SaveAs('FittedSidebands.pdf')
+c1.SaveAs('figs/FittedSidebands.pdf')
 
 #Compare the final fit with the simple sum of left and right fits to see how much this whole shebang has actually gained us
 c3 = TCanvas('c3','Sum method vs Averaged parameter fit method',1000,650)
@@ -326,7 +326,7 @@ normsumlegend.Draw('SAME')"""
 
 c3.Modified()
 c3.Update()
-c3.SaveAs('NewvsOld.pdf')
+c3.SaveAs('figs/Sidebands_NewVsOld.pdf')
 
 #Save the final fit function (arithSignal_fit) to an external root file, 'SideBandFit.root'
 outfile = TFile('SideBandFit.root','RECREATE', 'Side Band Fit Function')

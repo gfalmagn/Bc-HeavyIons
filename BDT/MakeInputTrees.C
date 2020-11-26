@@ -739,19 +739,19 @@ void MakeInputTrees(bool ispp = true){
 	      switch(i) {
 	      case 0: //WRONGSIGN
 		goodTree = ( fabs(Reco_3mu_charge[iIpt][BcNb])!=1 || fabs(Reco_QQ_sign[iIpt][QQidx])!=0 ) && inJpsiMassRange(QQCandM, maxEta<1.5)
-		  && (BcCandM < m_Bc + 1.0) && (BcCandM > 3.3);
+		  && (BcCandM < _mMax) && (BcCandM > 3.3);
 		w_simple[i] = 3; //There are 2*6=12 combinations of 3 muons charges that give a total |charge|=1 (2 chosen OS pairs and 6 combinations), and 3*2=6 combinations giving |charge|=3. This means wrongsign deserves a weight=12/6=2 to be comparable to combinatorics background in data. //If we choose only one Bc candidate per trimuon, there are 6 combinations giving |charge|=1 and 2 combinations giving |charge|=3, so the ratio is 6/2=3
 		break;
 
 	      case 1: //BCMASS (Jpsi mass sidebands)
 		goodTree = fabs(Reco_3mu_charge[iIpt][BcNb])==1 && Reco_QQ_sign[iIpt][QQidx]==0 && inJpsiMassSB(QQCandM, maxEta<1.5) 
-		  && (BcCandM < m_Bc + 1.0) && (BcCandM > 3.3);
+		  && (BcCandM < _mMax) && (BcCandM > 3.3);
 		w_simple[i] = 1;
 		break;
 
 	      case 2: //TRUEJPSI
 		goodTree = fabs(Reco_3mu_charge[iIpt][BcNb])==1 && Reco_QQ_sign[iIpt][QQidx]==0 && inLooseMassRange(QQCandM)//(inJpsiMassRange(QQCandM, maxEta<1.5) || inJpsiMassSB(QQCandM, maxEta<1.5))
-		  && (BcCandM < m_Bc + 1.0) && (BcCandM > m_Bc);
+		  && (BcCandM < _mMax) && (BcCandM > m_Bc);
 		if(inJpsiMassRange(QQCandM, maxEta<1.5)){
 		  w_simple[i] = 1;}
 		else if(inJpsiMassSB(QQCandM, maxEta<1.5)){
@@ -762,13 +762,13 @@ void MakeInputTrees(bool ispp = true){
 
 	      case 3: //SIGNAL region
 		goodTree = fabs(Reco_3mu_charge[iIpt][BcNb])==1 && Reco_QQ_sign[iIpt][QQidx]==0 && inJpsiMassRange(QQCandM, maxEta<1.5)
-		  && (BcCandM < m_Bc + 1.0) && (BcCandM > 3.3);
+		  && (BcCandM < _mMax) && (BcCandM > 3.3);
 		w_simple[i] = 1;
 		break;
 
 	      case 4: //MC SIGNAL
 		goodTree = fabs(Reco_3mu_charge[iIpt][BcNb])==1 && Reco_QQ_sign[iIpt][QQidx]==0 && inLooseMassRange(QQCandM) // in Jpsi mass region
-		  && (BcCandM < m_Bc + 1.0) && (BcCandM > 3.3) // in Bc mass region
+		  && (BcCandM < _mMax) && (BcCandM > 3.3) // in Bc mass region
 		  && Reco_3mu_whichGen[iIpt][BcNb]>-1
 		  && Reco_QQ_whichGen[iIpt][QQidx]>-1;
 		w_simple[i] = scaleMCsig[ispp];
@@ -778,7 +778,7 @@ void MakeInputTrees(bool ispp = true){
 
 	      case 5: //MC B->J/psi X
 		goodTree = fabs(Reco_3mu_charge[iIpt][BcNb])==1 && Reco_QQ_sign[iIpt][QQidx]==0 && inLooseMassRange(QQCandM) // in Jpsi mass region
-		  && (BcCandM < m_Bc + 1.0) && (BcCandM > 3.3) // in Bc mass region
+		  && (BcCandM < _mMax) && (BcCandM > 3.3) // in Bc mass region
 		  && Reco_3mu_whichGen[iIpt][BcNb]==-1
 		  && Reco_QQ_whichGen[iIpt][QQidx]>-1;
 		if(goodTree){
@@ -794,7 +794,7 @@ void MakeInputTrees(bool ispp = true){
 
 	      case 6: //MC Prompt J/psi
 		goodTree = fabs(Reco_3mu_charge[iIpt][BcNb])==1 && Reco_QQ_sign[iIpt][QQidx]==0 && inLooseMassRange(QQCandM) // in Jpsi mass region
-		  && (BcCandM < m_Bc + 1.0) && (BcCandM > 3.3) // in Bc mass region
+		  && (BcCandM < _mMax) && (BcCandM > 3.3) // in Bc mass region
 		  && Reco_3mu_whichGen[iIpt][BcNb]==-1
 		  && Reco_QQ_whichGen[iIpt][QQidx]>-1;
 		if(goodTree){
@@ -807,7 +807,7 @@ void MakeInputTrees(bool ispp = true){
 
 	      case 7: //dimuon+track
 		goodTree = fabs(Reco_3mu_charge[iIpt][BcNb])==1 && Reco_QQ_sign[iIpt][QQidx]==0 && inLooseMassRange(QQCandM)//(inJpsiMassRange(QQCandM, maxEta<1.5) || inJpsiMassSB(QQCandM, maxEta<1.5))
-		  && (BcCandM < m_Bc + 1.0) && (BcCandM > 3.3);
+		  && (BcCandM < _mMax) && (BcCandM > 3.3);
 		if(inJpsiMassRange(QQCandM, maxEta<1.5)){
 		  w_simple[i] = 1;}
 		else if(inJpsiMassSB(QQCandM, maxEta<1.5)){
@@ -818,7 +818,7 @@ void MakeInputTrees(bool ispp = true){
 
 	      case 8: //Jpsi flipping
 		goodTree = fabs(Reco_3mu_charge[iIpt][BcNb])==1 && Reco_QQ_sign[iIpt][QQidx]==0 && inLooseMassRange(QQCandM)//(inJpsiMassRange(QQCandM, maxEta<1.5) || inJpsiMassSB(QQCandM, maxEta<1.5))
-		  && (BcCandM < m_Bc + 1.0) && (BcCandM > 3.3);
+		  && (BcCandM < _mMax) && (BcCandM > 3.3);
 		if(inJpsiMassRange(QQCandM, maxEta<1.5)){
 		  w_simple[i] = 1/7.;} //7 versions of Jpsi flipping are added
 		else if(inJpsiMassSB(QQCandM, maxEta<1.5)){
@@ -829,7 +829,7 @@ void MakeInputTrees(bool ispp = true){
 
 	      case 9: //MC B->J/psi X , flipJpsi (only in pp)
 		goodTree = fabs(Reco_3mu_charge[iIpt][BcNb])==1 && Reco_QQ_sign[iIpt][QQidx]==0 && inLooseMassRange(QQCandM) // in Jpsi mass region
-		  && (BcCandM < m_Bc + 1.0) && (BcCandM > 3.3) // in Bc mass region
+		  && (BcCandM < _mMax) && (BcCandM > 3.3) // in Bc mass region
 		  && Gen_QQ_size[iIpt]>0;
 		if(goodTree){
 		  TLorentzVector *genQQ = (TLorentzVector*) Gen_QQ_4mom[iIpt]->At((Reco_QQ_whichGen[iIpt][QQidx]>-1)?Reco_QQ_whichGen[iIpt][QQidx]:0);
@@ -1075,7 +1075,7 @@ void MakeInputTrees(bool ispp = true){
 		if(!ispp && Centrality[i]>180) continue; //keep 0-90% centrality
 	    	     
 		if(!(std::isnan(w_simple[i]))){
-		  if(!ispp && i==3 && Bc_M[i]<m_Bc){ //whether to blind 3/4 of the events of signal region
+		  if(!ispp && i==3 && Bc_M[i]<_mBcMax){ //whether to blind 3/4 of the events of signal region
 		    w_unblind[i] = w_simple[i];
 		    if((j%4)==0) w_simple[i] *= 4;
 		    else w_simple[i]=0;

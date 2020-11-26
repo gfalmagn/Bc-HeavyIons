@@ -16,8 +16,9 @@ Double_t findNcoll(int hiBin) {
 
 double EVENTUTILS(){
   double res=0;
-  for (int bin=0;bin<200;bin++){
+  int nbins = 40;
+  for (int bin=0;bin<nbins;bin++){
     res += findNcoll(bin);
   }
-  return res/200;
+  return res/nbins;
 }

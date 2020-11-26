@@ -15,9 +15,62 @@
 #include "../helpers/Cuts.h"
 #include "../acceptance/SgMuonAcceptanceCuts.h"
 #include "../helpers/AccEff2DBinning.h"
+#include "./TnP/tnp_weight_lowptPbPb.h"
+#include "./TnP/tnp_weight_pp_efficiencies.h"
+
+double trimuEffPartial(double t1, double l2, double h2, double t2, double l3, double h3){
+  return t1*( (l2-h2)*h3 + (h2-t2)*l3 );
+}
+
+double asymTrimuEff(double l1, double l2, double l3, double h1, double h2, double h3, double t1=-1, double t2=-1, double t3=-1){
+  //assumes l<h<t (factorising efficiencies)
+  if(t1==-1) t1 = h1; //for pp case when there is no L2-L3 trigger distinction
+  if(t2==-1) t2 = h2;
+  if(t3==-1) t3 = h3;
+
+  if(l1<h1-1e-5 || l2<h2-1e-5 || l3<h3-1e-5 || h1<t1-1e-5 || h2<t2-1e-5 || h3<t3-1e-5){
+    cout<<"A loose efficiency is smaller than a tight one !!!!"<<endl;
+    cout<<"l1, h1, t1 = "<<l1<<" "<<h1<<" "<<t1<<endl;
+    cout<<"l2, h2, t2 = "<<l2<<" "<<h2<<" "<<t2<<endl;
+    cout<<"l3, h3, t3 = "<<l3<<" "<<h3<<" "<<t3<<endl;
+  }
+  double res = t1*t2*t3;
+  res += trimuEffPartial(t1, l2, h2, t2, l3, h3); //permutation(1,2,3)
+  res += trimuEffPartial(t2, l3, h3, t3, l1, h1); //permutation(2,3,1)
+  res += trimuEffPartial(t3, l1, h1, t1, l2, h2); //permutation(3,1,2)
+  return res;
+}
+
+void drawEffMap(TH2Poly* hpEff, TH2Poly* hpSel, TH2Poly* hpAcc, TLine* l1, TLine* l2, TLine* l3, TLine* l4, TLine* l5, bool ispp, TString nameSuf){
+
+  TCanvas *c2 = new TCanvas("c2","c2",3000,1500);
+  c2->Divide(2,1);
+
+  c2->cd(1);
+  //  gPad->SetLogz();
+  //hpSel->GetZaxis()->SetRangeUser(1,200);
+  hpSel->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
+  hpSel->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
+  hpSel->SetTitle("Selected B_{c}'s");
+  hpSel->Draw("COLZ0");
+  l1->Draw("same"); l2->Draw("same"); l3->Draw("same"); l4->Draw("same"); l5->Draw("same");
+
+  c2->cd(2)->SetRightMargin(0.15);
+  //gPad->SetLogz();
+  hpEff->Divide(hpAcc);
+  hpEff->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
+  hpEff->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
+  hpEff->SetTitle("Efficiency "+nameSuf);
+  hpEff->Draw("COLZ0");
+  l1->Draw("same"); l2->Draw("same"); l3->Draw("same"); l4->Draw("same"); l5->Draw("same");
+  //  cout<<hpEff->GetBinContent(hpEff->FindBin(1.3001,6.001))<<" "<<hpEff->GetBinContent(hpEff->FindBin(1.301,8.01))<<" "<<hpEff->GetBinContent(hpEff->FindBin(1.301,10.01))<<endl;
+
+  c2->SaveAs("figs/EfficiencyMap_tunedBins"+(TString)(_withTM?"_withTrackerMu":"")+nameSuf+(TString)(ispp?"_pp":"_PbPb")+".pdf");
+  c2->SaveAs("figs/EfficiencyMap_tunedBins"+(TString)(_withTM?"_withTrackerMu":"")+nameSuf+(TString)(ispp?"_pp":"_PbPb")+".png");
+
+}
 
 void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBins=false){
-  bool withTM = false;
 
   //**************************************************************  
   //Create Tree and branches
@@ -299,12 +352,18 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
   TH2Poly *hp_all = (TH2Poly*) hp->Clone("hp_all");
   TH2Poly *hp_acc = (TH2Poly*) hp->Clone("hp_acc");
   TH2Poly *hp_sel = (TH2Poly*) hp->Clone("hp_sel");
+  TH2Poly *hp_sel_noSF = (TH2Poly*) hp->Clone("hp_sel_noSF");
+  TH2Poly *hp_sel_selectiveSFapplication = (TH2Poly*) hp->Clone("hp_sel_selectiveSFapplication");
+  TH2Poly *hp_sel_simpleAverage = (TH2Poly*) hp->Clone("hp_sel_simpleAverage");
   TH2Poly *hpcoarse_sel = (TH2Poly*) hp_coarser->Clone("hpcoarse_sel");
   TH2Poly *hpcoarse_inBDT23 = (TH2Poly*) hp_coarser->Clone("hpcoarse_inBDT23");
   TH2Poly *hpcoarse_inBDT3 = (TH2Poly*) hp_coarser->Clone("hpcoarse_inBDT3");
   TH1F *BDT23effVsPt = new TH1F("BDT23effVsPt","BDT23effVsPt",22,6,50);
   TH1F *BDT3effVsPt = new TH1F("BDT3effVsPt","BDT3effVsPt",22,6,50);
-  TH1F *selectedVsPt = new TH1F("selectecVsPt","selectedVsPt",22,6,50);
+  TH1F *selectedVsPt = new TH1F("selectedVsPt","selectedVsPt",22,6,50);
+  TH1F *SFs = new TH1F("SFs","SFs",100,ispp?0.8:0.8,ispp?1.:1.4);
+  TH1F *SFs_selectiveSFapplication = new TH1F("SFs_selectiveSFapplication","SFs_selectiveSFapplication",100,ispp?0.8:0.8,ispp?1.:1.4);
+  TH1F *SFs_simpleAverage = new TH1F("SFs_simpleAverage","SFs_simpleAverage",100,ispp?0.8:0.8,ispp?1.:1.4);
   vector<float> passing_oneBinned(_NanaBins+1,0);
   vector<float> accepted_oneBinned(_NanaBins+1,0);
   vector<float> eff_oneBinned(_NanaBins+1,1);
@@ -352,7 +411,7 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
       for(int b=1;b<=_NanaBins;b++)
 	if(fabs(gen3mu->Rapidity())>_BcYmin[b] && fabs(gen3mu->Rapidity())<_BcYmax[b] && gen3mu->Pt()>_BcPtmin[b] && gen3mu->Pt()<_BcPtmax[b] ) nfid += weight;
 
-      if(!InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM)) continue;
+      if(!InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,_withTM)) continue;
       for(int b=1;b<=_NanaBins;b++){
 	if(fabs(gen3mu->Rapidity())>_BcYmin[b] && fabs(gen3mu->Rapidity())<_BcYmax[b] && gen3mu->Pt()>_BcPtmin[b] && gen3mu->Pt()<_BcPtmax[b] ){
 	  accepted_oneBinned[b] += weight;
@@ -393,9 +452,13 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 	  float mumi_eta = recBc_mumi->Eta();
 	  float mupl_eta = recBc_mupl->Eta();
 	  float maxEta = max(fabs(muW_eta),max(fabs(mumi_eta),fabs(mupl_eta)));
+
+	  float muW_pt = recBc_muW->Pt();
+	  float mumi_pt = recBc_mumi->Pt();
+	  float mupl_pt = recBc_mupl->Pt();
 	  
 	  bool goodTree = fabs(Reco_3mu_charge[irec])==1 && Reco_QQ_sign[QQidx]==0 && inLooseMassRange(QQM) // in Jpsi mass region
-	    && (BcCandM < m_Bc + 1.0) && (BcCandM > 3.5) // in Bc mass region
+	    && (BcCandM < _mMax) && (BcCandM > _mBcMin) // in Bc mass region
 	    && Reco_3mu_whichGen[irec]>-1
 	    && Reco_QQ_whichGen[QQidx]>-1;
 	  if(inJpsiMassSB(QQM, maxEta<1.5)) {weight *= -1;}
@@ -419,18 +482,24 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 	  bool muW_inTightAcc = Reco_mu_InTightAcc[muWidx];
 	  bool muW_isGlb = (Reco_mu_SelType[muWidx]&2)>0;
 	  bool muW_trig = (Reco_mu_trig[muWidx]&(ispp?8:4096))>0 ; //DoubleMu0 trigger = 2^3 for pp //HL_THIL3Mu0NHitQ10_L2Mu0_MAXdR3p5_M1to5_v1 = 2^12 for PbPb
+          bool muW_L2 = muW_trig && (ispp || (Reco_mu_trig[muWidx]&(65536))>0) ;
+          bool muW_L3 = muW_trig && (ispp || (Reco_mu_trig[muWidx]&(131072))>0) ;
 	  bool muW_isSoft = isSoft( false, muW_isGlb , (Reco_mu_SelType[muWidx]&8)>0 , ((Reco_mu_SelType[muWidx]&((int)pow(2,12)))>0) , Reco_mu_highPurity[muWidx] , Reco_mu_dxy[muWidx] , Reco_mu_dz[muWidx] , Reco_mu_nPixWMea[muWidx] , Reco_mu_nTrkWMea[muWidx] );
 
 	  bool mumi_inLooseAcc = Reco_mu_InLooseAcc[mumiidx];
 	  bool mumi_inTightAcc = Reco_mu_InTightAcc[mumiidx];
 	  bool mumi_isGlb = (Reco_mu_SelType[mumiidx]&2)>0;
 	  bool mumi_trig = (Reco_mu_trig[mumiidx]&(ispp?8:4096))>0;
+          bool mumi_L2 = mumi_trig && (ispp || (Reco_mu_trig[mumiidx]&(65536))>0) ;
+          bool mumi_L3 = mumi_trig && (ispp || (Reco_mu_trig[mumiidx]&(131072))>0) ;
 	  bool mumi_isSoft = isSoft( false, mumi_isGlb , (Reco_mu_SelType[mumiidx]&8)>0  , ((Reco_mu_SelType[mumiidx]&((int)pow(2,12)))>0) , Reco_mu_highPurity[mumiidx] , Reco_mu_dxy[mumiidx] , Reco_mu_dz[mumiidx] , Reco_mu_nPixWMea[mumiidx] , Reco_mu_nTrkWMea[mumiidx] );
 
 	  bool mupl_inLooseAcc = Reco_mu_InLooseAcc[muplidx];
 	  bool mupl_inTightAcc = Reco_mu_InTightAcc[muplidx];
 	  bool mupl_isGlb = (Reco_mu_SelType[muplidx]&2)>0;
 	  bool mupl_trig = (Reco_mu_trig[muplidx]&(ispp?8:4096))>0;
+          bool mupl_L2 = mupl_trig && (ispp || (Reco_mu_trig[muplidx]&(65536))>0) ;
+          bool mupl_L3 = mupl_trig && (ispp || (Reco_mu_trig[muplidx]&(131072))>0) ;
 	  bool mupl_isSoft = isSoft( false, mupl_isGlb , (Reco_mu_SelType[muplidx]&8)>0  , ((Reco_mu_SelType[muplidx]&((int)pow(2,12)))>0) , Reco_mu_highPurity[muplidx] , Reco_mu_dxy[muplidx] , Reco_mu_dz[muplidx] , Reco_mu_nPixWMea[muplidx] , Reco_mu_nTrkWMea[muplidx] );
 
 	  float muW_dxy = ispp?(Reco_3mu_muW_dxy_muonlessVtx[irec]):(Reco_mu_dxy[muWidx]);
@@ -446,19 +515,20 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 	     // Pre-selections
 	     Bc_ctauSignif>_ctauSignif_cut
 	     && Bc_ctauSignif3D>_ctauSignif3D_cut //maybe not a good idea in pp due to pile-up along z. But actually not a big deal if we select nonprompt objects
-	     && Bc_alpha<_alpha_cut
-	     && Bc_alpha3D<_alpha3D_cut //combined with alpha cut, kills 0.3% of signal 
+	     && Bc_alpha<_alpha_cut(ispp)
+	     && Bc_alpha3D<_alpha3D_cut(ispp) //combined with alpha cut, kills 0.3% of signal 
 	     && Bc_VtxProb>_vtxProb_cut //kills 1.2% more signal compared to Bc_VtxProb>0.005
 	     && QQ_VtxProb>_QQvtxProb_cut //drop the QQ_VtxProb, too correlated with Bc_VtxProb?
 	     && QQ_dca<_QQdca_cut //keep this that kills 1.8% of signal and 10% of WRONSIGN/BCMASS
 	     && muW_isSoft
 	     && mumi_isSoft
 	     && mupl_isSoft
-	     && (withTM?( (muW_isGlb && muW_inLooseAcc && mupl_isGlb && mupl_inLooseAcc) || //only one muon can be tracker and out of LooseAcceptance
+	     && (_withTM?( (muW_isGlb && muW_inLooseAcc && mupl_isGlb && mupl_inLooseAcc) || //only one muon can be tracker and out of LooseAcceptance
 			  (muW_isGlb && muW_inLooseAcc && mumi_isGlb && mumi_inLooseAcc) || 
 			  (mumi_isGlb && mumi_inLooseAcc && mupl_isGlb && mupl_inLooseAcc)
 			  ):(
 			     mumi_isGlb && mupl_isGlb && muW_isGlb
+			     && mumi_inLooseAcc && mupl_inLooseAcc && muW_inLooseAcc           
 			     ))
 	     && ( ( muW_trig && mupl_trig && muW_inTightAcc && mupl_inTightAcc ) || //two muons among three must trigger //BEWARE ! Not sure if TightAcceptance should be put there
 		  ( muW_trig && mumi_trig && muW_inTightAcc && mumi_inTightAcc ) ||
@@ -468,10 +538,14 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 	     && (!ispp || (HLTriggers&(ispp?8:4096))>0) //the event must fire the trigger as well
 	     ){
 
-            float PperpTrimu = TMath::Sin(Bc_alpha3D) * recBc.P();
+            float PperpTrimu = TMath::Sin(Bc_alpha3D) * recBc->P();
             float Bc_CorrM = sqrt(BcCandM*BcCandM + PperpTrimu*PperpTrimu) + PperpTrimu;
-            if(Bc_CorrM>25) continue;
+            if(Bc_CorrM>_BcCorrM_cut(ispp)) continue;
 	    if(!ispp && Centrality>180) continue; //keep 0-90% centrality                                                                                                                                                              
+
+	    if(muW_trig && !(muW_L2 || muW_L3)) cout<<"!!!! PROBLEM with muW trigger consistency"<<endl;
+	    if(mupl_trig && !(mupl_L2 || mupl_L3)) cout<<"!!!! PROBLEM with mupl trigger consistency"<<endl;
+	    if(mumi_trig && !(mumi_L2 || mumi_L3)) cout<<"!!!! PROBLEM with mumi trigger consistency"<<endl;
 
 	    float QQ2_M = (Reco_mu_charge[muWidx]>0)?((*recBc_mumi+*recBc_muW).M()):((*recBc_mupl+*recBc_muW).M()); //QQ2 is the second OS pair
 	    float QQ3_M = (Reco_mu_charge[muWidx]>0)?((*recBc_mupl+*recBc_muW).M()):((*recBc_mumi+*recBc_muW).M()); //QQ3 is the SS pair
@@ -490,6 +564,107 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 	      else weight *= binc_QQ1 / (binc_QQ1+binc_QQ2);
 	    }
 
+
+	    //**** Apply the scale factors to correct MC efficiencies
+	    //H = tight criteria (tight acceptance, triggering muon...), L = loose criteria (loose acceptance, no trigger required...), T = fire L3 trigger (in PbPb case) -> implies H
+	    //2 muons have to respect H, 1 has to respect L
+	    //In PbPb, at least 1 triggering muon must pass L3
+	    //muon 1 is mumi, muon 2 is mupl, muon3 is muW
+	    double SF1_T,SF2_T,SF3_T; //Definition of the scale-factor for the 3 muons, L or H or T criteria
+	    double SF1_H,SF2_H,SF3_H;
+	    double SF1_L,SF2_L,SF3_L;
+	    double L1,L2,L3,H1,H2,H3,T1,T2,T3;//Definition of the MC efficiencies
+	    double effcorr, effcorr_simpleAverage, effcorr_selectiveSFapplication; //effcorr is the correction to be applied
+
+	    if (!ispp){//Case PbPb
+	      SF1_L = tnp_weight_muid_looseacceptance_pbpb(mumi_pt,mumi_eta,0) * tnp_weight_trk_looseacceptance_pbpb(mumi_eta,0);//Product of muid and trk, loose acceptance
+              SF2_L = tnp_weight_muid_looseacceptance_pbpb(mupl_pt,mupl_eta,0) * tnp_weight_trk_looseacceptance_pbpb(mupl_eta,0);
+              SF3_L = tnp_weight_muid_looseacceptance_pbpb(muW_pt,muW_eta,0) * tnp_weight_trk_looseacceptance_pbpb(muW_eta,0);
+	      L1 = tnp_weight_muid_looseacceptance_pbpb(mumi_pt,mumi_eta,3) * tnp_weight_trk_looseacceptance_pbpb(mumi_eta,3); //When varying the SF with the index, this efficiency should not vary
+              L2 = tnp_weight_muid_looseacceptance_pbpb(mupl_pt,mupl_eta,3) * tnp_weight_trk_looseacceptance_pbpb(mupl_eta,3);
+              L3 = tnp_weight_muid_looseacceptance_pbpb(muW_pt,muW_eta,3) * tnp_weight_trk_looseacceptance_pbpb(muW_eta,3);
+
+	      SF1_H = tnp_weight_muid_pbpb(mumi_pt,mumi_eta,0) * tnp_weight_trk_pbpb(mumi_eta,0) * tnp_weight_trg_pbpb(mumi_pt,mumi_eta,0,0);//Product of muid, trk, and L2 trg, tight acceptance
+	      SF2_H = tnp_weight_muid_pbpb(mupl_pt,mupl_eta,0) * tnp_weight_trk_pbpb(mupl_eta,0) * tnp_weight_trg_pbpb(mupl_pt,mupl_eta,0,0);
+	      SF3_H = tnp_weight_muid_pbpb(muW_pt,muW_eta,0) * tnp_weight_trk_pbpb(muW_eta,0) * tnp_weight_trg_pbpb(muW_pt,muW_eta,0,0);
+	      H1 = tnp_weight_muid_pbpb(mumi_pt,mumi_eta,3) * tnp_weight_trk_pbpb(mumi_eta,3) * tnp_weight_trg_pbpb(mumi_pt,mumi_eta,0,3);
+	      H2 = tnp_weight_muid_pbpb(mupl_pt,mupl_eta,3) * tnp_weight_trk_pbpb(mupl_eta,3) * tnp_weight_trg_pbpb(mupl_pt,mupl_eta,0,3);
+	      H3 = tnp_weight_muid_pbpb(muW_pt,muW_eta,3) * tnp_weight_trk_pbpb(muW_eta,3) * tnp_weight_trg_pbpb(muW_pt,muW_eta,0,3);
+
+	      SF1_T = tnp_weight_muid_pbpb(mumi_pt,mumi_eta,0) * tnp_weight_trk_pbpb(mumi_eta,0) * tnp_weight_trg_pbpb(mumi_pt,mumi_eta,1,0);//Product of muid, trk, and L3 trg, tight acceptance
+	      SF2_T = tnp_weight_muid_pbpb(mupl_pt,mupl_eta,0) * tnp_weight_trk_pbpb(mupl_eta,0) * tnp_weight_trg_pbpb(mupl_pt,mupl_eta,1,0);
+	      SF3_T = tnp_weight_muid_pbpb(muW_pt,muW_eta,0) * tnp_weight_trk_pbpb(muW_eta,0) * tnp_weight_trg_pbpb(muW_pt,muW_eta,1,0);
+	      T1 = tnp_weight_muid_pbpb(mumi_pt,mumi_eta,3) * tnp_weight_trk_pbpb(mumi_eta,3) * tnp_weight_trg_pbpb(mumi_pt,mumi_eta,1,3);
+	      T2 = tnp_weight_muid_pbpb(mupl_pt,mupl_eta,3) * tnp_weight_trk_pbpb(mupl_eta,3) * tnp_weight_trg_pbpb(mupl_pt,mupl_eta,1,3);
+	      T3 = tnp_weight_muid_pbpb(muW_pt,muW_eta,3) * tnp_weight_trk_pbpb(muW_eta,3) * tnp_weight_trg_pbpb(muW_pt,muW_eta,1,3);
+	      //Both the muons that respect H have to be triggering, one has to pass the  L3 filter, one has to pass the L2 filter
+
+	      // This part might be redundant
+	      if(!mumi_inTightAcc) {H1 = 0; T1 = 0; SF1_H = 1; SF1_T = 1;} //SF=1 is only to avoid NaN's
+	      if(!mupl_inTightAcc) {H2 = 0; T2 = 0; SF2_H = 1; SF2_T = 1;}
+	      if(!muW_inTightAcc) {H3 = 0; T3 = 0; SF3_H = 1; SF3_T = 1;}
+
+	      double effMC = asymTrimuEff(L1, L2, L3, H1, H2, H3, T1, T2, T3);
+	      double effdata = asymTrimuEff(SF1_L*L1, SF2_L*L2, SF3_L*L3, SF1_H*H1, SF2_H*H2, SF3_H*H3, SF1_T*T1, SF2_T*T2, SF3_T*T3);
+	      effcorr = effdata/effMC;
+	      
+	      effcorr_simpleAverage = (SF1_L*SF2_H*SF3_T*(H2>0 && T3>0) + SF3_L*SF1_H*SF2_T*(H1>0 && T2>0) + SF2_L*SF3_H*SF1_T*(H3>0 && T1>0)
+			             + SF1_L*SF3_H*SF2_T*(H3>0 && T2>0) + SF3_L*SF2_H*SF1_T*(H2>0 && T1>0) + SF2_L*SF1_H*SF3_T*(H1>0 && T3>0))
+				     / ((H2>0 && T3>0) + (H1>0 && T2>0) + (H3>0 && T1>0) + (H3>0 && T2>0) + (H2>0 && T1>0) + (H1>0 && T3>0));
+
+	      // We do NOT want to require mumi_trig for the trigger efficiency on mumi to be taken into account !! (at least in the nominal method, but maybe we can do it in the simple method)
+	      if(!mumi_inTightAcc || !mumi_trig) {H1 = 0; T1 = 0; SF1_H = 1; SF1_T = 1;} //SF=1 is only to avoid NaN's
+	      if(!mumi_inTightAcc || !mumi_L3) {T1 = 0; SF1_T = 1;}
+	      if(!mupl_inTightAcc || !mupl_trig) {H2 = 0; T2 = 0; SF2_H = 1; SF2_T = 1;}
+	      if(!mupl_inTightAcc || !mupl_L3) {T1 = 0; SF1_T = 1;}
+	      if(!muW_inTightAcc || !muW_trig) {H3 = 0; T3 = 0; SF3_H = 1; SF3_T = 1;}
+	      if(!muW_inTightAcc || !muW_L3) {T3 = 0; SF3_T = 1;}
+	      
+	      double effMC_selectiveSFapplication = asymTrimuEff(L1, L2, L3, H1, H2, H3, T1, T2, T3);
+	      double effdata_selectiveSFapplication = asymTrimuEff(SF1_L*L1, SF2_L*L2, SF3_L*L3, SF1_H*H1, SF2_H*H2, SF3_H*H3, SF1_T*T1, SF2_T*T2, SF3_T*T3);
+	      effcorr_selectiveSFapplication = effdata_selectiveSFapplication/effMC_selectiveSFapplication;
+
+	    }//end PbPb
+
+	    else {//Case pp
+	      SF1_H = tnp_weight_glb_tightacceptance_pp(mumi_pt,mumi_eta,0)*tnp_weight_muidtrg_tightacceptance_pp(mumi_eta,0);//H is glb and muidtrg, tight acceptance
+              SF2_H = tnp_weight_glb_tightacceptance_pp(mupl_pt,mupl_eta,0)*tnp_weight_muidtrg_tightacceptance_pp(mupl_eta,0);
+              SF3_H = tnp_weight_glb_tightacceptance_pp(muW_pt,muW_eta,0)*tnp_weight_muidtrg_tightacceptance_pp(muW_eta,0);
+              H1 = tnp_weight_glb_tightacceptance_pp(mumi_pt,mumi_eta,3)*tnp_weight_muidtrg_tightacceptance_pp(mumi_eta,3);
+              H2 = tnp_weight_glb_tightacceptance_pp(mupl_pt,mupl_eta,3)*tnp_weight_muidtrg_tightacceptance_pp(mupl_eta,3);
+	      H3 = tnp_weight_glb_tightacceptance_pp(muW_pt,muW_eta,3)*tnp_weight_muidtrg_tightacceptance_pp(muW_eta,3);
+
+              SF1_L = tnp_weight_muid_looseacceptance_pp(mumi_pt,mumi_eta,0)*tnp_weight_glb_looseacceptance_pp(mumi_eta,0);// L is glb and muid, loose acceptance
+              SF2_L = tnp_weight_muid_looseacceptance_pp(mupl_pt,mupl_eta,0)*tnp_weight_glb_looseacceptance_pp(mupl_eta,0);
+	      SF3_L = tnp_weight_muid_looseacceptance_pp(muW_pt,muW_eta,0)*tnp_weight_glb_looseacceptance_pp(muW_eta,0);
+              L1 = tnp_weight_muid_looseacceptance_pp(mumi_pt,mumi_eta,3)*tnp_weight_glb_looseacceptance_pp(mumi_eta,3);
+              L2 = tnp_weight_muid_looseacceptance_pp(mupl_pt,mupl_eta,3)*tnp_weight_glb_looseacceptance_pp(mupl_eta,3);
+              L3 = tnp_weight_muid_looseacceptance_pp(muW_pt,muW_eta,3)*tnp_weight_glb_looseacceptance_pp(muW_eta,3);
+
+	      // This part might be redundant
+	      if(!mumi_inTightAcc) {H1 = 0; SF1_H = 1;} //SF=1 is only to avoid NaN's
+	      if(!mupl_inTightAcc) {H2 = 0; SF2_H = 1;}
+	      if(!muW_inTightAcc) {H3 = 0; SF3_H = 1;}
+
+	      double effMC = asymTrimuEff(L1, L2, L3, H1, H2, H3);
+	      double effdata = asymTrimuEff(SF1_L*L1, SF2_L*L2, SF3_L*L3, SF1_H*H1, SF2_H*H2, SF3_H*H3);
+	      effcorr = effdata/effMC;
+	      
+	      effcorr_simpleAverage = (SF1_L*SF2_H*SF3_H*(H2>0 && H3>0) + SF3_L*SF1_H*SF2_H*(H1>0 && H2>0) + SF2_L*SF3_H*SF1_H*(H3>0 && H1>0))
+                                    / ((H2>0 && H3>0) + (H1>0 && H2>0) + (H3>0 && H1>0));
+
+	      // We do NOT want to require mumi_trig for the trigger efficiency on mumi to be taken into account !! (at least in the nominal method, but maybe we can do it in the simple method)
+	      if(!mumi_inTightAcc || !mumi_trig) {H1 = 0; SF1_H = 1;} //SF=1 is only to avoid NaN's
+	      if(!mupl_inTightAcc || !mupl_trig) {H2 = 0; SF2_H = 1;}
+	      if(!muW_inTightAcc || !muW_trig) {H3 = 0; SF3_H = 1;}
+
+	      double effMC_selectiveSFapplication = asymTrimuEff(L1, L2, L3, H1, H2, H3);
+	      double effdata_selectiveSFapplication = asymTrimuEff(SF1_L*L1, SF2_L*L2, SF3_L*L3, SF1_H*H1, SF2_H*H2, SF3_H*H3);
+	      effcorr_selectiveSFapplication = effdata_selectiveSFapplication/effMC_selectiveSFapplication;
+	      
+	    }//end pp
+
+	    //**** Actually fill the 2D histogram
 	    for(int b=1;b<=_NanaBins;b++){
 	      if(fabs(gen3mu->Rapidity())>_BcYmin[b] && fabs(gen3mu->Rapidity())<_BcYmax[b] && gen3mu->Pt()>_BcPtmin[b] && gen3mu->Pt()<_BcPtmax[b] ){
 		passing_oneBinned[b] += weight;
@@ -497,7 +672,14 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 	      }
 	    }
 
-	    hp_sel->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight);
+	    hp_sel_noSF->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight);
+	    hp_sel->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight * effcorr);
+	    hp_sel_simpleAverage->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight * effcorr_simpleAverage);
+	    hp_sel_selectiveSFapplication->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight * effcorr_selectiveSFapplication);
+
+	    SFs->Fill(effcorr, weight);
+	    SFs_simpleAverage->Fill(effcorr_simpleAverage, weight);
+	    SFs_selectiveSFapplication->Fill(effcorr_selectiveSFapplication, weight);
 
 	  } //end if passes full selection
 	      
@@ -507,7 +689,6 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
   } //end loop on entries
 
   cout<<"ntot, accepted_oneBinned[0], passing_oneBinned[0], efficiency = " <<ntot<<" "<<accepted_oneBinned[0]<<" "<<passing_oneBinned[0]<<" "<<passing_oneBinned[0]/accepted_oneBinned[0]<<" "<<endl;
-
 
   //**************************************************************
   //Pre-selected tree to get BDT efficiency map
@@ -570,34 +751,56 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
   gStyle->SetNumberContours(50);
 
   //**************************************************************
-  //Draw TH2Poly 
-
-  TCanvas *c2 = new TCanvas("c2","c2",3000,1500);
-  c2->Divide(2,1);
+  //Draw TH2Poly for efficiencies
 
   TH2Poly* hp_efficiency = (TH2Poly*)hp_sel->Clone("hp_efficiency");
-  c2->cd(1);
-  //  gPad->SetLogz();
-  //hp_sel->GetZaxis()->SetRangeUser(1,200);
-  hp_sel->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
-  hp_sel->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
-  hp_sel->SetTitle("Selected B_{c}'s");
-  hp_sel->Draw("COLZ0");
-  line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same");
+  hp_efficiency->GetZaxis()->SetRangeUser(0,0.45);
+  drawEffMap(hp_efficiency, hp_sel, hp_acc, line1, line2, line3, line4, line5, ispp, "");
 
-  c2->cd(2);
-  //  gPad->SetLogz();
-  hp_efficiency->Divide(hp_acc);
-  //  hp_efficiency->GetZaxis()->SetRangeUser(0,1);//1e-4,1);
-  hp_efficiency->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
-  hp_efficiency->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
-  hp_efficiency->SetTitle("Efficiency");
-  hp_efficiency->Draw("COLZ0");
-  line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same");
+  TH2Poly* hp_efficiency_noSF = (TH2Poly*)hp_sel_noSF->Clone("hp_efficiency_noSF");
+  hp_efficiency_noSF->Divide(hp_efficiency);
+  hp_efficiency_noSF->GetZaxis()->SetRangeUser(0.84,1.16);
+  drawEffMap(hp_efficiency_noSF, hp_sel_noSF, hp_acc, line1, line2, line3, line4, line5, ispp, "_noSF_ratioToNominal");
 
-  c2->SaveAs("figs/EfficiencyMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
-  c2->SaveAs("figs/EfficiencyMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".png");
+  TH2Poly* hp_efficiency_selectiveSFapplication = (TH2Poly*)hp_sel_selectiveSFapplication->Clone("hp_efficiency_selectiveSFapplication");
+  hp_efficiency_selectiveSFapplication->Divide(hp_efficiency);
+  hp_efficiency_selectiveSFapplication->GetZaxis()->SetRangeUser(0.84,1.16);
+  drawEffMap(hp_efficiency_selectiveSFapplication, hp_sel_selectiveSFapplication, hp_acc, line1, line2, line3, line4, line5, ispp, "_selectiveSFapplication_ratioToNominal");
 
+  TH2Poly* hp_efficiency_simpleAverage = (TH2Poly*)hp_sel_simpleAverage->Clone("hp_efficiency_simpleAverage");
+  hp_efficiency_simpleAverage->Divide(hp_efficiency);
+  hp_efficiency_simpleAverage->GetZaxis()->SetRangeUser(0.84,1.16);
+  drawEffMap(hp_efficiency_simpleAverage, hp_sel_simpleAverage, hp_acc, line1, line2, line3, line4, line5, ispp, "_simpleAverage_ratioToNominal");
+
+  //**************************************************************
+  //Draw scale factors
+  TCanvas *c6 = new TCanvas("c6","c6",2500,2500);
+  SFs->SetTitle("Scale factors for MC signal trimuons");
+  SFs->SetLineWidth(2);
+  SFs->GetXaxis()->SetTitle("Scale factors on efficiencies");
+  SFs->GetYaxis()->SetTitle("Expected signal trimuons");
+  SFs->Draw("hist");
+
+  SFs_selectiveSFapplication->SetLineWidth(2);
+  SFs_selectiveSFapplication->SetLineColor(kRed);
+  SFs_selectiveSFapplication->Draw("histsame");
+
+  SFs_simpleAverage->SetLineWidth(2);
+  SFs_simpleAverage->SetLineColor(kGreen+2);
+  SFs_simpleAverage->Draw("histsame");
+
+  c6->SetLeftMargin(0.12);
+  TLegend *leg = new TLegend(0.55,0.7,0.9,0.9);
+  leg->SetTextSize(0.035);
+  leg->SetHeader("efficiency scale factors");
+  leg->SetBorderSize(0);
+  leg->AddEntry(SFs,"nominal");
+  leg->AddEntry(SFs_selectiveSFapplication,"SF only on passing muons");
+  leg->AddEntry(SFs_simpleAverage,"Simple average of single-mu SF");
+  leg->Draw("same");
+
+  c6->SaveAs("figs/ScaleFactorsComparison"+(TString)(ispp?"_pp":"_PbPb")+".pdf");
+  
   //**************************************************************
   //Grab acceptance map
   TFile acc_file("../acceptance/acceptanceMap.root","READ");
@@ -651,8 +854,8 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
   gPad->Modified();
   gPad->Update();
 
-  c3->SaveAs("figs/AcceptanceEfficiencyMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
-  c3->SaveAs("figs/AcceptanceEfficiencyMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".png");
+  c3->SaveAs("figs/AcceptanceEfficiencyMap_tunedBins"+(TString)(_withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
+  c3->SaveAs("figs/AcceptanceEfficiencyMap_tunedBins"+(TString)(_withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".png");
 
   //**************************************************************
   //Draw TH2Poly for BDT efficiency
@@ -679,11 +882,16 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
   BDT3effVsPt->SetTitle("Efficiency for BDT bin 3;p_{T} [GeV]");
   BDT3effVsPt->Draw("E");
 
-  c4->SaveAs("figs/BDTefficiencyMap"+(TString)(withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
+  c4->SaveAs("figs/BDTefficiencyMap"+(TString)(_withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
 
   //**************************************************************
   //Store maps
   TFile* fout = TFile::Open("AcceptanceEfficiencyMap.root","UPDATE");
+  hp_efficiency->Write("hp_efficiency_"+(TString)(ispp?"pp":"PbPb"));
+  hp_efficiency_noSF->Write("hp_efficiency_noSF_"+(TString)(ispp?"pp":"PbPb"));
+  hp_efficiency_simpleAverage->Write("hp_efficiency_simpleAverage_"+(TString)(ispp?"pp":"PbPb"));
+  hp_efficiency_selectiveSFapplication->Write("hp_efficiency_selectiveSFapplication_"+(TString)(ispp?"pp":"PbPb"));
+
   hp_acceff->Write("hp_acceff_"+(TString)(ispp?"pp":"PbPb"));
   hpcoarse_inBDT23->Write("hpcoarse_inBDT23_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(integratePtBins?"_integratePtBins":""));
   hpcoarse_inBDT3->Write("hpcoarse_inBDT3_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(integratePtBins?"_integratePtBins":""));

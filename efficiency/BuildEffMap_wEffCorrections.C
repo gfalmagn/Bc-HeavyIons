@@ -412,7 +412,7 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 	  float mupl_pt = recBc_mupl->Pt();
 	  
 	  bool goodTree = fabs(Reco_3mu_charge[irec])==1 && Reco_QQ_sign[QQidx]==0 && inLooseMassRange(QQM) // in Jpsi mass region
-	    && (BcCandM < m_Bc + 1.0) && (BcCandM > 3.5) // in Bc mass region
+	    && (BcCandM < _mBcMax + 1.1) && (BcCandM > 3.5) // in Bc mass region
 	    && Reco_3mu_whichGen[irec]>-1
 	    && Reco_QQ_whichGen[QQidx]>-1;
 	  if(inJpsiMassSB(QQM, maxEta<1.5)) {weight *= -1;}
@@ -482,6 +482,7 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 			  (mumi_isGlb && mumi_inLooseAcc && mupl_isGlb && mupl_inLooseAcc)
 			  ):(
 			     mumi_isGlb && mupl_isGlb && muW_isGlb
+			     && mumi_inLooseAcc && mupl_inLooseAcc && muW_inLooseAcc
 			     ))
 	     && ( ( muW_trig && mupl_trig && muW_inTightAcc && mupl_inTightAcc ) || //two muons among three must trigger //BEWARE ! Not sure if TightAcceptance should be put there
 		  ( muW_trig && mumi_trig && muW_inTightAcc && mumi_inTightAcc ) ||
@@ -493,7 +494,7 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 
             float PperpTrimu = TMath::Sin(Bc_alpha3D) * recBc.P();
             float Bc_CorrM = sqrt(BcCandM*BcCandM + PperpTrimu*PperpTrimu) + PperpTrimu;
-	    if(Bc_CorrM>25) continue;
+	    if(Bc_CorrM>_BcCorrM_cut(ispp)) continue;
             if(!ispp && Centrality>180) continue; //keep 0-90% centrality
 
 	    float QQ2_M = (Reco_mu_charge[muWidx]>0)?((*recBc_mumi+*recBc_muW).M()):((*recBc_mupl+*recBc_muW).M()); //QQ2 is the second OS pair

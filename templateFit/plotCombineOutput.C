@@ -18,10 +18,7 @@
 #include "TPad.h"
 #include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
-
-float quadSum(float f1, float f2, float f3=0, float f4=0){
-  return sqrt(f1*f1+f2*f2+f3*f3+f4*f4);
-}
+#include "../helpers/Tools.h"
 
 void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="", TString systExt=""){
 
@@ -31,9 +28,9 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
   int ntrees = 9;
 
   bool separateCombinatorics = false; // in non-prompt Jpsi MC, separate the events where muW and Jpsi are not from same decay, and gather them with Prompt Jpsi MC to make a combinatorics sample
-  bool useFlipJpsi = ispp;
+  bool useFlipJpsi = true;//ispp
   bool flipJpsiSameSide = false; // whether to keep only events with flipJpsi angle on same |eta| side
-  bool bToJpsiOnly = false;//ispp;
+  bool bToJpsiOnly = !ispp;
   int nbin = 38;
   int nParam = 7; //number of parameters from the template fit, !!!hard-coded
 
@@ -52,9 +49,18 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
   vector<vector<TGraph*> > h_BcM_pull(_NanaBins+1, vector<TGraph*>(_nChan(ispp)+1));
   //vector<vector<TH1F*> > h_BDT(ntrees, vector<TH1F*>(_nChan(ispp)+1));
   // vector<vector<TH1F*> > h_BcPt(ntrees, vector<TH1F*>(_nChan(ispp),new TH1F( "Bc_Pt", "Bc transverse momentum", 50, 0, 30 )));
-  vector<vector<vector<TH1F*> > > h_BcM_prefit(ntrees, vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1,new TH1F( "Bc_M_prefit", "Bc mass", _nbinM(ispp), _Mbinning(ispp) ))));
-  vector<vector<vector<TH1F*> > > h_BcM_postfit(ntrees, vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1,new TH1F( "Bc_M_postfit", "Bc mass", _nbinM(ispp), _Mbinning(ispp) ))));
-  vector<vector<vector<TH1F*> > > h_BcM_DrawPostfit(ntrees, vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1,new TH1F( "Bc_M_DrawPostfit", "Bc mass", _nbinM(ispp), _Mbinning(ispp) ))));
+  vector<vector<vector<TH1F*> > > h_BcM_prefit(ntrees, vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1)));
+  vector<vector<vector<TH1F*> > > h_BcM_postfit(ntrees, vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1)));
+  vector<vector<vector<TH1F*> > > h_BcM_DrawPostfit(ntrees, vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1)));
+  for(int i=0; i<ntrees; i++){
+    for(int b=0;b<=_NanaBins;b++){
+      for(int k=0;k<=_nChan(ispp);k++){
+	h_BcM_prefit[i][b].push_back(new TH1F( "Bc_M_prefit_"+(TString)to_string(i)+"_"+(TString)to_string(b)+"_"+(TString)to_string(k), "Bc mass", _nbinM(ispp)[(k>0)?(k-1):0], _Mbinning(ispp, (k>0)?(k-1):0) ));
+	h_BcM_postfit[i][b].push_back(new TH1F( "Bc_M_postfit_"+(TString)to_string(i)+"_"+(TString)to_string(b)+"_"+(TString)to_string(k), "Bc mass", _nbinM(ispp)[(k>0)?(k-1):0], _Mbinning(ispp, (k>0)?(k-1):0) ));
+	h_BcM_DrawPostfit[i][b].push_back(new TH1F( "Bc_M_DrawPostfit_"+(TString)to_string(i)+"_"+(TString)to_string(b)+"_"+(TString)to_string(k), "Bc mass", _nbinM(ispp)[(k>0)?(k-1):0], _Mbinning(ispp, (k>0)?(k-1):0) ));
+      }
+    }
+  }
   // vector<vector<TH1F*> > h_QQM(ntrees, vector<TH1F*>(_nChan(ispp),new TH1F( "QQ_M", "Jpsi mass", nbinM, 2,4 )));
   // vector<vector<TH1F*> > h_QQ2M(ntrees, vector<TH1F*>(_nChan(ispp),new TH1F( "QQ2_M", "Jpsi mass", nbinM, 2,4 )));
   // vector<vector<TH1F*> > h_QQ3M(ntrees, vector<TH1F*>(_nChan(ispp),new TH1F( "QQ3_M", "Jpsi mass", nbinM, 2,4 )));
@@ -77,19 +83,19 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
       };
 
   bool drawShape[] = {true,true,false,true,true,true,//nonprompt
-		      !ispp,//prompt
+		      false,//prompt//!ispp
 		      false,//dimutrk
 		      useFlipJpsi//flipJpsi
   }; //mostly for drawing WrongSign on top
   bool usedForFit[] = {false,true,false,true,true,true,//nonprompt
-		      !ispp,//prompt
-		      false,//dimutrk
-		      useFlipJpsi//flipJpsi
+		       false,//prompt//!ispp
+		       false,//dimutrk
+		       useFlipJpsi//flipJpsi
   };
   int nPiled = 0; for(int j=0;j<ntrees;j++) nPiled+= usedForFit[j];
   nPiled -= 1;
   int idxPiled[] = {1,5,8,4};//{1,5,8,4};
-  if(!ispp) idxPiled[2] = 6; //PromptJpsi instead of flipJpsi
+  //if(!ispp) idxPiled[2] = 6; //PromptJpsi instead of flipJpsi
 
   vector<TH1F*> effSig,rejBkg,sigSignif,sigSignifAsim;
   for(int b=0;b<=_NanaBins;b++){
@@ -119,7 +125,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
       
 	if(k>1) {
 	  //h_BDT[i][b][0]->Add(h_BDT[i][b][k]);
-	  h_BcM[i][b][0]->Add(h_BcM[i][b][k]);}
+	  AddTH1(h_BcM[i][b][0], h_BcM[i][b][k]);}
       }
       if(b>1) {
 	for(int k=0;k<=_nChan(ispp);k++) h_BcM[i][0][k]->Add(h_BcM[i][b][k]);
@@ -200,7 +206,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
       //cout<<"--- Drawing: "<<prettyName[3]<<endl;
       h_BcM[3][b][k]->SetTitle("B_{c} candidates mass"+(TString)((k==0)?", no BDT cuts":(" with BDT #in "+(TString)((k==1)?"]-#infty":("["+_BDTcut_s(ispp,b,(metafitSyst=="_BDTuncorrFromM"))[k-1]))+","+(TString)((k==_nChan(ispp))?"+#infty[":(_BDTcut_s(ispp,b,(metafitSyst=="_BDTuncorrFromM"))[k]+"]"))) ));
       h_BcM[3][b][k]->GetXaxis()->SetTitle("trimuon mass [GeV]");
-      h_BcM[3][b][k]->GetYaxis()->SetTitle("candidates/("+(TString)Form("%.2f",(m_Bc-3.3)/_nbinMSR(ispp)) +" GeV)");
+      h_BcM[3][b][k]->GetYaxis()->SetTitle("candidates/("+(TString)Form("%.2f",(_mBcMax-_mBcMin)/_nbinMSR(ispp)[(k>0)?(k-1):0]) +" GeV)");
       h_BcM[3][b][k]->GetYaxis()->SetRangeUser(0, 1.1*((h_BcM[3][b][k]->GetMaximum() > h_BcM_prefit[nPiled-1][b][k]->GetMaximum())?h_BcM[3][b][k]->GetMaximum():h_BcM_prefit[nPiled-1][b][k]->GetMaximum())  );
       h_BcM[3][b][k]->GetYaxis()->SetTitleOffset(1.2);
       h_BcM[3][b][k]->Draw("E");
@@ -255,7 +261,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
   //********************************************************
   //Extract results (POSTFIT NORMALISATIONS & SHAPES) from combine output
   //********************************************************
-  TString normFileName = "./CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(bToJpsiOnly?"bToJpsi":"NonPromptJpsi")+(TString)(useFlipJpsi?(flipJpsiSameSide?"_flipJpsiSameSide":"_flipJpsi"):(ispp?"":"_PromptJpsi"))+(TString)(ispp?"_pp":"_PbPb")+"_2bins"+metafitSyst+systExt+(TString)(_preFitCorrAE?"_wAccEff":"")+".root";
+  TString normFileName = "./CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(ispp?"pp":"PbPb")+"_2bins"+metafitSyst+systExt+(TString)(_preFitCorrAE?"_wAccEff":"")+".root"; //+(TString)(bToJpsiOnly?"bToJpsi":"NonPromptJpsi")+(TString)(useFlipJpsi?(flipJpsiSameSide?"_flipJpsiSameSide":"_flipJpsi"):(ispp?"":"_PromptJpsi"))
     cout<<"Extract normalisations from file "<<normFileName<<endl;
   auto normFile = TFile::Open(normFileName);
   RooArgSet *Yields = (RooArgSet*)normFile->Get("norm_fit_"+(TString)(bkgOnly?"b":"s"));
@@ -292,7 +298,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
 	}
 
 	//inclusive on BDT bins
-	if(k>0 && b>0) h_BcM_postfit[i][b][0]->Add(h_BcM_postfit[i][b][k]);	
+	if(k>0 && b>0) AddTH1(h_BcM_postfit[i][b][0], h_BcM_postfit[i][b][k]);	
 	
       }//end loop on BDT bins
     } //end loop on kinBin
@@ -307,7 +313,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
       }
       for(int k=1;k<=_nChan(ispp);k++) {
 	yields[i][0][0] += yields[i][0][k]; 
-	h_BcM_postfit[i][0][0]->Add(h_BcM_postfit[i][0][k]);
+	AddTH1(h_BcM_postfit[i][0][0], h_BcM_postfit[i][0][k]);
       }
 
       //extrapolate the yields for the bins not used in fit
@@ -379,8 +385,9 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
   //********************************************************
   //Make PULL graphs, and measure chi2
   //********************************************************
-  float pullMax = 3.8;
-  vector<vector<int> > ndf(_NanaBins+1, vector<int>(_nChan(ispp)+1 , _nbinM(ispp)-2)); // _nbinM(ispp)-nParam
+  float pullMax = 2.9;
+  vector<vector<int> > ndf(_NanaBins+1, vector<int>(_nChan(ispp)+1));
+  for(int b=0;b<=_NanaBins;b++){ for(int k=0;k<=_nChan(ispp);k++) ndf[b][k] = _nbinM(ispp)[(k>0)?(k-1):0]-4; }  // _nbinM(ispp)-nParam
   vector<vector<float> > chi2(_NanaBins+1, vector<float>(_nChan(ispp)+1, 0));
   const int n = h_BcM[1][1][1]->GetNbinsX();
 
@@ -411,7 +418,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
       }
       //      cout<<"chi2/ndf data vs expectation = "<<chi2[b][k]/ndf[b][k]<<endl;//" "<<chi2[b][k]<<" "<<ndf[b][k]<<endl;
 
-      h_BcM_pull[b][k] = new TGraph(n,x,y);
+      h_BcM_pull[b][k] = new TGraphErrors(n,x,y);
       h_BcM_pull[b][k]->SetMarkerColor(kBlack);    
       h_BcM_pull[b][k]->SetFillColor(kBlack);    
       h_BcM_pull[b][k]->SetMarkerSize(1.);    
@@ -420,19 +427,22 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
 
   //dummy histo to draw axis in the pull graph's pad
   float padratio = 5.5, padcorr=0.9;
-  TH1F* dummy = new TH1F("dummy", "", _nbinM(ispp), _Mbinning(ispp));
-  dummy->GetXaxis()->SetTickLength(padcorr*padratio * h_BcM_exp[1][1]->GetXaxis()->GetTickLength());
-  dummy->GetXaxis()->SetLabelSize(padcorr*padratio * h_BcM_exp[1][1]->GetLabelSize("X"));
-  dummy->GetYaxis()->SetLabelSize(padcorr*padratio * h_BcM_exp[1][1]->GetLabelSize("Y"));
-  dummy->GetYaxis()->SetRangeUser(-pullMax,pullMax);  
-  dummy->GetYaxis()->SetNdivisions(7);
-  //  dummy->GetXaxis()->SetRangeUser(h_BcM_exp[1][1]->GetBinLowEdge(1), h_BcM_exp[1][1]->GetBinLowEdge(n+1));
-  dummy->GetXaxis()->SetTitle("trimuon mass [GeV]");    
-  dummy->GetYaxis()->SetTitle("pull");    
-  dummy->GetYaxis()->SetTitleSize(padcorr*padratio * h_BcM_exp[1][1]->GetXaxis()->GetTitleSize()); 
-  dummy->GetXaxis()->SetTitleSize(padcorr*padratio * h_BcM_exp[1][1]->GetXaxis()->GetTitleSize()); 
-  dummy->GetYaxis()->SetTitleOffset(0.19); 
-  dummy->GetXaxis()->SetLabelOffset(0.03); 
+  vector<TH1F*> dummy;
+  for(int k=0;k<=_nChan(ispp);k++){
+    dummy.push_back( new TH1F("dummy"+(TString)to_string(k), "", _nbinM(ispp)[(k>0)?(k-1):0], _Mbinning(ispp,(k>0)?(k-1):0)) );
+    dummy[k]->GetXaxis()->SetTickLength(padcorr*padratio * h_BcM_exp[1][1]->GetXaxis()->GetTickLength());
+    dummy[k]->GetXaxis()->SetLabelSize(padcorr*padratio * h_BcM_exp[1][1]->GetLabelSize("X"));
+    dummy[k]->GetYaxis()->SetLabelSize(padcorr*padratio * h_BcM_exp[1][1]->GetLabelSize("Y"));
+    dummy[k]->GetYaxis()->SetRangeUser(-pullMax,pullMax);  
+    dummy[k]->GetYaxis()->SetNdivisions(7);
+    //  dummy[k]->GetXaxis()->SetRangeUser(h_BcM_exp[1][1]->GetBinLowEdge(1), h_BcM_exp[1][1]->GetBinLowEdge(n+1));
+    dummy[k]->GetXaxis()->SetTitle("trimuon mass [GeV]");    
+    dummy[k]->GetYaxis()->SetTitle("pull");    
+    dummy[k]->GetYaxis()->SetTitleSize(padcorr*padratio * h_BcM_exp[1][1]->GetXaxis()->GetTitleSize()); 
+    dummy[k]->GetXaxis()->SetTitleSize(padcorr*padratio * h_BcM_exp[1][1]->GetXaxis()->GetTitleSize()); 
+    dummy[k]->GetYaxis()->SetTitleOffset(0.19); 
+    dummy[k]->GetXaxis()->SetLabelOffset(0.03); 
+  }
 
   //********************************************************
   //DRAWING Bc mass for all trees and all BDT bins, POSTFIT
@@ -452,7 +462,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
 	gPad->SetTickx(2);
 	gPad->SetGridy();
 	gPad->SetMargin(0.1,0.04, 0.38,0.);//left,right,bottom,top
-	dummy->DrawClone();
+	dummy[k]->DrawClone();
 	c7->cd(1)->SetPad(0.,1/padratio,1.,1.); //upper pad for trimuon mass distro
 	gPad->SetMargin(0.1,0.04, 0.,0.1);
 	c7->cd(1);
@@ -462,7 +472,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
 	gPad->SetTickx(2);
 	gPad->SetGridy();
 	gPad->SetMargin(0.1,0.04, 0.38,0.);//left,right,bottom,top
-	dummy->DrawClone();
+	dummy[k]->DrawClone();
 	c6->cd(k)->SetPad((k-1)/(float)_nChan(ispp),1/(padratio+1),k/(float)_nChan(ispp),1.);//upper pad for trimuon mass distro
 	gPad->SetMargin(0.1,0.04, 0.,0.1);
 	c6->cd(k);
@@ -541,7 +551,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
       eAndSignif.SetNDC();
       eAndSignif.SetTextFont(52);
       eAndSignif.SetTextSize(0.038);
-      eAndSignif.DrawLatex(0.7,0.29,s_chi2);
+      //eAndSignif.DrawLatex(0.7,0.29,s_chi2);
       if(!bkgOnly) eAndSignif.DrawLatex(0.7,0.36,eff4);
       if(!bkgOnly) eAndSignif.DrawLatex(0.7,0.43,eff3);
       eAndSignif.DrawLatex(0.7,bkgOnly?0.36:0.5,eff2);
@@ -556,6 +566,7 @@ void plotCombineOutput(bool ispp=true, bool bkgOnly=false, TString metafitSyst="
       CMStag.DrawLatex(0.13,0.80,"#font[52]{Work in progress}");
 
       //DRAW PULL histos
+      gStyle->SetBarWidth(0.8);
       if(k==0) c7->cd(2);
       else c6->cd(_nChan(ispp)+k);
       h_BcM_pull[b][k]->Draw("Bsame");

@@ -31,12 +31,16 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
 
   vector<int> tToDraw{4,1,5,(ispp?8:6)};
   vector<TString> legends{"signal MC","J/#psi sidebands","NonPrompt J/#psi MC",(TString)(ispp?"flipped J/#psi":"Prompt J/#psi MC")};
+  if(!ispp){
+    tToDraw.push_back(8);
+    legends.push_back("flipped J/#psi");
+  }
   Color_t cols[] = {kCyan, kMagenta+1, kGreen, kRed-2, kBlue, kOrange-7, kOrange, kGreen+4, kGreen+1};
 
   TCanvas* c = new TCanvas("c"+varName,"c",3000,1500);
   c->Divide(2,1);
   c->cd(1);
-  TLegend* leg = new TLegend(leftLeg?0.14:0.59,0.67,leftLeg?0.42:0.98,0.9);
+  TLegend* leg = new TLegend(leftLeg?0.14:0.59,ispp?0.67:0.61,leftLeg?0.42:0.98,0.9);
   leg->SetBorderSize(0);
   leg->SetFillStyle(0);
 
@@ -67,7 +71,7 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
   //ROC CURVES
   c->cd(2)->SetBottomMargin(0.12);
 
-  TLegend* leg2 = new TLegend(0.12,0.14,0.52,0.38);
+  TLegend* leg2 = new TLegend(0.12,0.14,0.52,ispp?0.38:0.44);
   leg2->SetBorderSize(0);
   leg2->SetFillStyle(0);
   leg2->SetTextSize(0.038);
@@ -220,10 +224,10 @@ void drawVariables(bool ispp=true){
     h_mcorr.push_back(new TH1F("h_"+varName[6]+"_"+(TString)to_string(iT),"Corrected mass;m_{corr} [GeV];norm to 1",nbins,3.5,_BcCorrM_cut(ispp)));
     h_dca.push_back(new TH1F("h_"+varName[8]+"_"+(TString)to_string(iT),"Dimuon distance of closest approach;dca(J/#psi) [mm];norm to 1",nbins,0,min(0.22,(double)_QQdca_cut)));
     h_QQMuWImbal.push_back(new TH1F("h_"+varName[9]+"_"+(TString)to_string(iT),"p_{T} imbalance between J/#psi and #mu_{W};#left|#frac{p_{T}(J/#psi)-p_{T}(#mu_{W})}{p_{T}(J/#psi)+p_{T}(#mu_{W})}#right|;norm to 1",nbins,0,1.2));
-    h_SumDeltaR.push_back(new TH1F("h_"+varName[10]+"_"+(TString)to_string(iT),"Sum of the three dimuon #Delta R's;sum(#Delta R(#mu_{i}#mu_{j}));norm to 1",nbins,0,7));
-    h_dRJpsiOverMuW.push_back(new TH1F("h_"+varName[11]+"_"+(TString)to_string(iT),"Ratio of J/#psi #Delta R to other #Delta R's;#Delta R(J/#psi)/(#Delta R_{2} + #Delta R_{3});norm to 1",nbins,0.1,1));
-    h_SumDxyMu.push_back(new TH1F("h_"+varName[12]+"_"+(TString)to_string(iT),"Sum of significances of muon 2D displacement to PV;sum(d_{xy}(#mu));norm to 1",nbins,0,40));
-    h_SumDzMu.push_back(new TH1F("h_"+varName[13]+"_"+(TString)to_string(iT),"Sum of significances of muon z displacement to PV;sum(d_{z}(#mu));norm to 1",nbins,0,40));
+    h_SumDeltaR.push_back(new TH1F("h_"+varName[10]+"_"+(TString)to_string(iT),"Sum of the three dimuon #DeltaR's;sum(#DeltaR(#mu_{i}#mu_{j}));norm to 1",nbins,0,7));
+    h_dRJpsiOverMuW.push_back(new TH1F("h_"+varName[11]+"_"+(TString)to_string(iT),"Ratio of J/#psi #DeltaR to other #DeltaR's;#DeltaR(J/#psi)/(#DeltaR_{2} + #DeltaR_{3});norm to 1",nbins,0.1,1));
+    h_SumDxyMu.push_back(new TH1F("h_"+varName[12]+"_"+(TString)to_string(iT),"Sum of significances of muon 2D displacement to PV;sum(d_{xy}(#mu)/#sigma);norm to 1",nbins,0,40));
+    h_SumDzMu.push_back(new TH1F("h_"+varName[13]+"_"+(TString)to_string(iT),"Sum of significances of muon z displacement to PV;sum(d_{z}(#mu)/#sigma);norm to 1",nbins,0,40));
     h_BDT.push_back(new TH1F("h_"+varName[14]+"_"+(TString)to_string(iT),"BDT;BDT;norm to 1",nbins,_BDTcuts(ispp)[0]-0.2,_BDTcuts(ispp)[_BDTcuts(ispp).size()-1]+0.02));
   }
 

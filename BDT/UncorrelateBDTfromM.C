@@ -18,6 +18,7 @@
 #include "TPad.h"
 #include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
+#include "../helpers/Tools.h"
 
 void Uncorrelate(bool ispp=true, int kinBin=1){
 
@@ -27,7 +28,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
   int ntrees = 9;
   bool ignoreBin2 = false;
   bool ignoreBin1 = ignoreBin2 || false;
-  bool useFlipJpsi = ispp;
+  bool useFlipJpsi = true;
   bool flipJpsiSameSide = false; // whether to keep only events with flipJpsi angle on same |eta| side
   bool bToJpsiOnly = false;//ispp;
   
@@ -51,7 +52,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
       };
   
   bool usedForFit[] = {false,true,false,true,true,true,//nonprompt
-		     !ispp,//prompt
+		       false,//!ispp,//prompt
 		      false,//dimutrk
 		      useFlipJpsi//flipJpsi
   };
@@ -71,14 +72,15 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
       int kk = (k==0)?1:k;
       h_BcM_prefit[i][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(kk)+"Kin"+(TString)to_string(kinBin)+"/"+procName[i][systIdx[i]]+"/BcM");
       if(k>1) {
-	h_BcM_prefit[i][0]->Add(h_BcM_prefit[i][k]);}
+	AddTH1(h_BcM_prefit[i][0],h_BcM_prefit[i][k]);}
     }
   }
 
   //********************************************************
   //Extract (POSTFIT NORMALISATIONS & SHAPES) from combine output
   //********************************************************
-  TString normFileName = "../templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(bToJpsiOnly?"bToJpsi":"NonPromptJpsi")+(TString)(useFlipJpsi?(flipJpsiSameSide?"_flipJpsiSameSide":"_flipJpsi"):(ispp?"":"_PromptJpsi"))+(TString)(ignoreBin2?"_noBDT1-2":(ignoreBin1?"_noBDT1":""))+(TString)(ispp?"_pp":"_PbPb")+"_2bins.root";
+  TString normFileName = "../templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics"//+(TString)(bToJpsiOnly?"_bToJpsi":"_NonPromptJpsi")+(TString)(useFlipJpsi?(flipJpsiSameSide?"_flipJpsiSameSide":"_flipJpsi"):(ispp?"":"_PromptJpsi"))
+    +(TString)(ignoreBin2?"_noBDT1-2":(ignoreBin1?"_noBDT1":""))+(TString)(ispp?"_pp":"_PbPb")+"_2bins.root";
   cout<<"Extract normalisations from file "<<normFileName<<endl;
   auto normFile = TFile::Open(normFileName,"READ");
   
@@ -93,7 +95,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
       h_BcM_postfit[i][k]->SetDirectory(0);
 
       //inclusive on BDT bins
-      if(k>1) h_BcM_postfit[i][0]->Add(h_BcM_postfit[i][k]);
+      if(k>1) AddTH1(h_BcM_postfit[i][0],h_BcM_postfit[i][k]);
 
       //total background
       if(k>0 && i!=3 && i!=4){
@@ -105,7 +107,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
   //total background, inclusive on BDT bins
   h_BcM_bkg[0] = (TH1F*) h_BcM_bkg[1]->Clone();
   for(int k=2;k<=_nChan(ispp);k++){
-    h_BcM_bkg[0]->Add(h_BcM_bkg[k]);
+    AddTH1(h_BcM_bkg[0],h_BcM_bkg[k]);
   }
   for(int k=0;k<=_nChan(ispp);k++) h_BcM_bkg[k]->SetDirectory(0);
 
@@ -133,17 +135,18 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
   int flipJpsi[ntrees];
 
   //init histograms
-  double mbins[_nbinM(ispp)+1];
-  for(int bx=0;bx<=_nbinM(ispp);bx++){ 
-    mbins[bx] = _Mbinning(ispp)[bx];
+  double mbins[_nbinM(ispp)[0]+1];
+  for(int bx=0;bx<=_nbinM(ispp)[0];bx++){ 
+    mbins[bx] = _Mbinning(ispp,0)[bx];
   }
-  double bdtlo = _withTM?-0.47:-1, bdthi = _withTM?(ispp?0.31:0.39):1;
+  vector<float> BDTcuts = _BDTcuts(ispp, kinBin);
+  double bdtlo = _withTM?-0.47:(BDTcuts[0]-0.05) , bdthi = _withTM?(ispp?0.31:0.39):(BDTcuts[BDTcuts.size()-1]+0.05);
   int nbdt = 60;//_withTM?(ispp?50:40):35;
-  TH2F* h_BDTM_bkg = new TH2F("Bc_BDTM_bkg", "BDT vs M(B_{c}) background", _nbinM(ispp), mbins, nbdt,bdtlo,bdthi);
-  TH2F* h_BDTM_sig = new TH2F("Bc_BDTM_sig", "BDT vs M(B_{c}) signal", _nbinM(ispp), mbins, nbdt,bdtlo,bdthi);
-  TH2F* h_BDTM_data = new TH2F("Bc_BDTM_data", "BDT vs M(B_{c}) data", _nbinM(ispp), mbins, nbdt,bdtlo,bdthi);
+  TH2F* h_BDTM_bkg = new TH2F("Bc_BDTM_bkg", "BDT vs M(B_{c}) background", _nbinM(ispp)[0], mbins, nbdt,bdtlo,bdthi);
+  TH2F* h_BDTM_sig = new TH2F("Bc_BDTM_sig", "BDT vs M(B_{c}) signal", _nbinM(ispp)[0], mbins, nbdt,bdtlo,bdthi);
+  TH2F* h_BDTM_data = new TH2F("Bc_BDTM_data", "BDT vs M(B_{c}) data", _nbinM(ispp)[0], mbins, nbdt,bdtlo,bdthi);
   float nbkg = 0, ndata = 0, nsig = 0;
-  float CRbinwRatio = ((_mBcMax-_mBcMin)/_nbinMSR(ispp)) * (_nbinMCR(ispp)/1.);
+  float CRbinwRatio = ((_mBcMax-_mBcMin)/_nbinMSR(ispp)[0]) * (_nbinMCR(ispp)[0]/(_mMax-_mBcMax));
 
   //tree and event loop
   for(int iT=0; iT<(int)T.size(); iT++){
@@ -163,7 +166,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
       if(!inFidCuts(kinBin,Bc_Pt[iT],Bc_Y[iT])) continue;
       
       float w = weight[iT];
-      if(Bc_M[iT]>m_Bc) w *= CRbinwRatio;
+      if(Bc_M[iT]>_mBcMax) w *= CRbinwRatio;
 
       if(iT==3){
 	h_BDTM_data->Fill(Bc_M[iT], BDT[iT], w);
@@ -172,8 +175,17 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
 	h_BDTM_sig->Fill(Bc_M[iT], BDT[iT], w);
 	nsig += w;}
       else{
-	int mbin = h_BcM_prefit[iT][0]->FindBin(Bc_M[iT]);
-	float yieldCorr = (h_BcM_prefit[iT][0]->GetBinContent(mbin) == 0)?0:( h_BcM_postfit[iT][0]->GetBinContent(mbin) / h_BcM_prefit[iT][0]->GetBinContent(mbin) );
+	
+	//find BDT bin to get postfit correction
+	int k0 = 1;
+	for(int k=2;k<=_nChan(ispp);k++){
+	  if(BDT[iT]>_BDTcuts(ispp,kinBin)[k-1] && BDT[iT]<_BDTcuts(ispp,kinBin)[k])
+	    k0 = k;
+	}
+
+	int mbin = h_BcM_prefit[iT][k0]->FindBin(Bc_M[iT]);
+	//correct mass distribution with postfit histograms
+	float yieldCorr = (h_BcM_prefit[iT][k0]->GetBinContent(mbin) == 0)?0:( h_BcM_postfit[iT][k0]->GetBinContent(mbin) / h_BcM_prefit[iT][k0]->GetBinContent(mbin) );
 
 	h_BDTM_bkg->Fill(Bc_M[iT], BDT[iT], w*yieldCorr);
 	nbkg += w*yieldCorr;
@@ -204,16 +216,19 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
   TCanvas* c1 = new TCanvas("c1","c1",3900,1300);
   c1->Divide(3,1);
   c1->cd(1);
-  h_BDTM_bkg->GetXaxis()->SetTitle("M(B_{c})");
+  h_BDTM_bkg->GetXaxis()->SetTitle("M(trimuon)");
   h_BDTM_bkg->GetYaxis()->SetTitle("BDT");
+  h_BDTM_bkg->GetYaxis()->SetTitleOffset(0.8);
   h_BDTM_bkg->Draw("COLZ0");
   c1->cd(2);
-  h_BDTM_sig->GetXaxis()->SetTitle("M(B_{c})");
+  h_BDTM_sig->GetXaxis()->SetTitle("M(trimuon)");
   h_BDTM_sig->GetYaxis()->SetTitle("BDT");
+  h_BDTM_sig->GetYaxis()->SetTitleOffset(0.8);
   h_BDTM_sig->Draw("COLZ0");
   c1->cd(3);
-  h_BDTM_data->GetXaxis()->SetTitle("M(B_{c})");
+  h_BDTM_data->GetXaxis()->SetTitle("M(trimuon)");
   h_BDTM_data->GetYaxis()->SetTitle("BDT");
+  h_BDTM_data->GetYaxis()->SetTitleOffset(0.8);
   h_BDTM_data->Draw("COLZ0");
   
   c1->SaveAs("figs_UncorrBDT/BDTvsM_2D_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+".pdf");
@@ -250,9 +265,9 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
   //********************************************************
   //Get BDT vs M histograms
   //********************************************************
-  TH2F* h_corrBDT_bkg = new TH2F("Bc_corrBDT_bkg", "corrected BDT vs M(B_{c}) background", _nbinM(ispp), mbins, nbdt,_withTM?(ispp?-0.31:-0.26):-0.8,_withTM?(ispp?0.44:0.63):(ispp?1:1.4));
-  TH2F* h_corrBDT_sig = new TH2F("Bc_corrBDT_sig", "corrected BDT vs M(B_{c}) signal", _nbinM(ispp), mbins, nbdt,    _withTM?(ispp?-0.31:-0.26):-0.8,_withTM?(ispp?0.44:0.63):(ispp?1:1.4));
-  TH2F* h_corrBDT_data = new TH2F("Bc_corrBDT_data", "corrected BDT vs M(B_{c}) data", _nbinM(ispp), mbins, nbdt,    _withTM?(ispp?-0.31:-0.26):-0.8,_withTM?(ispp?0.44:0.63):(ispp?1:1.4));
+  TH2F* h_corrBDT_bkg = new TH2F("Bc_corrBDT_bkg", "corrected BDT vs M(B_{c}) background", _nbinM(ispp)[0], mbins, nbdt,_withTM?(ispp?-0.31:-0.26):-0.8,_withTM?(ispp?0.44:0.63):(ispp?1:1.4));
+  TH2F* h_corrBDT_sig = new TH2F("Bc_corrBDT_sig", "corrected BDT vs M(B_{c}) signal", _nbinM(ispp)[0], mbins, nbdt,    _withTM?(ispp?-0.31:-0.26):-0.8,_withTM?(ispp?0.44:0.63):(ispp?1:1.4));
+  TH2F* h_corrBDT_data = new TH2F("Bc_corrBDT_data", "corrected BDT vs M(B_{c}) data", _nbinM(ispp)[0], mbins, nbdt,    _withTM?(ispp?-0.31:-0.26):-0.8,_withTM?(ispp?0.44:0.63):(ispp?1:1.4));
 
   //tree and event loop
   for(int iT=0; iT<(int)T.size(); iT++){
@@ -265,16 +280,23 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
       if(!inFidCuts(kinBin,Bc_Pt[iT],Bc_Y[iT])) continue;
 
       float w = weight[iT];
-      if(Bc_M[iT]>m_Bc) w *= CRbinwRatio;
+      if(Bc_M[iT]>_mBcMax) w *= CRbinwRatio;
 
-      int mbin = h_BcM_prefit[iT][0]->FindBin(Bc_M[iT]);
-      float bdtcorr = avBDTvsM_bkg->GetBinContent(mbin); //correct with the BDT average of expected background
+      //find BDT bin to get postfit correction
+      int k0 = 1;
+      for(int k=2;k<=_nChan(ispp);k++){
+	if(BDT[iT]>_BDTcuts(ispp,kinBin)[k-1] && BDT[iT]<_BDTcuts(ispp,kinBin)[k])
+	  k0 = k;
+      }
+
+      float bdtcorr = avBDTvsM_bkg->GetBinContent(avBDTvsM_bkg->FindBin(Bc_M[iT])); //correct with the BDT average of expected background
       if(iT==3)
 	h_corrBDT_data->Fill(Bc_M[iT], BDT[iT] - bdtcorr, w);
       else if(iT==4)
 	h_corrBDT_sig->Fill(Bc_M[iT], BDT[iT] - bdtcorr, w);
       else{
-	float yieldCorr = (h_BcM_prefit[iT][0]->GetBinContent(mbin) == 0)?0:( h_BcM_postfit[iT][0]->GetBinContent(mbin) / h_BcM_prefit[iT][0]->GetBinContent(mbin) );
+	int mbin = h_BcM_prefit[iT][k0]->FindBin(Bc_M[iT]);
+	float yieldCorr = (h_BcM_prefit[iT][k0]->GetBinContent(mbin) == 0)?0:( h_BcM_postfit[iT][k0]->GetBinContent(mbin) / h_BcM_prefit[iT][k0]->GetBinContent(mbin) );
 
 	h_corrBDT_bkg->Fill(Bc_M[iT], BDT[iT] - bdtcorr, w*yieldCorr);
       }

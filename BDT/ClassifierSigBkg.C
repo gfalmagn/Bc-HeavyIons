@@ -20,7 +20,7 @@
 #include "../helpers/Definitions.h"
 #include "../helpers/Cuts.h"
 
-void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0){
+void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0){ //kinBin==-1 gathers the two half samples and adds mass variable, to plot correlation matrix
   bool useVar_CorrWMass = true;
 
   //Declare Factory
@@ -36,17 +36,17 @@ void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0){
   //TMVA::DataLoader* transformed_loader1 = loader->VarTransform("VT(3)"); //keeps only variables different by 3 sigmas between sig and bkg
 
   if(useVar_CorrWMass) 
-    loader.AddVariable("Bc_CorrM_shiftedM","B_{c} corrected mass","GeV",'F'); //"I" for discrete variable, 'F' is default //Different from Bc_CorrM only for bkgType==2 //_BcMcorr
-  loader.AddSpectator("Bc_ctauSignif","Significance of non-zero B_{c} transverse lifetime","",'F');
-  loader.AddVariable("Bc_log_ctauSignif3D := TMath::Log(Bc_ctauSignif3D+1e-8)","Significance of non-zero B_{c} 3D lifetime","",'F');
-  loader.AddSpectator("Bc_alpha","B_{c} #alpha","",'F');
-  if(_withTM) loader.AddVariable("Bc_alpha3D","B_{c} #alpha 3D","",'F');
+    loader.AddVariable("Bc_CorrM_shiftedM","Corrected mass","GeV",'F'); //"I" for discrete variable, 'F' is default //Different from Bc_CorrM only for bkgType==2 //_BcMcorr
+  loader.AddSpectator("Bc_ctauSignif","Significance of 2D lifetime","",'F');
+  loader.AddVariable("Bc_log_ctauSignif3D := TMath::Log(Bc_ctauSignif3D+1e-8)","Significance of 3D lifetime","",'F');
+  loader.AddSpectator("Bc_alpha","#alpha 2D","",'F');
+  if(_withTM) loader.AddVariable("Bc_alpha3D","#alpha 3D","",'F');
   loader.AddVariable("Bc_log1min_VtxProb := TMath::Log(1-Bc_VtxProb+1e-6)","B_{c} vertex probability","",'F');
   loader.AddSpectator("QQ_log1min_VtxProb := TMath::Log(1-QQ_VtxProb+1e-6)","J/#psi vertex probability","",'F');
-  if(_withTM) loader.AddVariable("QQ_log_dca := TMath::Log(QQ_dca+1e-8)","J/#psi dimuon distance of closest approach","mm",'F');
+  if(_withTM) loader.AddVariable("QQ_log_dca := TMath::Log(QQ_dca+1e-8)","J/#psi dca","mm",'F');
   if(useVar_CorrWMass){
-    loader.AddVariable("dR_sum_shiftedM","Sum of #Delta R between the three pairs of muons","",'F');//Different from Bc_CorrM only for bkgType==2 //_BcMcorr
-    loader.AddVariable("dR_jpsiOverMuW_shiftedM","Ratio of #Delta R of J/#psi over (#Delta R (#mu_{W}-#mu^{-}) + #Delta R (#mu_{W}-#mu^{+}))","",'F');
+    loader.AddVariable("dR_sum_shiftedM","Sum(#Delta R(#mu_{i}#mu_{j}) )","",'F');//Different from Bc_CorrM only for bkgType==2 //_BcMcorr
+    loader.AddVariable("dR_jpsiOverMuW_shiftedM","#Delta R (J/#psi) / (#Delta R (#mu_{W}#mu^{-}) + #Delta R (#mu_{W}#mu^{+}))","",'F');
     loader.AddSpectator("dR_jpsiMuW_shiftedM","#Delta R(J/#psi,#mu_{W})","",'F');
   }
   loader.AddSpectator("MuonDzSignif_sum","Sum of the significances of longitudinal displacements of the three muons to the PV","",'F');
@@ -56,7 +56,10 @@ void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0){
     loader.AddVariable("muonsInTightAcc := muW_inTightAcc + mumi_inTightAcc + mupl_inTightAcc","Number of muons in tight acceptance","",'I');
   }
   loader.AddVariable("QQmuW_ptImbal","J/#psi-#mu_{W} p_{T} imbalance","",'F'); //"I" for discrete variable, 'F' is default
-  loader.AddSpectator("Bc_M","B_{c} mass","GeV",'F'); //JUST FOR CORRELATIONS, SHOULD NOT BE A VARIABLE FOR ACTUAL TRAINING
+  if(kinBin==-1)
+    loader.AddVariable("Bc_M","B_{c} mass","GeV",'F'); //JUST FOR CORRELATIONS, SHOULD NOT BE A VARIABLE FOR ACTUAL TRAINING
+  else
+    loader.AddSpectator("Bc_M","Trimu mass","GeV",'F');
   loader.AddSpectator("Bc_Pt","B_{c} P_{T}","GeV",'F');
   loader.AddSpectator("QQ_M","J/#psi mass","GeV",'F');
   // loader.AddSpectator("QQ2_M","J/#psi 2 mass","GeV",'F');
@@ -79,31 +82,34 @@ void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0){
   inputFile->GetObject("PromptJpsi_MC", tbkgPROMPTJPSI);
   inputFile->GetObject("flipJpsi", tbkgFLIPJ);
 
-  TString fidCut = "fabs(Bc_Y)>"+(TString)to_string(_BcYmin[kinBin])+" && fabs(Bc_Y)<"+(TString)to_string(_BcYmax[kinBin])+" && Bc_Pt>"+(TString)to_string(_BcPtmin[kinBin])+" && Bc_Pt<"+(TString)to_string(_BcPtmax[kinBin]); //fiducial cut
-  TString cutSig = "Bc_M<6.25 && "+fidCut;
-  TString cutBkg = "((Bc_M<6.25) || (bkgType==2)) && "+fidCut;
+  int kBin = (kinBin==-1)?0:kinBin;
+  TString fidCut = "fabs(Bc_Y)>"+(TString)to_string(_BcYmin[kBin])+" && fabs(Bc_Y)<"+(TString)to_string(_BcYmax[kBin])+" && Bc_Pt>"+(TString)to_string(_BcPtmin[kBin])+" && Bc_Pt<"+(TString)to_string(_BcPtmax[kBin]); //fiducial cut
+  TString cutSig = "Bc_M<6.2 && Bc_M>3.5 && "+fidCut;
+  TString cutBkg = "((Bc_M<6.2 && Bc_M>3.5) || (bkgType==2)) && "+fidCut;
+  TString cutHalf1 = " && (eventNb%"+(TString)to_string((kinBin==-1)?10:2)+")=="+(TString)(firstHalf?"0":"1"); //9/10th if kinBin==-1
+  TString cutHalf2 = " && (eventNb%"+(TString)to_string((kinBin==-1)?10:2)+")!="+(TString)(firstHalf?"0":"1");
 
-  loader.AddTree(tsig,"Signal",  1.,(TCut)(cutSig+" && (eventNb%2)=="+(TString)(firstHalf?"0":"1")), TMVA::Types::kTraining); //signal weight  = 1
-  loader.AddTree(tsig,"Signal",  1.,(TCut)(cutSig+" && (eventNb%2)=="+(TString)(firstHalf?"1":"0")), TMVA::Types::kTesting);  //signal weight  = 1
-  loader.AddTree(tbkgWS, "Background", 1.,(TCut)(cutBkg+" && (eventNb%2)=="+(TString)(firstHalf?"0":"1")), TMVA::Types::kTraining);   //background weight = 1 
-  loader.AddTree(tbkgWS, "Background", 1.,(TCut)(cutBkg+" && (eventNb%2)=="+(TString)(firstHalf?"1":"0")), TMVA::Types::kTesting);   //background weight = 1 
-  loader.AddTree(tbkgBCM, "Background", 1.,(TCut)(cutBkg+" && (eventNb%2)=="+(TString)(firstHalf?"0":"1")), TMVA::Types::kTraining); //background weight = 1 
-  loader.AddTree(tbkgBCM, "Background", 1.,(TCut)(cutBkg+" && (eventNb%2)=="+(TString)(firstHalf?"1":"0")), TMVA::Types::kTesting);  //background weight = 1 
-  // loader.AddTree(tbkgTRUEJ, "Background", 1.,(TCut)(cutBkg+" && (eventNb%2)=="+(TString)(firstHalf?"0":"1")), TMVA::Types::kTraining);//this sample is somewhat redundant, but keep it for more complete description of bkg
-  // loader.AddTree(tbkgTRUEJ, "Background", 1.,(TCut)(cutBkg+" && (eventNb%2)=="+(TString)(firstHalf?"1":"0")), TMVA::Types::kTesting);
-  if(ispp){
-    loader.AddTree(tbkgFLIPJ, "Background", ispp?0.65:0,(TCut)(cutBkg+" && (eventNb%2)=="+(TString)(firstHalf?"0":"1")), TMVA::Types::kTraining);
-    loader.AddTree(tbkgFLIPJ, "Background", ispp?0.65:0,(TCut)(cutBkg+" && (eventNb%2)=="+(TString)(firstHalf?"1":"0")), TMVA::Types::kTesting);
-  }
+  loader.AddTree(tsig,"Signal",  1.,(TCut)(cutSig+cutHalf1), TMVA::Types::kTraining); //signal weight  = 1
+  loader.AddTree(tsig,"Signal",  1.,(TCut)(cutSig+cutHalf2), TMVA::Types::kTesting);  //signal weight  = 1
+  loader.AddTree(tbkgWS, "Background", 1.,(TCut)(cutBkg+cutHalf1), TMVA::Types::kTraining);   //background weight = 1 
+  loader.AddTree(tbkgWS, "Background", 1.,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting);   //background weight = 1 
+  loader.AddTree(tbkgBCM, "Background", 1.,(TCut)(cutBkg+cutHalf1), TMVA::Types::kTraining); //background weight = 1 
+  loader.AddTree(tbkgBCM, "Background", 1.,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting);  //background weight = 1 
+  // loader.AddTree(tbkgTRUEJ, "Background", 1.,(TCut)(cutBkg+cutHalf1), TMVA::Types::kTraining);//this sample is somewhat redundant, but keep it for more complete description of bkg
+  // loader.AddTree(tbkgTRUEJ, "Background", 1.,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting);
+  loader.AddTree(tbkgFLIPJ, "Background", 0.7,(TCut)(cutBkg+cutHalf1), TMVA::Types::kTraining);
+  loader.AddTree(tbkgFLIPJ, "Background", 0.7,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting);
   if(addMCjpsi){
-    loader.AddTree(tbkgBTOJPSI, "Background", ispp?1.7:1.5,(TCut)(cutBkg+" && (eventNb%2)=="+(TString)(firstHalf?"0":"1")), TMVA::Types::kTraining);
-    loader.AddTree(tbkgBTOJPSI, "Background", ispp?1.7:1.5,(TCut)(cutBkg+" && (eventNb%2)=="+(TString)(firstHalf?"1":"0")), TMVA::Types::kTesting); 
-    loader.AddTree(tbkgPROMPTJPSI, "Background", ispp?1.:1.5,(TCut)(cutBkg+" && (eventNb%2)=="+(TString)(firstHalf?"0":"1")), TMVA::Types::kTraining);
-    loader.AddTree(tbkgPROMPTJPSI, "Background", ispp?1.:1.5,(TCut)(cutBkg+" && (eventNb%2)=="+(TString)(firstHalf?"1":"0")), TMVA::Types::kTesting); 
+    loader.AddTree(tbkgBTOJPSI, "Background", 2.,(TCut)(cutBkg+(TString)" && muW_isJpsiBro"+cutHalf1), TMVA::Types::kTraining);
+    loader.AddTree(tbkgBTOJPSI, "Background", 2.,(TCut)(cutBkg+(TString)" && muW_isJpsiBro"+cutHalf2), TMVA::Types::kTesting); 
+    loader.AddTree(tbkgBTOJPSI, "Background", ispp?1.2:1.,(TCut)(cutBkg+(TString)" && !muW_isJpsiBro"+cutHalf1), TMVA::Types::kTraining);
+    loader.AddTree(tbkgBTOJPSI, "Background", ispp?1.2:1.,(TCut)(cutBkg+(TString)" && !muW_isJpsiBro"+cutHalf2), TMVA::Types::kTesting); 
+    loader.AddTree(tbkgPROMPTJPSI, "Background", ispp?1.2:1.,(TCut)(cutBkg+cutHalf1), TMVA::Types::kTraining);
+    loader.AddTree(tbkgPROMPTJPSI, "Background", ispp?1.2:1.,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting); 
   }
   loader.SetWeightExpression( "w_simple2" );
 
-  loader.PrepareTrainingAndTestTree("","", "SplitMode=Random:SplitSeed=101:NormMode=None:!V" ); //nTrain_Signal=0 is the default (split in half for training and testing) //SplitSeed=100 ensures to have the same splitting each time tmva is ran. Use SplitSeed=0 for a seed changing every time.
+  loader.PrepareTrainingAndTestTree("","", "SplitMode=Random:SplitSeed=101:NormMode=None:!V" ); //nTrain_Signal=0 is the default (split in half for training and testing) //SplitSeed=100 ensures to have the same splitting each time tmva is ran. Use SplitSeed=0 for a seed changing every time. //SplitMode is actually dummy because the train and test samples are defined before
   
 
   // // Setup cross-validation 
@@ -194,9 +200,14 @@ void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0){
 
 
 
-void ClassifierSigBkg(bool ispp=true){
-  Classifier(ispp,true,1);
-  Classifier(ispp,false,1);
-  Classifier(ispp,true,2);
-  Classifier(ispp,false,2);
+void ClassifierSigBkg(bool ispp=true, bool forCorrMatrix=false){
+  if(forCorrMatrix){
+    Classifier(ispp,true,-1); //first half is 9/10th in this case
+  }
+  else{
+    Classifier(ispp,true,1);
+    Classifier(ispp,false,1);
+    Classifier(ispp,true,2);
+    Classifier(ispp,false,2);
+  }
 }

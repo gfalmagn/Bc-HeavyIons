@@ -18,7 +18,7 @@ void BuildAcceptanceMap(bool withTM = false, bool cutP=false){
 
   //**************************************************************  
   //Create Tree 
-  TFile *file = TFile::Open("/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/acceptance/BcToJpsiMuNu_BCVEGPY_PYTHIA8_pp5TeV_RunIIpp5Spring18DR-00093_acceptance_08092020_ONIATREE_3640k.root");///data_CMS/cms/falmagne/tuples/Bc_GenOnly/BcToJpsiMuNu_BCVEGPY_PYTHIA8_GenOnly_11052020_ONIATREE.root
+  TFile *file = TFile::Open("/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/acceptance/BcToJpsiMuNu_BCVEGPY_PYTHIA8_pp5TeV_RunIIpp5Spring18DR-00093_acceptance_14092020_ONIATREE_3640k.root");///data_CMS/cms/falmagne/tuples/Bc_GenOnly/BcToJpsiMuNu_BCVEGPY_PYTHIA8_GenOnly_11052020_ONIATREE.root
   TTree* T = (TTree*)file->Get("hionia/myTree");
   int nentries = T->GetEntries();
   std::cout<<"nevents = "<<nentries<<"\n";
