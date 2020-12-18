@@ -15,141 +15,241 @@ void Draw_XSandRAA(){
 
   vector<float> *y_nom_pp;
   vector<float> *y_acceffErr_pp;
-  vector<float> *y_fitErr_pp;
-  vector<float> *y_metafitRelErr_pp;
+  vector<vector<float> > *y_fitErr_pp;
+  vector<float> *TnPrelErr_pp;
+  vector<float> *y_metafitRelErrLo_pp;
+  vector<float> *y_metafitRelErrHi_pp;
   vector<float> *r1r2Corr_pp;
   vector<float> *metafitErrCorr_pp;
+  vector<float> AcceffSystCorr_pp;
   vector<float> *y_nom_PbPb;
   vector<float> *y_acceffErr_PbPb;
-  vector<float> *y_fitErr_PbPb;
-  vector<float> *y_metafitRelErr_PbPb;
+  vector<vector<float> > *y_fitErr_PbPb;
+  vector<float> *TnPrelErr_PbPb;
+  vector<float> *y_metafitRelErrLo_PbPb;
+  vector<float> *y_metafitRelErrHi_PbPb;
   vector<float> *r1r2Corr_PbPb;
+  vector<float> AcceffSystCorr_PbPb;
   vector<float> *metafitErrCorr_PbPb;
-  vector<float> *y_metafitRelErr_RAA;
+  vector<float> *y_metafitRelErrLo_RAA;
+  vector<float> *y_metafitRelErrHi_RAA;
   vector<float> *metafitErrCorr_RAA;
   vector<float> *r1r2Corr_RAA;
+  vector<float> *AcceffSystCorr_RAA;
 
-  TFile *infile = new TFile("../AccEffCorr/corrected_yields.root","READ");
+  TFile *infile = new TFile("../AccEffCorr/corrected_yields.root","UPDATE");
   infile->GetObject("FinalCorrectedYield_pp", y_nom_pp);
   infile->GetObject("FinalCorrectedYield_fitError_pp", y_fitErr_pp);
   infile->GetObject("FinalCorrectedYield_AccEffSystError_pp", y_acceffErr_pp);
-  infile->GetObject("CorrectedYield_MetafitRelSystError_pp", y_metafitRelErr_pp); //or "CorrectedYield_MetafitRelSystErrorMaxDeviation_pp"
-  infile->GetObject("CorrectedYield_MetafitSyst_LinearizedCorrelationMatrix_pp", metafitErrCorr_pp);
+  infile->GetObject("TagAndProbe_relError_pp", TnPrelErr_pp);
+  infile->GetObject("CorrectedYields_MetafitRelSystErrorLo_pp", y_metafitRelErrLo_pp); //or "CorrectedYield_MetafitRelSystErrorMaxDeviation_pp"
+  infile->GetObject("CorrectedYields_MetafitRelSystErrorHi_pp", y_metafitRelErrHi_pp); //or "CorrectedYield_MetafitRelSystErrorMaxDeviation_pp"
+  infile->GetObject("CorrectedYields_MetafitSyst_LinearizedCorrelationMatrixpp", metafitErrCorr_pp);
   infile->GetObject("r1r2Correlation_pp", r1r2Corr_pp);
   infile->GetObject("FinalCorrectedYield_PbPb", y_nom_PbPb);
   infile->GetObject("FinalCorrectedYield_fitError_PbPb", y_fitErr_PbPb);
   infile->GetObject("FinalCorrectedYield_AccEffSystError_PbPb", y_acceffErr_PbPb);
-  infile->GetObject("CorrectedYield_MetafitRelSystError_PbPb", y_metafitRelErr_PbPb);
-  infile->GetObject("CorrectedYield_MetafitSyst_LinearizedCorrelationMatrix_PbPb", metafitErrCorr_PbPb);
+  infile->GetObject("TagAndProbe_relError_PbPb", TnPrelErr_PbPb);
+  infile->GetObject("CorrectedYields_MetafitRelSystErrorLo_PbPb", y_metafitRelErrLo_PbPb);
+  infile->GetObject("CorrectedYields_MetafitRelSystErrorHi_PbPb", y_metafitRelErrHi_PbPb);
+  infile->GetObject("CorrectedYields_MetafitSyst_LinearizedCorrelationMatrixPbPb", metafitErrCorr_PbPb);
   infile->GetObject("r1r2Correlation_PbPb", r1r2Corr_PbPb);
-  infile->GetObject("RAA_MetafitRelSystError", y_metafitRelErr_RAA);
+  infile->GetObject("RAA_MetafitRelSystErrorLo_", y_metafitRelErrLo_RAA);
+  infile->GetObject("RAA_MetafitRelSystErrorHi_", y_metafitRelErrHi_RAA);
   infile->GetObject("RAA_MetafitSyst_LinearizedCorrelationMatrix", metafitErrCorr_RAA);
   infile->GetObject("r1r2Correlation_RAA", r1r2Corr_RAA);
+  infile->GetObject("AcceffSyst_Correlation_RAA", AcceffSystCorr_RAA);
+
+  AcceffSystCorr_pp.push_back(temp_corr_AcceffSyst_pp);
+  AcceffSystCorr_PbPb.push_back(temp_corr_AcceffSyst_PbPb);
+  float corrTnPerr = 0.7;
 
   const int nbins = _NanaBins;
   const int nYregions = 2;//hard-coded
   int nPts[nYregions+1] = {2,1,1};
+  int nGr = 3; //pp,PbPb,RAA
   const int nMaxPts = 2;//hard-coded
   int nbins_test = 0;
   for(int b=1;b<=nYregions;b++) nbins_test += nPts[b];
   if(nbins_test!=nbins) cout<<"!!!!!!!!!!!! PROBLEM with number of analysis bins and/or number of Y regions ! Expected segfault"<<endl;
 
-  double xErr[nYregions+1][nMaxPts], x[nYregions+1][nMaxPts], zero[nYregions+1][nMaxPts];
-  double y_metafitErr_pp[nbins],y_metafitErr_PbPb[nbins],y_metafitErr_RAA[nbins];
-  double yErrPart_pp[nbins],yErrPart_PbPb[nbins],yfitErr_pp[nbins],yfitErr_PbPb[nbins],yErrRelPart_RAA[nbins],yfitErr_RAA[nbins];
-  double y_pp[nYregions+1][nMaxPts], yErr_pp[nYregions+1][nMaxPts], y_PbPb[nYregions+1][nMaxPts], yErr_PbPb[nYregions+1][nMaxPts], y_RAA[nYregions+1][nMaxPts], yErr_RAA[nYregions+1][nMaxPts];
-  double corrtot[3];
+  double xErr[nGr][3][nYregions+1][nMaxPts], x[nGr][nYregions+1][nMaxPts];
+  double y_metafitErr[nGr][3][nbins];
+  double y_BcTauErr[nGr][3][nbins];
+  double yErrPart[nGr][3][nbins];
+  double yfitErr[nGr][3][nbins];
+  double yacceffErr[nGr][nbins];
+  double yTnPErr[nGr][nbins];
+  double y[nGr][nYregions+1][nMaxPts], yErr[nGr][3][nYregions+1][nMaxPts];
+  vector<vector<float> > corrtot(3, vector<float>((int)(nbins*(nbins-1)/2) , 0));
 
   for(int b=0;b<=nYregions;b++){ //b==0 is the graph with all points, without Y discrimination
     for(int m=0;m<nPts[b];m++){
 
-      int trueb = (b==0)?(m+1):b;
-      x[b][m] = (_BcPtmin[trueb]+_BcPtmax[trueb])/2;
-      xErr[b][m] = (-_BcPtmin[trueb]+_BcPtmax[trueb])/2;
-      zero[b][m] = 0;
+      int trueb = (b==0)?m:(b-1);
+      //x values
+      for(int igr=0;igr<3;igr++){
+	x[igr][b][m] = ptAverage[igr][trueb];//(_BcPtmin[trueb+1]+_BcPtmax[trueb+1])/2;
+	xErr[igr][1][b][m] =  x[igr][b][m] - _BcPtmin[trueb+1];
+	xErr[igr][2][b][m] = -x[igr][b][m] + _BcPtmax[trueb+1];      
+      }
 
-      float normpp = L_pp * (2*xErr[b][m]);
-      y_pp[b][m] = (*y_nom_pp)[trueb-1] / normpp;
-      y_metafitErr_pp[trueb-1] = y_pp[b][m] * (*y_metafitRelErr_pp)[trueb-1];
-      yfitErr_pp[trueb-1] = (*y_fitErr_pp)[trueb-1] / normpp;
-      yErrPart_pp[trueb-1] = sqrt(pow(yfitErr_pp[trueb-1] ,2) + pow((*y_acceffErr_pp)[trueb-1] / normpp ,2) ); //without metafit error
-      yErr_pp[b][m] = sqrt(pow(y_metafitErr_pp[trueb-1] ,2) + pow(yErrPart_pp[trueb-1] ,2));
+      //y values
+      float normpp = L_pp * (_BcPtmax[trueb+1]-_BcPtmin[trueb+1]) * (_BcYmax[trueb+1]-_BcYmin[trueb+1]);
+      float normPbPb = NMB_PbPb * TAA_090 * (_BcPtmax[trueb+1]-_BcPtmin[trueb+1]) * (_BcYmax[trueb+1]-_BcYmin[trueb+1]); //Leq_PbPb if we choose the lumi option
+      y[0][b][m] = (*y_nom_pp)[trueb] / normpp;
+      y[1][b][m] = (*y_nom_PbPb)[trueb] / normPbPb;
+      y[2][b][m] = y[1][b][m]/y[0][b][m];
 
-      float normPbPb = NMB_PbPb * TAA_090 * (2*xErr[b][m]); //Leq_PbPb if we choose the lumi option
-      y_PbPb[b][m] = (*y_nom_PbPb)[trueb-1] / normPbPb;
-      y_metafitErr_PbPb[trueb-1] = y_PbPb[b][m] * (*y_metafitRelErr_PbPb)[trueb-1];
-      yfitErr_PbPb[trueb-1] = (*y_fitErr_PbPb)[trueb-1] / normPbPb;
-      yErrPart_PbPb[trueb-1] = sqrt(pow(yfitErr_PbPb[trueb-1] ,2) + pow((*y_acceffErr_PbPb)[trueb-1] / normPbPb ,2) ); //without metafit error
-      yErr_PbPb[b][m] = sqrt(pow(y_metafitErr_PbPb[trueb-1] ,2) + pow(yErrPart_PbPb[trueb-1] ,2));
+      //metafit error
+      y_metafitErr[0][1][trueb] = y[0][b][m] * (*y_metafitRelErrLo_pp)[trueb];
+      y_metafitErr[0][2][trueb] = y[0][b][m] * (*y_metafitRelErrHi_pp)[trueb];
+      y_metafitErr[1][1][trueb] = y[1][b][m] * (*y_metafitRelErrLo_PbPb)[trueb];
+      y_metafitErr[1][2][trueb] = y[1][b][m] * (*y_metafitRelErrHi_PbPb)[trueb];
+      y_metafitErr[2][1][trueb] = y[2][b][m] * (*y_metafitRelErrLo_RAA)[trueb];
+      y_metafitErr[2][2][trueb] = y[2][b][m] * (*y_metafitRelErrHi_RAA)[trueb];
+      for(int igr=0;igr<3;igr++)
+	y_metafitErr[igr][0][trueb] = (y_metafitErr[igr][1][trueb] + y_metafitErr[igr][2][trueb])/2;
 
-      y_RAA[b][m] = y_PbPb[b][m]/y_pp[b][m];
-      y_metafitErr_RAA[trueb-1] = y_RAA[b][m] * (*y_metafitRelErr_RAA)[trueb-1];
-      yErrRelPart_RAA[trueb-1] = sqrt(pow(yErrPart_pp[trueb-1]/y_pp[b][m],2) + pow(yErrPart_PbPb[trueb-1]/y_PbPb[b][m],2)); //without metafit error
-      yfitErr_RAA[trueb-1] = y_RAA[b][m] * sqrt(pow(yfitErr_pp[trueb-1]/y_pp[b][m],2) + pow(yfitErr_PbPb[trueb-1]/y_PbPb[b][m],2) );
-      yErr_RAA[b][m] = y_RAA[b][m] * sqrt(pow((*y_metafitRelErr_RAA)[trueb-1],2) + pow(yErrRelPart_RAA[trueb-1],2));
+      //fit error
+      for(int pm=0;pm<3;pm++){
+	yfitErr[0][pm][trueb] = (*y_fitErr_pp)[trueb][pm] / normpp;
+	yfitErr[1][pm][trueb] = (*y_fitErr_PbPb)[trueb][pm] / normPbPb;
+	yfitErr[2][pm][trueb] = y[2][b][m] * sqrt(pow(yfitErr[0][pm][trueb]/y[0][b][m],2) + pow(yfitErr[1][pm][trueb]/y[1][b][m],2) );}
+
+      //acceff error
+      yacceffErr[0][trueb] = (*y_acceffErr_pp)[trueb] / normpp;
+      yacceffErr[1][trueb] = (*y_acceffErr_PbPb)[trueb] / normPbPb;
+      yacceffErr[2][trueb] = y[2][b][m] * sqrt(pow(yacceffErr[0][trueb]/y[0][b][m],2) + pow(yacceffErr[1][trueb]/y[1][b][m],2));
+
+      //TnP error
+      yTnPErr[0][trueb] = y[0][b][m] * (*TnPrelErr_pp)[trueb];
+      yTnPErr[1][trueb] = y[1][b][m] * (*TnPrelErr_PbPb)[trueb];
+      yTnPErr[2][trueb] = y[2][b][m] * sqrt(pow((*TnPrelErr_pp)[trueb],2) + pow((*TnPrelErr_PbPb)[trueb],2));
+
+      //Bc to tau channel systematic
+      for(int igr=0;igr<2;igr++){
+	y_BcTauErr[igr][1][trueb] = _XS_BcTauRelSystLo * y[igr][b][m];
+	y_BcTauErr[igr][2][trueb] = 0;
+	y_BcTauErr[igr][0][trueb] = (y_BcTauErr[igr][1][trueb] + y_BcTauErr[igr][2][trueb])/2;
+      }
+      for(int pm=0;pm<3;pm++)
+	y_BcTauErr[2][pm][trueb] = _RAA_BcTauRelSyst * y[2][b][m];
+
+      //partial error, without metafit error
+      for(int pm=0;pm<3;pm++){
+	for(int igr=0;igr<2;igr++){
+	  yErrPart[igr][pm][trueb] = sqrt(pow(yfitErr[igr][pm][trueb] ,2) + pow(yacceffErr[igr][trueb] ,2) + pow(y_BcTauErr[igr][pm][trueb],2) + pow(yTnPErr[igr][trueb],2) );}
+	yErrPart[2][pm][trueb] = y[2][b][m] * sqrt(pow(yErrPart[0][pm][trueb]/y[0][b][m],2) + pow(yErrPart[1][pm][trueb]/y[1][b][m],2) + _RAA_BcTauRelSyst ); //without metafit error	
+      }
+
+      //total error
+      for(int pm=0;pm<3;pm++){
+        for(int igr=0;igr<3;igr++){
+	  yErr[igr][pm][b][m] = sqrt(pow(y_metafitErr[igr][pm][trueb] ,2) + pow(yErrPart[igr][pm][trueb] ,2));}
+      }
 
       if(b==0){
-	cout<<"point "<<m<<": y_pp, y_PbPb, y_RAA = "<<y_pp[b][m]<<" "<<y_PbPb[b][m]<<" "<<y_RAA[b][m]<<endl;
-	cout<<"point "<<m<<": errors on y_pp, y_PbPb, y_RAA = "<<yErr_pp[b][m]<<" "<<yErr_PbPb[b][m]<<" "<<yErr_RAA[b][m]<<endl;
-	cout<<"fit errors on pp, PbPb, RAA = "<<yfitErr_pp[trueb-1]<<" "<<yfitErr_PbPb[trueb-1]<<" "<<yfitErr_RAA[trueb-1]<<endl;
-	cout<<"point "<<m<<": RAA errors from fit, metafit, and acceff = "<<yfitErr_RAA[trueb-1]<<" "<<y_metafitErr_RAA[trueb-1]<<" "<<y_RAA[b][m] * sqrt(pow(yErrRelPart_RAA[trueb-1],2) - pow(yfitErr_RAA[trueb-1]/y_RAA[b][m],2))<<endl;
+	cout<<"point "<<m<<": y_pp, y_PbPb, y_RAA = "<<y[0][b][m]<<" "<<y[1][b][m]<<" "<<y[2][b][m]<<endl;
+	cout<<"point "<<m<<": low  errors on y_pp, y_PbPb, y_RAA = "<<yErr[0][1][b][m]<<" "<<yErr[1][1][b][m]<<" "<<yErr[2][1][b][m]<<endl;
+	cout<<"point "<<m<<": high errors on y_pp, y_PbPb, y_RAA = "<<yErr[0][2][b][m]<<" "<<yErr[1][2][b][m]<<" "<<yErr[2][2][b][m]<<endl;
+	cout<<"fit     rel errors on pp, PbPb, RAA = "<<yfitErr[0][0][trueb]/y[0][b][m]<<" "<<yfitErr[1][0][trueb]/y[1][b][m]<<" "<<yfitErr[2][0][trueb]/y[2][b][m]<<endl;
+	cout<<"metafit rel errors on pp, PbPb, RAA = "<<y_metafitErr[0][0][trueb]/y[0][b][m]<<" "<<y_metafitErr[1][0][trueb]/y[1][b][m]<<" "<<y_metafitErr[2][0][trueb]/y[2][b][m]<<endl;
+	cout<<"acceff  rel errors on pp, PbPb, RAA = "<<yacceffErr[0][trueb]/y[0][b][m]<<" "<<yacceffErr[1][trueb]/y[1][b][m]<<" "<<yacceffErr[2][trueb]/y[2][b][m]<<endl;
+	cout<<"TnP  rel errors on pp, PbPb, RAA = "<<yTnPErr[0][trueb]/y[0][b][m]<<" "<<yTnPErr[1][trueb]/y[1][b][m]<<" "<<yTnPErr[2][trueb]/y[2][b][m]<<endl;
       }
 
     }
   }
 
-  corrtot[0] = ( (*r1r2Corr_pp)[0] * yfitErr_pp[0] * yfitErr_pp[1]  +  (*metafitErrCorr_pp)[0] * y_metafitErr_pp[0] * y_metafitErr_pp[1] )/( yErr_pp[0][0]*yErr_pp[0][1] ); //(Cov(1,2)+Cov'(1,2)) / (sigma_tot(1)*sigma_tot(2))
-  corrtot[1] = ( (*r1r2Corr_PbPb)[0] * yfitErr_PbPb[0] * yfitErr_PbPb[1]  +  (*metafitErrCorr_PbPb)[0] * y_metafitErr_PbPb[0] * y_metafitErr_PbPb[1] )/( yErr_PbPb[0][0]*yErr_PbPb[0][1] ); //(Cov(1,2)+Cov'(1,2)) / (sigma_tot(1)*sigma_tot(2))
-  corrtot[2] = ( (*r1r2Corr_RAA)[0] * yfitErr_RAA[0] * yfitErr_RAA[1]  +  (*metafitErrCorr_RAA)[0] * y_metafitErr_RAA[0] * y_metafitErr_RAA[1] )/( yErr_RAA[0][0]*yErr_RAA[0][1] ); //(Cov(1,2)+Cov'(1,2)) / (sigma_tot(1)*sigma_tot(2))
-  cout<<"correlation factor between 2 pT bins, for pp, PbPb, RAA = "<<corrtot[0]<<" "<<corrtot[1]<<" "<<corrtot[2]<<endl;
+  corrtot[0][0] = ( (*r1r2Corr_pp)[0] * yfitErr[0][0][0] * yfitErr[0][0][1]  
+		 +(*metafitErrCorr_pp)[0] * y_metafitErr[0][0][0] * y_metafitErr[0][0][1] 
+		 +AcceffSystCorr_pp[0] * yacceffErr[0][0] * yacceffErr[0][1]
+		 +_corr_BcTauSyst * y_BcTauErr[0][0][0] * y_BcTauErr[0][0][1]
+		 +corrTnPerr * yTnPErr[0][0] * yTnPErr[0][1]
+		 )/( yErr[0][0][0][0]*yErr[0][0][0][1] ); //(Cov(1,2)+Cov'(1,2)) / (sigma_tot(1)*sigma_tot(2))
+  corrtot[1][0] = ( (*r1r2Corr_PbPb)[0] * yfitErr[1][0][0] * yfitErr[1][0][1]  
+		 +(*metafitErrCorr_PbPb)[0] * y_metafitErr[1][0][0] * y_metafitErr[1][0][1]
+		 +AcceffSystCorr_PbPb[0] * yacceffErr[1][0] * yacceffErr[1][1]
+		 +_corr_BcTauSyst * y_BcTauErr[1][0][0] * y_BcTauErr[1][0][1]
+		 +corrTnPerr * yTnPErr[0][0] * yTnPErr[0][1]
+		 )/( yErr[1][0][0][0]*yErr[1][0][0][1] ); //(Cov(1,2)+Cov'(1,2)) / (sigma_tot(1)*sigma_tot(2))
+  corrtot[2][0] = ( (*r1r2Corr_RAA)[0] * yfitErr[2][0][0] * yfitErr[2][0][1]  
+		 +(*metafitErrCorr_RAA)[0] * y_metafitErr[2][0][0] * y_metafitErr[2][0][1] 
+		 +(*AcceffSystCorr_RAA)[0] * yacceffErr[2][0] * yacceffErr[2][1]
+		 +_corr_BcTauSyst * y_BcTauErr[2][0][0] * y_BcTauErr[2][0][1]
+		 +corrTnPerr * yTnPErr[0][0] * yTnPErr[0][1]
+		 )/( yErr[2][0][0][0]*yErr[2][0][0][1] ); //(Cov(1,2)+Cov'(1,2)) / (sigma_tot(1)*sigma_tot(2))
+  cout<<"correlation factor between 2 pT bins for pp, from fit, metafit, acceff = "<<(*r1r2Corr_pp)[0]<<" "<<(*metafitErrCorr_pp)[0]<<" "<<AcceffSystCorr_pp[0]<<endl;
+  cout<<"correlation factor between 2 pT bins for PbPb, from fit, metafit, acceff = "<<(*r1r2Corr_PbPb)[0]<<" "<<(*metafitErrCorr_PbPb)[0]<<" "<<AcceffSystCorr_PbPb[0]<<endl;
+  cout<<"correlation factor between 2 pT bins for RAA, from fit, metafit, acceff = "<<(*r1r2Corr_RAA)[0]<<" "<<(*metafitErrCorr_RAA)[0]<<" "<<(*AcceffSystCorr_RAA)[0]<<endl;
+  cout<<"correlation factor between 2 pT bins, for pp, PbPb, RAA = "<<corrtot[0][0]<<" "<<corrtot[1][0]<<" "<<corrtot[2][0]<<endl;
 
-  vector<TGraphErrors*> g_pp, g_PbPb, g_RAA;
-  for(int b=0;b<=nYregions;b++){ 
-    g_pp.push_back( new TGraphErrors(nPts[b], x[b],y_pp[b], xErr[b],yErr_pp[b]) );
-    g_PbPb.push_back( new TGraphErrors(nPts[b], x[b],y_PbPb[b], xErr[b],yErr_PbPb[b]) );
-    g_RAA.push_back( new TGraphErrors(nPts[b], x[b],y_RAA[b], xErr[b],yErr_RAA[b]) );
+  //Record final results
+  vector<vector<vector<float> > > XSRAA(3, vector<vector<float> >(4, vector<float>(nbins, 0))); //dimension1: pp,PbPb,RAA. dimension2: value, errlo, errhi, errsym. dimension3: pt bins
+  vector<vector<vector<float> > > metafitRelerr(3, vector<vector<float> >(3, vector<float>(nbins, 0)));//same, without value for dimension2
+  for(int b=0;b<nbins;b++){
+    for(int p=0;p<3;p++){
+      XSRAA[p][0][b] = y[p][0][b];
+      XSRAA[p][1][b] = yErr[p][1][0][b];
+      XSRAA[p][2][b] = yErr[p][2][0][b];
+      XSRAA[p][3][b] = yErr[p][0][0][b];
+    }
+    metafitRelerr[0][1][b] = (*y_metafitRelErrLo_pp)[b];
+    metafitRelerr[0][2][b] = (*y_metafitRelErrHi_pp)[b];
+    metafitRelerr[0][0][b] = (metafitRelerr[0][1][b]+metafitRelerr[0][2][b])/2;
+    metafitRelerr[1][1][b] = (*y_metafitRelErrLo_PbPb)[b];
+    metafitRelerr[1][2][b] = (*y_metafitRelErrHi_PbPb)[b];
+    metafitRelerr[1][0][b] = (metafitRelerr[1][1][b]+metafitRelerr[1][2][b])/2;
+    metafitRelerr[2][1][b] = (*y_metafitRelErrLo_RAA)[b];
+    metafitRelerr[2][2][b] = (*y_metafitRelErrHi_RAA)[b];
+    metafitRelerr[2][0][b] = (metafitRelerr[2][1][b]+metafitRelerr[2][2][b])/2;
+  }
+  infile->WriteObject(&XSRAA,"XSRAA_final");
+  infile->WriteObject(&metafitRelerr,"MetaFit_RelErr");
+  infile->WriteObject(&corrtot,"LinearizedCorrelationMatrix_total");
 
-    g_pp[b]->SetMarkerSize(5);
-    g_pp[b]->SetMarkerStyle((b==1)?24:20);
-    g_pp[b]->SetMarkerColor(kBlue+2);
-    g_pp[b]->SetLineColor(kBlue);
-    g_pp[b]->SetLineWidth(4);
+  //graph styles
+  vector<vector<Style_t> > Mstyle = {{20,20,24} , {21,21,25} , {20,20,24}};
+  vector<Color_t> Mcol = {kBlue+2 , kSpring-6 , kAzure+4};
+  vector<Color_t> Lcol = {kBlue , kSpring-5 , kAzure+5};
+  vector<Width_t> Lwidth = {4,4,3};
 
-    g_PbPb[b]->SetMarkerSize(5);
-    g_PbPb[b]->SetMarkerStyle((b==1)?25:21);
-    g_PbPb[b]->SetMarkerColor(kSpring-6);
-    g_PbPb[b]->SetLineColor(kSpring-5);
-    g_PbPb[b]->SetLineWidth(4);
+  vector<vector<TGraphAsymmErrors*> > gr(nGr);
+  for(int igr=0;igr<3;igr++){
+    for(int b=0;b<=nYregions;b++){ 
+      gr[igr].push_back( new TGraphAsymmErrors(nPts[b], x[igr][b],y[igr][b], xErr[igr][1][b], xErr[igr][2][b],yErr[igr][1][b], yErr[igr][2][b]) );
 
-    g_RAA[b]->SetMarkerSize(5);
-    g_RAA[b]->SetMarkerStyle((b==1)?24:20);
-    g_RAA[b]->SetMarkerColor(kAzure+4);
-    g_RAA[b]->SetLineColor(kAzure+5);
-    g_RAA[b]->SetLineWidth(3);
+      gr[igr][b]->SetMarkerSize(5);
+      gr[igr][b]->SetMarkerStyle(Mstyle[igr][b]);
+      gr[igr][b]->SetMarkerColor(Mcol[igr]);
+      gr[igr][b]->SetLineColor(Lcol[igr]);
+      gr[igr][b]->SetLineWidth(Lwidth[igr]);
+    }
   }
 
   TCanvas *c1 = new TCanvas("c1","XS",2000,2000);
   c1->SetLeftMargin(0.14);
-  c1->SetTopMargin(0.14);
-  g_pp[0]->SetTitle("Cross-sections");
-  g_pp[0]->GetYaxis()->SetRangeUser(0.5*y_PbPb[0][1],2*y_PbPb[0][0]);
-  g_pp[0]->GetXaxis()->SetRangeUser(_BcPtmin[0],_BcPtmax[0]);
-  g_pp[0]->GetYaxis()->SetTitleOffset(1.4);
-  g_pp[0]->GetXaxis()->SetTitle("p_{T}^{vis}(B_{c}) [GeV]");
-  g_pp[0]->GetYaxis()->SetTitle("BF  #times  #left(#frac{d#sigma_{pp}}{dp_{T}^{vis}}    or    #frac{1}{N_{MB} T_{PbPb}} #frac{dN_{PbPb}^{corr}}{dp_{T}^{vis}}#right)  [pb/GeV]");
-  g_pp[0]->SetMarkerColor(kWhite);
-  g_pp[0]->SetLineColor(kWhite);
-  g_pp[0]->Draw("AP");
-  g_pp[1]->Draw("Psame");
-  g_pp[2]->Draw("Psame");
-  g_PbPb[1]->Draw("Psame");
-  g_PbPb[2]->Draw("Psame");
+  c1->SetTopMargin(0.11);
+  gr[0][0]->SetTitle("Cross-sections");
+  gr[0][0]->GetYaxis()->SetRangeUser(0.5*y[1][0][1],2*y[1][0][0]);
+  gr[0][0]->GetXaxis()->SetRangeUser(_BcPtmin[0],_BcPtmax[0]);
+  gr[0][0]->GetYaxis()->SetTitleOffset(1.4);
+  gr[0][0]->GetXaxis()->SetTitle("p_{T}^{vis}(B_{c}) [GeV]");
+  gr[0][0]->GetYaxis()->SetTitle("BF  #times  #left(#frac{d#sigma_{pp}}{dp_{T}^{vis} dy^{vis}}    or    #frac{1}{N_{MB} T_{PbPb}} #frac{dN_{PbPb}^{corr}}{dp_{T}^{vis} dy^{vis}}#right)  [pb/GeV]");
+  gr[0][0]->SetMarkerColor(kWhite);
+  gr[0][0]->SetLineColor(kWhite);
+  gr[0][0]->Draw("AP");
+  gr[0][1]->Draw("Psame");
+  gr[0][2]->Draw("Psame");
+  gr[1][1]->Draw("Psame");
+  gr[1][2]->Draw("Psame");
 
   vector<TLegend*> leg;
   for(int b=0;b<nYregions;b++){
-    leg.push_back(new TLegend((b==0)?0.48:0.73,0.65,(b==0)?0.67:0.9,0.8));
-    leg[b]->AddEntry(g_pp[b+1],(b==0)?"pp":"pp");
-    leg[b]->AddEntry(g_PbPb[b+1],(b==0)?"PbPb":"PbPb");
+    leg.push_back(new TLegend((b==0)?0.48:0.725,0.62,(b==0)?0.67:0.89,0.765));
+    leg[b]->AddEntry(gr[0][b+1],(b==0)?"pp":"pp");
+    leg[b]->AddEntry(gr[1][b+1],(b==0)?"PbPb":"PbPb");
     leg[b]->SetTextSize(0.039);
     leg[b]->SetBorderSize(0);
     leg[b]->Draw("same");
@@ -158,10 +258,11 @@ void Draw_XSandRAA(){
   legEntry.SetNDC();
   legEntry.SetTextFont(42);
   legEntry.SetTextSize(0.035);
-  legEntry.DrawLatex(0.45,0.8,"1.3<|Y^{vis}|<2.3");
-  legEntry.DrawLatex(0.71,0.8,"0<|Y^{vis}|<2.3");
-  legEntry.DrawLatex(0.65,0.52,Form("#rho_{1-2}^{pp} = %.2f",corrtot[0]));
-  legEntry.DrawLatex(0.65,0.45,Form("#rho_{1-2}^{PbPb} = %.2f",corrtot[1]));
+  legEntry.DrawLatex(0.45,0.77,"1.3<|Y^{vis}|<2.3");
+  legEntry.DrawLatex(0.71,0.77,"0<|Y^{vis}|<2.3");
+  legEntry.DrawLatex(0.65,0.49,Form("#rho_{1-2}^{pp} = %.2f",corrtot[0][0]));
+  legEntry.DrawLatex(0.65,0.42,Form("#rho_{1-2}^{PbPb} = %.2f",corrtot[1][0]));
+  legEntry.DrawLatex(0.55,0.84,"Centrality 0-90%");
 
   gPad->SetLogy();
 
@@ -170,37 +271,38 @@ void Draw_XSandRAA(){
   CMStag.SetNDC();
   CMStag.SetTextFont(42);
   CMStag.SetTextSize(0.035);
-  CMStag.DrawLatex(0.1,0.87,"#font[61]{CMS} #font[52]{Work in progress}");
-  CMStag.DrawLatex(0.46,0.87, Form("pp (%.0f pb^{-1}), PbPb (%.2f nb^{-1}), 5.02 TeV",L_pp,L_PbPb*1e3));
+  CMStag.DrawLatex(0.12,0.9,"#font[61]{CMS} #font[52]{Preliminary}");
+  CMStag.DrawLatex(0.4,0.9, Form("pp (%.0f pb^{-1}), PbPb (%.2f nb^{-1}), 5.02 TeV",L_pp,L_PbPb*1e3));
 
   c1->SaveAs("CrossSections.pdf");
 
   TCanvas *c2 = new TCanvas("c2","RAA",2000,2000);
   //c2->SetLeftMargin(0.14);
   c2->SetTopMargin(0.11);
-  g_RAA[0]->SetTitle("R_{PbPb}");
-  g_RAA[0]->SetMarkerColor(kWhite);
-  g_RAA[0]->SetLineColor(kWhite);
-  g_RAA[0]->GetYaxis()->SetTitleOffset(1.2);
-  g_RAA[0]->GetYaxis()->SetRangeUser(0,2.5);
-  g_RAA[0]->GetXaxis()->SetRangeUser(_BcPtmin[0],_BcPtmax[0]);
-  g_RAA[0]->GetXaxis()->SetTitle("p_{T}^{vis}(B_{c}) [GeV]");
-  g_RAA[0]->GetYaxis()->SetTitle("R_{PbPb}(B_{c})");
-  g_RAA[0]->Draw("AP");
-  g_RAA[1]->Draw("Psame");
-  g_RAA[2]->Draw("Psame");
+  gr[2][0]->SetTitle("R_{PbPb}");
+  gr[2][0]->SetMarkerColor(kWhite);
+  gr[2][0]->SetLineColor(kWhite);
+  gr[2][0]->GetYaxis()->SetTitleOffset(1.2);
+  gr[2][0]->GetYaxis()->SetRangeUser(0,2.5);
+  gr[2][0]->GetXaxis()->SetRangeUser(_BcPtmin[0],_BcPtmax[0]);
+  gr[2][0]->GetXaxis()->SetTitle("p_{T}^{vis}(B_{c}) [GeV]");
+  gr[2][0]->GetYaxis()->SetTitle("R_{PbPb}(B_{c})");
+  gr[2][0]->Draw("AP");
+  gr[2][1]->Draw("Psame");
+  gr[2][2]->Draw("Psame");
 
-  TLegend *leg2 = new TLegend(0.5,0.65,0.8,0.82);
-  leg2->AddEntry(g_RAA[1], "1.3<|Y^{vis}|<2.3");
-  leg2->AddEntry(g_RAA[2], "0<|Y^{vis}|<2.3");
+  TLegend *leg2 = new TLegend(0.5,0.64,0.8,0.8);
+  leg2->AddEntry(gr[2][1], "1.3<|Y^{vis}|<2.3");
+  leg2->AddEntry(gr[2][2], "0<|Y^{vis}|<2.3");
   leg2->SetTextSize(0.039);
   leg2->SetBorderSize(0);
   leg2->Draw("same");
 
-  legEntry.DrawLatex(0.65,0.57,Form("#rho_{1-2} = %.2f",corrtot[2]));
+  legEntry.DrawLatex(0.65,0.53,Form("#rho_{1-2} = %.2f",corrtot[2][0]));
+  legEntry.DrawLatex(0.5,0.83,"Centrality 0-90%");
 
-  CMStag.DrawLatex(0.1,0.9,"#font[61]{CMS} #font[52]{Work in progress}");
-  CMStag.DrawLatex(0.46,0.9, Form("pp (%.0f pb^{-1}), PbPb (%.2f nb^{-1}), 5.02 TeV",L_pp,L_PbPb*1e3));
+  CMStag.DrawLatex(0.1,0.9,"#font[61]{CMS} #font[52]{Preliminary}");
+  CMStag.DrawLatex(0.4,0.9, Form("pp (%.0f pb^{-1}), PbPb (%.2f nb^{-1}), 5.02 TeV",L_pp,L_PbPb*1e3));
 
   TLine *one = new TLine(_BcPtmin[0],1,_BcPtmax[0],1);
   one->SetLineWidth(2);
@@ -209,4 +311,96 @@ void Draw_XSandRAA(){
 
   c2->SaveAs("RAA.pdf");
 
+  ///////////////////////////////////////
+  // Draw all systematics
+  ///////////////////////////////////////
+  vector<TH1F*> S(6);
+  vector<TString> name = {"fit","metafit","acceff","TnP","BcTau","total"};
+  vector<TString> prettyname = {"fit","fit method","Acc#times Eff","Tag-and-probe","B_{c}#rightarrow J/#psi #tau","total"};
+  vector<Color_t> col = {kRed,kBlue,kGreen+1,kOrange-6,kMagenta-4, kBlack};
+  
+  for(int i=0;i<6;i++)
+    S[i] = new TH1F(name[i],name[i],6,0,6);
+
+  S[0]->SetBinContent(1,yfitErr[0][0][0]/y[0][0][0]);//take average of hi and lo errors
+  S[0]->SetBinContent(2,yfitErr[0][0][1]/y[0][0][1]);
+  S[0]->SetBinContent(3,yfitErr[1][0][0]/y[1][0][0]);
+  S[0]->SetBinContent(4,yfitErr[1][0][1]/y[1][0][1]);
+  S[0]->SetBinContent(5,yfitErr[2][0][0]/y[2][0][0]);
+  S[0]->SetBinContent(6,yfitErr[2][0][1]/y[2][0][1]);
+
+  S[1]->SetBinContent(1,y_metafitErr[0][0][0]/y[0][0][0]);//take average of hi and lo errors
+  S[1]->SetBinContent(2,y_metafitErr[0][0][1]/y[0][0][1]);
+  S[1]->SetBinContent(3,y_metafitErr[1][0][0]/y[1][0][0]);
+  S[1]->SetBinContent(4,y_metafitErr[1][0][1]/y[1][0][1]);
+  S[1]->SetBinContent(5,y_metafitErr[2][0][0]/y[2][0][0]);
+  S[1]->SetBinContent(6,y_metafitErr[2][0][1]/y[2][0][1]);
+
+  S[2]->SetBinContent(1,yacceffErr[0][0]/y[0][0][0]);
+  S[2]->SetBinContent(2,yacceffErr[0][1]/y[0][0][1]);
+  S[2]->SetBinContent(3,yacceffErr[1][0]/y[1][0][0]);
+  S[2]->SetBinContent(4,yacceffErr[1][1]/y[1][0][1]);
+  S[2]->SetBinContent(5,yacceffErr[2][0]/y[2][0][0]);
+  S[2]->SetBinContent(6,yacceffErr[2][1]/y[2][0][1]);
+
+  S[3]->SetBinContent(1,yTnPErr[0][0]/y[0][0][0]);
+  S[3]->SetBinContent(2,yTnPErr[0][1]/y[0][0][1]);
+  S[3]->SetBinContent(3,yTnPErr[1][0]/y[1][0][0]);
+  S[3]->SetBinContent(4,yTnPErr[1][1]/y[1][0][1]);
+  S[3]->SetBinContent(5,yTnPErr[2][0]/y[2][0][0]);
+  S[3]->SetBinContent(6,yTnPErr[2][1]/y[2][0][1]);
+
+  S[4]->SetBinContent(1,y_BcTauErr[0][1][0]/y[0][0][0]); //take the lower error here
+  S[4]->SetBinContent(2,y_BcTauErr[0][1][1]/y[0][0][1]);
+  S[4]->SetBinContent(3,y_BcTauErr[1][1][0]/y[1][0][0]);
+  S[4]->SetBinContent(4,y_BcTauErr[1][1][1]/y[1][0][1]);
+  S[4]->SetBinContent(5,y_BcTauErr[2][1][0]/y[2][0][0]);
+  S[4]->SetBinContent(6,y_BcTauErr[2][1][1]/y[2][0][1]);
+
+  S[5]->SetBinContent(1,yErr[0][0][0][0]/y[0][0][0]);//take average of hi and lo errors
+  S[5]->SetBinContent(2,yErr[0][0][0][1]/y[0][0][1]);
+  S[5]->SetBinContent(3,yErr[1][0][0][0]/y[1][0][0]);
+  S[5]->SetBinContent(4,yErr[1][0][0][1]/y[1][0][1]);
+  S[5]->SetBinContent(5,yErr[2][0][0][0]/y[2][0][0]);
+  S[5]->SetBinContent(6,yErr[2][0][0][1]/y[2][0][1]);
+
+  for(int i=0;i<6;i++){
+    S[i]->SetLineColor(col[i]);
+    S[i]->SetLineWidth(2);
+    S[i]->GetXaxis()->SetBinLabel(1,"pp bin1");
+    S[i]->GetXaxis()->SetBinLabel(2,"pp bin2");
+    S[i]->GetXaxis()->SetBinLabel(3,"PbPb bin1");
+    S[i]->GetXaxis()->SetBinLabel(4,"PbPb bin2");
+    S[i]->GetXaxis()->SetBinLabel(5,"R_{PbPb} bin1");
+    S[i]->GetXaxis()->SetBinLabel(6,"R_{PbPb} bin2");
+    S[i]->GetXaxis()->SetLabelSize(0.055);
+    S[i]->GetYaxis()->SetTitle("relative error");
+    S[i]->GetYaxis()->SetTitleSize(0.055);
+    S[i]->GetYaxis()->SetLabelSize(0.04);
+    S[i]->GetYaxis()->SetTitleOffset(1.);
+    S[i]->GetYaxis()->SetRangeUser(0,1.15*S[5]->GetMaximum());
+  }
+  
+  gStyle->SetOptStat(0);
+
+  TCanvas *c3 = new TCanvas("c3","Syst",2000,1500);
+  c3->SetBottomMargin(0.1);
+  c3->SetTopMargin(0.04);
+  c3->SetRightMargin(0.04);
+  c3->SetLeftMargin(0.12);
+  S[0]->SetTitle("");
+  for(int i=0;i<6;i++)
+    S[i]->Draw((TString)((i==0)?"hist":"histsame"));
+
+  TLegend *leg3 = new TLegend(0.15,0.5,0.37,0.95);
+  for(int i=0;i<6;i++)
+    leg3->AddEntry(S[i], prettyname[i]);
+  leg3->SetHeader("Uncertainty sources");
+  leg3->SetTextSize(0.043);
+  leg3->SetBorderSize(0);
+  leg3->Draw("same");
+
+  c3->SaveAs("SystematicsSummary.pdf");
+
+  infile->Close();      
 }

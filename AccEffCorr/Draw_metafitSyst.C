@@ -19,9 +19,8 @@ void Draw_metafitSyst(){
   Color_t cols[4] = {1,634,810,882};//kBlack,kRed+2,kOrange+10,kViolet+2//,kBlue+2 602;
 
   vector<vector<vector<float> > > *Yields_postfit[2][_nMetafitSyst];
-  vector<float> *rsig_relerrLo[3][_nMetafitSyst];
-  vector<float> *rsig_relerrHi[3][_nMetafitSyst];
-  vector<float> *eff_oneBinned[3];
+  vector<vector<float> > *rsig_relerr[3][_nMetafitSyst];
+  vector<vector<float> > *eff_oneBinned[3];
   vector<float> *acc_oneBinned[3];
 
   vector<float> y_nom[3];
@@ -89,21 +88,20 @@ void Draw_metafitSyst(){
     for(int isys=0;isys<_nMetafitSyst;isys++){
       if(ispp<2){
 	infile->GetObject("Yields_postfit"+(TString)((ispp==1)?"_pp":"_PbPb")+systName[isys]+systExtName[isys], Yields_postfit[ispp][isys]);
-	infile->GetObject("rsig_relerrLo"+(TString)((ispp==1)?"_pp":"_PbPb")+systName[isys]+systExtName[isys], rsig_relerrLo[ispp][isys]);
-	infile->GetObject("rsig_relerrHi"+(TString)((ispp==1)?"_pp":"_PbPb")+systName[isys]+systExtName[isys], rsig_relerrHi[ispp][isys]);
+	infile->GetObject("rsig_relerr"+(TString)((ispp==1)?"_pp":"_PbPb")+systName[isys]+systExtName[isys], rsig_relerr[ispp][isys]);
 
 	for(int b=1;b<=nbins;b++){
 	  //cout<<"analysis bin #"<<b<<endl;
-	  //      cout<<"one-binned acceptance, efficiency = "<<(*acc_oneBinned)[b]<<" "<<(*eff_oneBinned)[b]<<endl;
+	  //      cout<<"one-binned acceptance, efficiency = "<<(*acc_oneBinned)[b]<<" "<<(*eff_oneBinned)[b][0]<<endl;
 
-	  y_oneBinned[ispp][isys][b-1] = (*Yields_postfit[ispp][isys])[0][b][0] / ((*acc_oneBinned[ispp])[b] * (*eff_oneBinned[ispp])[b]);
-	  yErrLo[ispp][isys][b-1] = -(*rsig_relerrLo[ispp][isys])[b] * y_oneBinned[ispp][isys][b-1];
-	  yErrHi[ispp][isys][b-1] = (*rsig_relerrHi[ispp][isys])[b] * y_oneBinned[ispp][isys][b-1];
+	  y_oneBinned[ispp][isys][b-1] = (*Yields_postfit[ispp][isys])[0][b][0] / ((*acc_oneBinned[ispp])[b] * (*eff_oneBinned[ispp])[b][0]);
+	  yErrLo[ispp][isys][b-1] = (*rsig_relerr[ispp][isys])[b][1] * y_oneBinned[ispp][isys][b-1];
+	  yErrHi[ispp][isys][b-1] = (*rsig_relerr[ispp][isys])[b][2] * y_oneBinned[ispp][isys][b-1];
 
 	  if(usedInNominalAverage[isys]>0.01){
 	    ynom[b-1] += usedInNominalAverage[isys] * y_oneBinned[ispp][isys][b-1]; 
-	    relerrLoNom[b-1] += usedInNominalAverage[isys] * (*rsig_relerrLo[ispp][isys])[b];
-	    relerrHiNom[b-1] += usedInNominalAverage[isys] * (*rsig_relerrHi[ispp][isys])[b];
+	    relerrLoNom[b-1] += usedInNominalAverage[isys] * (*rsig_relerr[ispp][isys])[b][1];
+	    relerrHiNom[b-1] += usedInNominalAverage[isys] * (*rsig_relerr[ispp][isys])[b][2];
 	    nAvNominal[b-1] += usedInNominalAverage[isys];
           }
 	}
@@ -176,19 +174,6 @@ void Draw_metafitSyst(){
       gSyst[ispp][isys]->GetXaxis()->SetTitle("p_{T}(#mu#mu#mu) [GeV]");
     }
 
-    //multigraph for a given bin and ispp value, gathering all systs
-    for(int b=1;b<=nbins;b++){
-      gSystRatio_all[ispp][b-1]->GetYaxis()->SetRangeUser(0,_nMetafitSyst+1);
-      gSystRatio_all[ispp][b-1]->GetXaxis()->SetRangeUser((ispp==1)?0.85:0.5,(ispp==1)?1.15:1.5);
-      gSystRatio_all[ispp][b-1]->SetTitle("");//Ratio of metafit systematics to nominal");
-      gSystRatio_all[ispp][b-1]->GetYaxis()->SetTitle("");
-      if(ispp==2 && b==2) gSystRatio_all[ispp][b-1]->GetXaxis()->SetTitle("variation / nominal");//(ispp==2)?"R_{PbPb}^{systematic}/R_{PbPb}^{nominal}":"yield^{systematic}/yield^{nominal}");
-      gSystRatio_all[ispp][b-1]->GetXaxis()->SetLabelSize(0.065);
-      gSystRatio_all[ispp][b-1]->GetXaxis()->SetTitleSize(0.09);
-      gSystRatio_all[ispp][b-1]->GetXaxis()->SetTitleOffset(0.35);
-      gSystRatio_all[ispp][b-1]->GetXaxis()->SetLabelOffset(-0.02);
-    }    
-    
     //Draw corrected yields for pp and PbPb, for each systematic
     if(ispp<2){
       TCanvas *c1 = new TCanvas("c1"+(TString)ispp,"c1",2000,2000);
@@ -304,7 +289,20 @@ void Draw_metafitSyst(){
       gPad->SetRightMargin((2+nbins*ispp+b==7)?0.01:0.);
       gPad->SetTopMargin(0.04);
       gPad->SetBottomMargin(0.15);
+
+      //multigraph for a given bin and ispp value, gathering all systs
+      gSystRatio_all[ispp][b]->Draw("AP0");
+
+      gSystRatio_all[ispp][b]->SetTitle("");//Ratio of metafit systematics to nominal");
       (gSystRatio_all[ispp][b]->GetHistogram())->GetYaxis()->SetRangeUser(0,_nMetafitSyst+1);
+      (gSystRatio_all[ispp][b]->GetHistogram())->GetXaxis()->SetRangeUser((ispp==1)?0.85:0.5,(ispp==1)?1.15:1.5);
+      (gSystRatio_all[ispp][b]->GetHistogram())->GetYaxis()->SetTitle("");
+      if(ispp==2 && b==2) (gSystRatio_all[ispp][b]->GetHistogram())->GetXaxis()->SetTitle("variation / nominal");//(ispp==2)?"R_{PbPb}^{systematic}/R_{PbPb}^{nominal}":"yield^{systematic}/yield^{nominal}");
+      (gSystRatio_all[ispp][b]->GetHistogram())->GetXaxis()->SetLabelSize(0.065);
+      (gSystRatio_all[ispp][b]->GetHistogram())->GetXaxis()->SetTitleSize(0.09);
+      (gSystRatio_all[ispp][b]->GetHistogram())->GetXaxis()->SetTitleOffset(0.35);
+      (gSystRatio_all[ispp][b]->GetHistogram())->GetXaxis()->SetLabelOffset(-0.02);
+
       (gSystRatio_all[ispp][b]->GetHistogram())->GetYaxis()->SetTickLength(0);
       (gSystRatio_all[ispp][b]->GetHistogram())->GetXaxis()->SetNdivisions(507);
 

@@ -13,13 +13,13 @@
 #include "../../helpers/Definitions.h"
 #include "../../helpers/Cuts.h"
 
-void RAAfitErrCorr(){
+void RAAfitErrCorr(bool fromfit=true){
 
   vector<float> *y_nom_pp;
-  vector<float> *y_fitErr_pp;
+  vector<vector<float> > *y_fitErr_pp;
   vector<float> *r1r2Corr_pp;
   vector<float> *y_nom_PbPb;
-  vector<float> *y_fitErr_PbPb;
+  vector<vector<float> > *y_fitErr_PbPb;
   vector<float> *r1r2Corr_PbPb;
 
   TFile *infile = new TFile("../../AccEffCorr/corrected_yields.root","READ");
@@ -30,8 +30,8 @@ void RAAfitErrCorr(){
   infile->GetObject("FinalCorrectedYield_fitError_PbPb", y_fitErr_PbPb);
   infile->GetObject("r1r2Correlation_PbPb", r1r2Corr_PbPb);
 
-  float rho_pp = (*r1r2Corr_pp)[0];
-  float rho_PbPb = (*r1r2Corr_PbPb)[0];
+  float rho_pp = fromfit?((*r1r2Corr_pp)[0]):temp_corr_AcceffSyst_pp;
+  float rho_PbPb = fromfit?((*r1r2Corr_PbPb)[0]):temp_corr_AcceffSyst_PbPb;
   cout<<"corr factor pp = "<<rho_pp<<endl;
   cout<<"corr factor PbPb = "<<rho_PbPb<<endl;
 
@@ -40,19 +40,24 @@ void RAAfitErrCorr(){
  
   // ROOT::Math::GSLRandomEngine rengine =  ROOT::Math::GSLRandomEngine();
 
-  float normpp0 = L_pp * (-_BcPtmin[0]+_BcPtmax[0]);
-  float normPbPb0 = NMB_PbPb * TAA_090 * (-_BcPtmin[0]+_BcPtmax[0]);
-  float normpp1 = L_pp * (-_BcPtmin[1]+_BcPtmax[1]);
-  float normPbPb1 = NMB_PbPb * TAA_090 * (-_BcPtmin[1]+_BcPtmax[1]);
+  float normpp0 = 1;//L_pp * (-_BcPtmin[0]+_BcPtmax[0]);
+  float normPbPb0 = 1;//NMB_PbPb * TAA_090 * (-_BcPtmin[0]+_BcPtmax[0]);
+  float normpp1 = 1;//L_pp * (-_BcPtmin[1]+_BcPtmax[1]);
+  float normPbPb1 = 1;//NMB_PbPb * TAA_090 * (-_BcPtmin[1]+_BcPtmax[1]);
+
+  float norm2pp0 = L_pp * (-_BcPtmin[0]+_BcPtmax[0]);
+  float norm2PbPb0 = NMB_PbPb * TAA_090 * (-_BcPtmin[0]+_BcPtmax[0]);
+  float norm2pp1 = L_pp * (-_BcPtmin[1]+_BcPtmax[1]);
+  float norm2PbPb1 = NMB_PbPb * TAA_090 * (-_BcPtmin[1]+_BcPtmax[1]);
   
   cout<<"pp nominal: "<<(*y_nom_pp)[0]/normpp0<<" "<<(*y_nom_pp)[1]/normpp1<<endl;
-  cout<<"pp erro: "<<(*y_fitErr_pp)[0]/normpp0<<" "<<(*y_fitErr_pp)[1]/normpp1<<endl;
+  cout<<"pp error: "<<(*y_fitErr_pp)[0][0]/normpp0<<" "<<(*y_fitErr_pp)[1][0]/normpp1<<endl;
   cout<<"PbPb nominal: "<<(*y_nom_PbPb)[0]/normPbPb0<<" "<<(*y_nom_PbPb)[1]/normPbPb1<<endl;
-  cout<<"PbPb erro: "<<(*y_fitErr_PbPb)[0]/normPbPb0<<" "<<(*y_fitErr_PbPb)[1]/normPbPb1<<endl;
+  cout<<"PbPb error: "<<(*y_fitErr_PbPb)[0][0]/normPbPb0<<" "<<(*y_fitErr_PbPb)[1][0]/normPbPb1<<endl;
 
-  TH2D* h_pp = new TH2D("h_pp","h_pp",300,(*y_nom_pp)[0]/normpp0 - 4*(*y_fitErr_pp)[0]/normpp0,(*y_nom_pp)[0]/normpp0 + 4*(*y_fitErr_pp)[0]/normpp0,300,(*y_nom_pp)[1]/normpp1 - 4*(*y_fitErr_pp)[1]/normpp1,(*y_nom_pp)[1]/normpp1 + 4*(*y_fitErr_pp)[1]/normpp1);
-  TH2D* h_PbPb = new TH2D("h_PbPb","h_PbPb",300,(*y_nom_PbPb)[0]/normPbPb0 - 4*(*y_fitErr_PbPb)[0]/normPbPb0,(*y_nom_PbPb)[0]/normPbPb0 + 4*(*y_fitErr_PbPb)[0]/normPbPb0,300,(*y_nom_PbPb)[1]/normPbPb1 - 4*(*y_fitErr_PbPb)[1]/normPbPb1,(*y_nom_PbPb)[1]/normPbPb1 + 4*(*y_fitErr_PbPb)[1]/normPbPb1);
-  TH2D* h_RAA = new TH2D("h_RAA","h_RAA",300,0.,3,300,0.2,1);
+  TH2D* h_pp = new TH2D("h_pp","pp",300,(*y_nom_pp)[0]/normpp0 - 4*(*y_fitErr_pp)[0][0]/normpp0,(*y_nom_pp)[0]/normpp0 + 4*(*y_fitErr_pp)[0][0]/normpp0,300,(*y_nom_pp)[1]/normpp1 - 4*(*y_fitErr_pp)[1][0]/normpp1,(*y_nom_pp)[1]/normpp1 + 4*(*y_fitErr_pp)[1][0]/normpp1);
+  TH2D* h_PbPb = new TH2D("h_PbPb","PbPb",300,max((float)0.,(*y_nom_PbPb)[0]/normPbPb0 - 4*(*y_fitErr_PbPb)[0][0]/normPbPb0),(*y_nom_PbPb)[0]/normPbPb0 + 4*(*y_fitErr_PbPb)[0][0]/normPbPb0,300,max((float)0.,(*y_nom_PbPb)[1]/normPbPb1 - 4*(*y_fitErr_PbPb)[1][0]/normPbPb1),(*y_nom_PbPb)[1]/normPbPb1 + 4*(*y_fitErr_PbPb)[1][0]/normPbPb1);
+  TH2D* h_RAA = new TH2D("h_RAA","RAA",300,0.,3,300,0.2,0.9);
   
   for(int i=0;i<n;i++){
     //    rengine.Gaussian2D((*y_fitErr_pp)[0],(*y_fitErr_pp)[1],rho_pp,&(x1_pp[i]),&(x2_pp[i]));
@@ -60,12 +65,14 @@ void RAAfitErrCorr(){
 
     double z1 = gRandom->Gaus(),z2 = gRandom->Gaus(),z3 = gRandom->Gaus(),z4 = gRandom->Gaus();
 
-    X1_pp = ((*y_fitErr_pp)[0] * z1 + (*y_nom_pp)[0])/normpp0; //correlate the X1 and X2 with rho_pp
-    X2_pp = ((*y_fitErr_pp)[1] * ( rho_pp*z1+sqrt(1-pow(rho_pp,2))*z2 ) + (*y_nom_pp)[1])/normpp1;
-    X1_PbPb = ((*y_fitErr_PbPb)[0] * z3 + (*y_nom_PbPb)[0])/normPbPb0;
-    X2_PbPb = ((*y_fitErr_PbPb)[1] * ( rho_PbPb*z3+sqrt(1-pow(rho_PbPb,2))*z4 ) + (*y_nom_PbPb)[1])/normPbPb1;
-    X1_RAA = X1_PbPb/X1_pp;
-    X2_RAA = X2_PbPb/X2_pp;
+    X1_pp = ((*y_fitErr_pp)[0][0] * z1 + (*y_nom_pp)[0])/normpp0; //correlate the X1 and X2 with rho_pp
+    X2_pp = ((*y_fitErr_pp)[1][0] * ( rho_pp*z1+sqrt(1-pow(rho_pp,2))*z2 ) + (*y_nom_pp)[1])/normpp1;
+    X1_PbPb = ((*y_fitErr_PbPb)[0][0] * z3 + (*y_nom_PbPb)[0])/normPbPb0;
+    X2_PbPb = ((*y_fitErr_PbPb)[1][0] * ( rho_PbPb*z3+sqrt(1-pow(rho_PbPb,2))*z4 ) + (*y_nom_PbPb)[1])/normPbPb1;
+    X1_PbPb = max(X1_PbPb,0.);
+    X2_PbPb = max(X2_PbPb,0.);
+    X1_RAA = X1_PbPb*norm2pp0/(X1_pp*norm2PbPb0) ;
+    X2_RAA = X2_PbPb*norm2pp1/(X2_pp*norm2PbPb1);
     h_pp->Fill(X1_pp,X2_pp);
     h_PbPb->Fill(X1_PbPb,X2_PbPb);
     h_RAA->Fill(X1_RAA,X2_RAA);
@@ -76,27 +83,33 @@ void RAAfitErrCorr(){
   cout<<"h_pp->GetCorrelationFactor() = "<<h_pp->GetCorrelationFactor()<<endl;
   cout<<"h_PbPb->GetCorrelationFactor() = "<<h_PbPb->GetCorrelationFactor()<<endl;
   cout<<"h_RAA->GetCorrelationFactor() = "<<h_RAA->GetCorrelationFactor()<<endl;
+  vector<float> ppcorr;
+  vector<float> PbPbcorr;
   vector<float> RAAcorr;
+  ppcorr.push_back(rho_pp);
+  PbPbcorr.push_back(rho_PbPb);
   RAAcorr.push_back(h_RAA->GetCorrelationFactor());
 
   TCanvas *c1 = new TCanvas("c1","c1",3000,1000);
   c1->Divide(3,1);
-  c1->cd(1);
+  c1->cd(1)->SetLeftMargin(0.15);
   h_pp->GetXaxis()->SetTitle("corrected yield (bin 1)");
   h_pp->GetYaxis()->SetTitle("corrected yield (bin 2)");
   h_pp->Draw("COLZ");
-  c1->cd(2);
+  c1->cd(2)->SetLeftMargin(0.15);
   h_PbPb->GetXaxis()->SetTitle("corrected yield (bin 1)");
   h_PbPb->GetYaxis()->SetTitle("corrected yield (bin 2)");
   h_PbPb->Draw("COLZ");
-  c1->cd(3);
+  c1->cd(3)->SetLeftMargin(0.15);
   h_RAA->GetXaxis()->SetTitle("R_{PbPb} (bin 1)");
   h_RAA->GetYaxis()->SetTitle("R_{PbPb} (bin 2)");
   h_RAA->Draw("COLZ");
 
-  c1->SaveAs("FitErrorCorrelation.pdf");
+  c1->SaveAs((TString)(fromfit?"Fit":"Acceff")+"ErrorCorrelation.pdf");
   
   TFile * outf = new TFile("../../AccEffCorr/corrected_yields.root","UPDATE");
-  outf->WriteObject(&RAAcorr,"r1r2Correlation_RAA");
+  outf->WriteObject(&ppcorr,(TString)(fromfit?"r1r2":"AcceffSyst_")+"Correlation_pp");
+  outf->WriteObject(&PbPbcorr,(TString)(fromfit?"r1r2":"AcceffSyst_")+"Correlation_PbPb");
+  outf->WriteObject(&RAAcorr,(TString)(fromfit?"r1r2":"AcceffSyst_")+"Correlation_RAA");
 
 }

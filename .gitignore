@@ -12,3 +12,7 @@ eventMixing/
 *.root
 *.pdf
 *.png
+*.so
+*.d
+*.tex
+*.pcm

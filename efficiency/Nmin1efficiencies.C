@@ -610,7 +610,6 @@ void Nmin1efficiencies(bool ispp = true){
 		   && (probeEff.Contains("dz") || (fabs(muW_dz)<0.6 && fabs(mumi_dz)<0.6 && fabs(mupl_dz)<0.6))
 		   && (probeEff.Contains("CorrM") || Bc_CorrM<_BcCorrM_cut(ispp))
 		   ){
-
 		  float QQ_M = QQCandM;
 		  float QQ2_M = (Reco_mu_charge[iIpt][muWidx]>0)?((*recBc_mumi+*recBc_muW).M()):((*recBc_mupl+*recBc_muW).M()); //QQ2 is the second OS pair
 		    
@@ -664,7 +663,6 @@ void Nmin1efficiencies(bool ispp = true){
 		     ){
 		    npass[i][ieff] += weight;
 		  }
-
 		
 		} //end if passes full selection
 	      }//end efficiency to test
@@ -682,7 +680,7 @@ void Nmin1efficiencies(bool ispp = true){
   for(int isam=0;isam<samNum;isam++){
     outfile<<endl<<"sample "<<samName[isam]<<endl;
     for(int ieff=0;ieff<effNum;ieff++){
-      outfile<<npass[isam][ieff]<<" "<<ntot[isam][ieff]<<endl;
+      //outfile<<npass[isam][ieff]<<" "<<ntot[isam][ieff]<<endl;
       outfile<<"inefficiency of cut "<<effToTest[ieff]<<" = "<< (1-npass[isam][ieff]/ntot[isam][ieff]) <<endl;
     }
   }

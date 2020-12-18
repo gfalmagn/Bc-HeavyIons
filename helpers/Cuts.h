@@ -1,9 +1,9 @@
 //FIDUCIAL cuts
 int _NanaBins = 2;
-vector<float> _BcYmin{0, 1.3,  0.};
+vector<float> _BcYmin{0., 1.3,  0.}; //don't modify spacing and dots, for subsequent automatic tables
 vector<float> _BcYmax{2.3, 2.3, 2.3};
-vector<float> _BcPtmin{6, 6,  11};
-vector<float> _BcPtmax{50, 11, 50};
+vector<float> _BcPtmin{6., 6., 11.};
+vector<float> _BcPtmax{50., 11., 50.};
 
 bool inFidCuts(int kinBin, float pt, float rap){
   if(kinBin>0)
@@ -17,7 +17,7 @@ bool inFidCuts(int kinBin, float pt, float rap){
   return false; 
 }
 
-//BEGIN Pre-selection
+//BEGIN Pre-selection //Don't touch a character of this except the values, for subsequent automatic tables
 float _ctauSignif_cut = 1.5;
 float _ctauSignif3D_cut = 1.5;
 float _alpha_cut(bool ispp=true){return ispp?0.6:0.5;}
@@ -27,7 +27,7 @@ float _vtxProb_cutLoose = 0.001;
 float _QQvtxProb_cut = 0.005;
 float _QQvtxProb_cutTight = 0.02;
 float _QQdca_cut = 0.3;
-float _BcCorrM_cut(bool ispp=true){return ispp?20:18;}
+float _BcCorrM_cut(bool ispp=true){return ispp?20:18;} //no explicit floating point here, for subsequent automatic tables
 //END Pre-selection
 
 //Jpsi mass peak and sidebands regions

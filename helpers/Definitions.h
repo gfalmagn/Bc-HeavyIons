@@ -14,6 +14,16 @@ float Leq_PbPb = 208*208*L_PbPb;
 float NMB_PbPb = 1.1194e+10; //+-1.26% https://indico.cern.ch/event/935265/contributions/3930641/attachments/2068596/3472117/PAG_200703_NMB.pdf
 float TAA_090 = 6.27e-9; //pb-1 //6.27+-0.14 mb-1 (2.2%), HIN-19-007-pas-v5
 
+float temp_corr_AcceffSyst_pp = 0.8;
+float temp_corr_AcceffSyst_PbPb = 0.8;
+
+float _corr_BcTauSyst = 1.;
+float _XS_BcTauRelSystLo = 0.03;
+float _RAA_BcTauRelSyst = 0.01;
+
+//hard-coded, temporary, should be measured on signal MC and signal-enriched data (average of the two)
+vector<vector<float> > ptAverage = {{8.75,17.8} , {9.2,16.9} , {9.0,17.3}}; 
+
 vector<int> _nbinMSR(bool ispp){
   if(_withTM) return (ispp?vector<int>{25,23,20}:vector<int>{16,15,13});
   else return (ispp?(_preFitCorrAE?vector<int>{10,8,7}:vector<int>{16,15,13}):(

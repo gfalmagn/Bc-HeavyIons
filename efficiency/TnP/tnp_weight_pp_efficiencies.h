@@ -14,10 +14,10 @@
 // +++++++++++++++++++++++++++++++++++++++
 
 
-double tnp_weight_glb_looseacceptance_pp(double pt, double eta, int idx=0);
-double tnp_weight_muid_looseacceptance_pp(double pt, double eta, int idx=0);
-double tnp_weight_glb_tightacceptance_pp(double pt, double eta, int idx=0);
-double tnp_weight_muidtrg_tightacceptance_pp(double pt, double eta, int idx=0);
+double tnp_weight_glb_looseacceptance_pp(double pt, double eta, int idx);
+double tnp_weight_muid_looseacceptance_pp(double pt, double eta, int idx);
+double tnp_weight_glb_tightacceptance_pp(double pt, double eta, int idx);
+double tnp_weight_muidtrg_tightacceptance_pp(double pt, double eta, int idx);
 
 ///////////////////////////////////////////////////
 //             GLB LooseAcceptance               //

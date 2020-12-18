@@ -33,7 +33,7 @@
   * `cd ~/acceptance/`
   * `rt BuildAcceptanceMap.C`
   * `cd ~/efficiency/`
-  * `rt BuildEffMap.C`
+  * `rt -b runBuildEffMap.C`
 
 ## Template fitting 
 - Make the templates histos for combine. Includes histos with acc eff corrections
@@ -59,6 +59,18 @@
 - Draw corrected yields for various acc eff methods, and get a systematic from it
   * `rt "Draw_corrYields.C(true)"'
   * `rt "Draw_corrYields.C(false)"'
+- Draw all meta-fit variations and extract a systematic
+  * `rt Draw_metafitSyst.C'
+- Compute correlation factors for RAA from the ones for pp and PbPb
+  * `rt -b "RAAfitErrCorr.C(true)"'
 - Draw R_PbPb:
   * `cd ~/RAA/`
   * `rt Draw_XSandRAA.C'
+
+## Automatic latex tables
+- N-1 efficiencies (preselection section 3.4)
+  * `cd ~/Bc/efficiency/'
+  * `python Nmin1efficiencies_texTable.py'
+- N-1 efficiencies (preselection section 3.4)
+  * `cd ~/Bc/RAA/'
+  * `python XSRAA_texTable.py'

@@ -184,7 +184,7 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
   int nbin = 32; //for other histos than Bc_M
   int nbinM = 25;
   vector<float> CRbinwRatio;
-  for(int k=1;k<=3;k++) CRbinwRatio.push_back( ((_mBcMax-_mBcMin)/_nbinMSR(ispp)[k]) * (_nbinMCR(ispp)[k]/(_mMax-_mBcMax)) );
+  for(int k=0;k<=2;k++) CRbinwRatio.push_back( ((_mBcMax-_mBcMin)/_nbinMSR(ispp)[k]) * (_nbinMCR(ispp)[k]/(_mMax-_mBcMax)) );
 
   //*******************************************
   //process names, pretty names of histos (designating actual content)
@@ -230,7 +230,7 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
   vector<vector<TH1F*> > h_AccEffCorr_BDT3(nProc, vector<TH1F*>(nCuts)); 
   vector<vector<TH1F*> > h_AccEffWeights(nProc, vector<TH1F*>(nCuts)); 
   vector<vector<TH1F*> > h_CorrYieldsVsAccEffWeights(nProc, vector<TH1F*>(nCuts)); 
-  vector<vector<TH1F*> > h_BcPt(nProc, vector<TH1F*>(nCuts,new TH1F( "Bc_Pt", "Bc transverse momentum", 50, 0, 30 )));
+  vector<vector<TH1F*> > h_BcPt(nProc, vector<TH1F*>(nCuts,new TH1F( "Bc_Pt", "Bc transverse momentum", 60, 0, 30 )));
   vector<vector<TH1F*> > h_QQM(nProc, vector<TH1F*>(nCuts,new TH1F( "QQ_M", "Jpsi mass", nbinM, 2,4 )));
 
   //grab tree
@@ -498,9 +498,9 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
       if(i>=19 && i<=20) scaleWithProc = 1;
       
       //if(scaleWithProc!=-1) cout<<"scaling histo of proc "<<i<<" with "<<integ[scaleWithProc]<<"/"<<integ[i]<<" = "<<integ[scaleWithProc]/integ[i]<<endl;
-      float scale = (scaleWithProc==-1)?1:(h_BcM[scaleWithProc][k]->Integral() / h_BcM[i][k]->Integral());
+      float scale = ( scaleWithProc==-1 || h_BcM[i][k]->Integral()<=0 )?1:( h_BcM[scaleWithProc][k]->Integral() / h_BcM[i][k]->Integral());
       if(scaleSystBDTintegrated)
-	scale = (scaleWithProc==-1)?1:(integ[scaleWithProc]/integ[i]);
+	scale = (scaleWithProc==-1 || integ[i]<=0)?1:(integ[scaleWithProc]/integ[i]);
       h_BcM[i][k]->Scale(scale);
 
       h_bdt[i][k]->Write("BDTv");
@@ -509,9 +509,9 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
       h_QQM[i][k]->Write("JpsiM");
 
       if(addAccEff) {
-	MakePositive(h_MeanInvAccEff[i][k], (i!=3 && i!=4), didReg); //need same regularization as simple Bc_M
-	MakePositive(h_MeanInvAccEff_BDT23[i][k], (i!=3 && i!=4), didReg);
-	MakePositive(h_MeanInvAccEff_BDT3[i][k], (i!=3 && i!=4), didReg);
+	//MakePositive(h_MeanInvAccEff[i][k], (i!=3 && i!=4), didReg); //need same regularization as simple Bc_M
+	//MakePositive(h_MeanInvAccEff_BDT23[i][k], (i!=3 && i!=4), didReg);
+	//MakePositive(h_MeanInvAccEff_BDT3[i][k], (i!=3 && i!=4), didReg);
 	h_MeanInvAccEff[i][k]->Scale(scale);
 	h_MeanInvAccEff_BDT23[i][k]->Scale(scale);
 	h_MeanInvAccEff_BDT3[i][k]->Scale(scale);
