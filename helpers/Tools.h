@@ -40,3 +40,8 @@ void AddTH1(TH1F* h, TH1F* h2){ //add h2 to h, even with different binnings /com
     }
   }
 }
+
+double getBias(TH1F* h, double pt){
+  int n = h->GetNbinsX();
+  return h->GetBinContent( 1 + (int)(n * (pt-_BcPtmin[0])/(_BcPtmax[0]-_BcPtmin[0])) );
+}

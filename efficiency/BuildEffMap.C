@@ -19,6 +19,7 @@
 #include "../PbPb18/Utilities/EVENTUTILS.h"
 #include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
+#include "../helpers/Tools.h"
 #include "../acceptance/SgMuonAcceptanceCuts.h"
 #include "../helpers/AccEff2DBinning.h"
 #include "./TnP/tnp_weight_lowptPbPb.h"
@@ -90,7 +91,18 @@ void drawEffMap(TH2Poly* hpEff, TH2Poly* hpSel, TH2Poly* hpAcc, TLine* l1, TLine
 
 }
 
-void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBins=false){
+void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBins=false, bool runAEtoys=true){
+
+  //**************************************************************  
+  //Grab the variations of the pT bias of MC, from first step r1 and r2
+  vector<TH1F*> bias;
+  if(runAEtoys==false){
+    TFile *BiasFile = TFile::Open("../twoSteps/pTBiases.root","READ");
+    for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
+      bias.push_back((TH1F*)BiasFile->Get("pTbias_"+(TString)(ispp?"pp":"PbPb")+"_var"+(TString)to_string(v)));
+      //cout<<"variation value_at_11 = "<<v<<" "<<bias[v]->Eval(11)<<endl;
+    }
+  }
 
   //**************************************************************  
   //Create Tree and branches
@@ -366,7 +378,7 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
                         //Assuming R_AA(Bc)=1
 
   //counters, histos
-  float ntot = 0, nfid = 0, nacc = 0, nsel = 0, nsel2 = 0, nBDT23 = 0, nBDT3 = 0;
+  float ntot = 0, nacc = 0, nsel = 0, nsel2 = 0, nBDT23 = 0, nBDT3 = 0;
   TH2Poly *hp = _hp();
   TH2Poly *hp_coarser = _hp_coarser();
   TH2Poly *hp_all = (TH2Poly*) hp->Clone("hp_all");
@@ -388,6 +400,10 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
   vector<vector<float> > eff_oneBinned(_NanaBins+1,vector<float>(4,0)); //nominal, statErr, systErr, totErr
   vector<float> accepted_oneBinned(_NanaBins+1,0);
   vector<vector<vector<float> > > passing_oneB(_NanaBins+1,vector<vector<float> >(4,vector<float>(5,0))); //4 is: muid (or glb), trk (in pp), trg (or muidtrg), tot
+  //MC with biased pT distributions
+  vector<vector<float> > eff_oneB_biased(_NanaBins+1, vector<float>(_biasNmeth*(_biasNtoys+1), 1));
+  vector<vector<float> > accepted_oneB_biased(_NanaBins+1, vector<float>(_biasNmeth*(_biasNtoys+1), 0));
+  vector<vector<float> > passing_oneB_biased(_NanaBins+1, vector<float>(_biasNmeth*(_biasNtoys+1), 0));
 
 
   //Jpsi mass histo for JpsiChoiceWeight
@@ -430,15 +446,21 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
       TLorentzVector *genBc_mumi = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mumi_idx[genQQidx]);
       TLorentzVector *genBc_mupl = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mupl_idx[genQQidx]);
       
-      for(int b=1;b<=_NanaBins;b++)
-	if(fabs(gen3mu->Rapidity())>_BcYmin[b] && fabs(gen3mu->Rapidity())<_BcYmax[b] && gen3mu->Pt()>_BcPtmin[b] && gen3mu->Pt()<_BcPtmax[b] ) nfid += weight;
-
       if(!InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,_withTM)) continue;
       for(int b=1;b<=_NanaBins;b++){
 	if(fabs(gen3mu->Rapidity())>_BcYmin[b] && fabs(gen3mu->Rapidity())<_BcYmax[b] && gen3mu->Pt()>_BcPtmin[b] && gen3mu->Pt()<_BcPtmax[b] ){
 	  accepted_oneBinned[b] += weight;
 	  accepted_oneBinned[0] += weight;
-	}
+
+	  //biased MC
+	  if(runAEtoys){
+	    for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
+	      accepted_oneB_biased[0][v] += getBias( bias[v] , gen3mu->Pt()) * weight;
+	      accepted_oneB_biased[b][v] += getBias( bias[v] , gen3mu->Pt()) * weight;
+	    }
+	  }
+
+	}//end accepted in good ana bin
       }
 
       hp_acc->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight);
@@ -480,7 +502,7 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 	  float mupl_pt = recBc_mupl->Pt();
 	  
 	  bool goodTree = fabs(Reco_3mu_charge[irec])==1 && Reco_QQ_sign[QQidx]==0 && inLooseMassRange(QQM) // in Jpsi mass region
-	    && (BcCandM < _mMax) && (BcCandM > _mBcMin) // in Bc mass region
+	    && (BcCandM < _mBcMax) && (BcCandM > _mBcMin) // in Bc mass region
 	    && Reco_3mu_whichGen[irec]>-1
 	    && Reco_QQ_whichGen[QQidx]>-1;
 	  if(inJpsiMassSB(QQM, maxEta<1.5)) {weight *= -1;}
@@ -596,7 +618,7 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 	    double effcorr_simpleAverage, effcorr_selectiveSFapplication; 
 	    vector<int> erIdx = {2,1,-2,-1,0}; //statlo, stathi, systlo, systhi, nominal
 	    
-	    for(int sftype=0; sftype<3; sftype++){
+	    for(int sftype=0; sftype<3; sftype++){ //nominal result is run in sftype==2
 	      if(ispp && sftype==1) continue;
 	      for(int id=0;id<5;id++){
 		if(id!=4 && (integratePtBins || BDTuncorrFromM)) continue;
@@ -718,6 +740,14 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
 		  if(fabs(gen3mu->Rapidity())>_BcYmin[b] && fabs(gen3mu->Rapidity())<_BcYmax[b] && gen3mu->Pt()>_BcPtmin[b] && gen3mu->Pt()<_BcPtmax[b] ){
 		    passing_oneB[b][sftype][id] += weight * effcorr;
 		    passing_oneB[0][sftype][id] += weight * effcorr;
+
+		    if(er==0 && sftype==2 && runAEtoys){//nominal concerning SF variation
+		      for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
+			passing_oneB_biased[0][v] += getBias( bias[v] , gen3mu->Pt()) * weight * effcorr;
+			passing_oneB_biased[b][v] += getBias( bias[v] , gen3mu->Pt()) * weight * effcorr;
+		      }
+		    }
+
 		  }
 		}
 
@@ -769,6 +799,12 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
     //One-binned efficiency
     for(int e=0;e<4;e++)
       eff_oneBinned[b][e] = passing_oneBinned[b][e]/accepted_oneBinned[b]; 
+    //MC with biased pT
+    if(runAEtoys){
+      for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
+	eff_oneB_biased[b][v] = passing_oneB_biased[b][v]/accepted_oneB_biased[b][v];
+      }
+    }
 
     if(b>0){
       // cout<<"b nom stat syst tot = "<<b<<" "<<passing_oneBinned[b][0]<<" "<<passing_oneBinned[b][1]<<" "<<passing_oneBinned[b][2]<<" "<<passing_oneBinned[b][3]<<endl;
@@ -994,5 +1030,6 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
   hpcoarse_inBDT23->Write("hpcoarse_inBDT23_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(integratePtBins?"_integratePtBins":""));
   hpcoarse_inBDT3->Write("hpcoarse_inBDT3_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(integratePtBins?"_integratePtBins":""));
   fout->WriteObject(&eff_oneBinned,"efficiency_oneBinned"+(TString)(ispp?"_pp":"_PbPb"));
+  if(runAEtoys) fout->WriteObject(&eff_oneB_biased,"efficiency_oneBinned_biased"+(TString)(ispp?"_pp":"_PbPb"));
   fout->Close();
 }

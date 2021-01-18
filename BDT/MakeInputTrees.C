@@ -619,11 +619,6 @@ void MakeInputTrees(bool ispp = true){
 
   //**************************************************************
   //Some variables and XS corrections
-  std::map<bool, float> scaleMCsig = {{ true,  304800 * 2.54e0 * 0.668 / 3000000}, // Lumi_pp[nb-1] (from https://twiki.cern.ch/twiki/bin/viewauth/CMS/TWikiLUM) * (XS_Bc_pp * BF((J/psi -> mu mu) mu nu))[nb] * (XS(5.02 TeV) / XS(7 TeV)) / nevents(uncut MC sample)
-				      { false, 1.0 * 1.6054 * 2.54e0 * 0.668 * (7656 / 67.6) / 4200000} }; //Lumi_PbPb[nb-1] (from https://hypernews.cern.ch/HyperNews/CMS/get/luminosity/948.html) * (XS_Bc_pp * BF((J/psi -> mu mu) mu nu))[nb] * (XS(5.02 TeV) / XS(7 TeV)) * ( XS^geom_PbPb / XS_Nucleon-Nucleon ) / nevents(uncut MC sample)
-                        //weighted by Ncoll(centrality of given event) later, with an average Ncoll_MB = 382. The value of XS^geom was set to A^2 * XS_NN / Ncoll_MB, where XS_NN is taken from Glauber MC d'Enterria PRC 97.054910
-                        //Assuming R_AA(Bc)=1
-
   TFile* fXS = TFile::Open("/home/llr/cms/falmagne/Bc/MCnormalization/NonPromptJpsiXS_scalefactor.root");
   TF1* SFpp = (TF1*)fXS->Get("SFpp");
   std::pair<TF1*,float> scalepp (SFpp, 304800 * 0.06/1000); // SF(data/MC)(Non prompt Jpsi XS) * Lumi_pp[nb-1] (preliminary, from https://hypernews.cern.ch/HyperNews/CMS/get/luminosity/794.html) * BF(Jpsi-> mu mu) / MC in pb->nb 
@@ -771,7 +766,7 @@ void MakeInputTrees(bool ispp = true){
 		  && (BcCandM < _mMax) && (BcCandM > 3.3) // in Bc mass region
 		  && Reco_3mu_whichGen[iIpt][BcNb]>-1
 		  && Reco_QQ_whichGen[iIpt][QQidx]>-1;
-		w_simple[i] = scaleMCsig[ispp];
+		w_simple[i] = _scaleMCsig[ispp];
 		if(inJpsiMassSB(QQCandM, maxEta<1.5)) {w_simple[i] *= -1;}
 		else if(!(inJpsiMassRange(QQCandM, maxEta<1.5))){ w_simple[i] = 0;}
 		break;
@@ -782,7 +777,7 @@ void MakeInputTrees(bool ispp = true){
 		  && Reco_3mu_whichGen[iIpt][BcNb]==-1
 		  && Reco_QQ_whichGen[iIpt][QQidx]>-1;
 		if(goodTree){
-		  if(iIpt==1){ w_simple[i] = scaleMCsig[ispp];} //include Bc candidates from signal MC, unmatched to a gen Bc
+		  if(iIpt==1){ w_simple[i] = _scaleMCsig[ispp];} //include Bc candidates from signal MC, unmatched to a gen Bc
 		  else if(iIpt==2){
 		    TLorentzVector *genQQ = (TLorentzVector*) Gen_QQ_4mom[iIpt]->At(Reco_QQ_whichGen[iIpt][QQidx]);
 		    w_simple[i] = ((ispp)?pthatweight[iIpt]:Gen_weight[iIpt]) * scaleMCb[ispp].second * (scaleMCb[ispp].first)->Eval(genQQ->Pt());

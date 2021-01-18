@@ -189,6 +189,8 @@ void GetNormalization(bool ispp = true, bool isPrompt = false){
   h_QQ_Pt->GetYaxis()->SetTitle("BF(J/#psi#rightarrow#mu#mu) #times d#sigma/dp_{T} [nb/GeV]");
   h_QQ_Pt->SetMinimum(0.4*dataXS->GetY()[nbins-1]);
   h_QQ_Pt->SetMaximum(2.5*h_QQ_Pt->GetMaximum());
+  h_QQ_Pt->GetXaxis()->SetMoreLogLabels();
+  h_QQ_Pt->GetYaxis()->SetMoreLogLabels();
   h_QQ_Pt->Draw();
   dataXS->SetMarkerStyle(20);
   dataXS->SetMarkerSize(2.5);
@@ -218,6 +220,8 @@ void GetNormalization(bool ispp = true, bool isPrompt = false){
   dataMCratio->SetMarkerColor(kBlack);
   dataMCratio->SetLineWidth(2);
   dataMCratio->SetLineColor(kBlack);
+  dataMCratio->GetXaxis()->SetMoreLogLabels();
+  dataMCratio->GetYaxis()->SetMoreLogLabels();
   dataMCratio->Draw("AP");
 
   //Fit the ratio with exponential/constant function

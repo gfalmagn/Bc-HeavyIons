@@ -8,11 +8,18 @@ float m_mu = 0.10566;
 float m_K = 0.493677;
 float m_Pi = 0.13957;
 
-float L_pp = 302.260; //+-1.5% //pb-1 //brilcalc lumi -b "STABLE BEAMS" -i /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions17/5TeV/ReReco/Cert_306546-306826_5TeV_EOY2017ReReco_Collisions17_JSON_MuonPhys.txt --normtag /cvmfs/cms-bril.cern.ch/cms-lumi-pog/Normtags/normtag_BRIL.json --hltpath "HLT_HIL1DoubleMu0_v1" --begin 306546 --end 306826
-float L_PbPb = 1.6054e-3; //+-1.9% //pb-1 //brilcalc lumi --normtag  /cvmfs/cms-bril.cern.ch/cms-lumi-pog/Normtags/normtag_BRIL.json -i /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/HI/PromptReco/Cert_326381-327564_HI_PromptReco_Collisions18_JSON_HF_and_MuonPhys.txt --hltpath "HLT_HIL3Mu0NHitQ10_L2Mu0_MAXdR3p5_M1to5_v1"
+float L_pp = 302260; //+-1.5% //nb-1 //brilcalc lumi -b "STABLE BEAMS" -i /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions17/5TeV/ReReco/Cert_306546-306826_5TeV_EOY2017ReReco_Collisions17_JSON_MuonPhys.txt --normtag /cvmfs/cms-bril.cern.ch/cms-lumi-pog/Normtags/normtag_BRIL.json --hltpath "HLT_HIL1DoubleMu0_v1" --begin 306546 --end 306826
+float L_PbPb = 1.6054; //+-1.9% //nb-1 //brilcalc lumi --normtag  /cvmfs/cms-bril.cern.ch/cms-lumi-pog/Normtags/normtag_BRIL.json -i /afs/cern.ch/cms/CAF/CMSCOMM/COMM_DQM/certification/Collisions18/HI/PromptReco/Cert_326381-327564_HI_PromptReco_Collisions18_JSON_HF_and_MuonPhys.txt --hltpath "HLT_HIL3Mu0NHitQ10_L2Mu0_MAXdR3p5_M1to5_v1"
 float Leq_PbPb = 208*208*L_PbPb; 
 float NMB_PbPb = 1.1194e+10; //+-1.26% https://indico.cern.ch/event/935265/contributions/3930641/attachments/2068596/3472117/PAG_200703_NMB.pdf
 float TAA_090 = 6.27e-9; //pb-1 //6.27+-0.14 mb-1 (2.2%), HIN-19-007-pas-v5
+float Ncoll_MB = 382;
+
+//Some XS MC scalings
+std::map<bool, float> _scaleMCsig = {{ true,  L_pp * 2.54e0 * 0.668 / 3000000}, // Lumi_pp[nb-1] (from https://twiki.cern.ch/twiki/bin/viewauth/CMS/TWikiLUM) * (XS_Bc_pp * BF((J/psi -> mu mu) mu nu))[nb] * (XS(5.02 TeV) / XS(7 TeV)) / nevents(uncut MC sample)
+				    { false, L_PbPb * 2.54e0 * 0.668 * (7656 / 67.6) / 4200000} }; //Lumi_PbPb[nb-1] (from https://hypernews.cern.ch/HyperNews/CMS/get/luminosity/948.html) * (XS_Bc_pp * BF((J/psi -> mu mu) mu nu))[nb] * (XS(5.02 TeV) / XS(7 TeV)) * ( XS^geom_PbPb / XS_Nucleon-Nucleon ) / nevents(uncut MC sample)
+//weighted by Ncoll(centrality of given event) later, with an average Ncoll_MB = 382. The value of XS^geom was set to A^2 * XS_NN / Ncoll_MB, where XS_NN is taken from Glauber MC d'Enterria PRC 97.054910
+//Assuming R_AA(Bc)=1
 
 float temp_corr_AcceffSyst_pp = 0.8;
 float temp_corr_AcceffSyst_PbPb = 0.8;
@@ -20,6 +27,10 @@ float temp_corr_AcceffSyst_PbPb = 0.8;
 float _corr_BcTauSyst = 1.;
 float _XS_BcTauRelSystLo = 0.03;
 float _RAA_BcTauRelSyst = 0.01;
+
+int _biasNmeth = 3;
+std::vector<TString> _biasMethName = {"p_{T}^{n}","p_{T}^{n+m#timesln(p_{T})} (fix m)","p_{T}^{n+m#timesln(p_{T})} (fix n)"};//"linear"
+int _biasNtoys = 500;
 
 //hard-coded, temporary, should be measured on signal MC and signal-enriched data (average of the two)
 vector<vector<float> > ptAverage = {{8.75,17.8} , {9.2,16.9} , {9.0,17.3}}; 

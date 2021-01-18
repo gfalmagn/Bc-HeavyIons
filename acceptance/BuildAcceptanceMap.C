@@ -11,10 +11,24 @@
 #include "Math/PdfFuncMathMore.h"
 #include "../helpers/Definitions.h"
 #include "../helpers/Cuts.h"
+#include "../helpers/Tools.h"
 #include "SgMuonAcceptanceCuts.h"
 #include "../helpers/AccEff2DBinning.h"
 
-void BuildAcceptanceMap(bool withTM = false, bool cutP=false){
+void BuildAcceptanceMap(bool withTM = false, bool cutP=false, bool runAEtoys=true){
+
+  //**************************************************************  
+  //Grab the variations of the pT bias of MC, from first step r1 and r2
+  vector<vector<TH1F*> > bias = vector<vector<TH1F*> >(2);
+  if(runAEtoys){
+    TFile *BiasFile = TFile::Open("../twoSteps/pTBiases.root","READ");
+    for(int col=0;col<2;col++){
+      for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
+	bias[col].push_back((TH1F*)BiasFile->Get("pTbias_"+(TString)((col==0)?"pp":"PbPb")+"_var"+(TString)to_string(v)));
+	//cout<<"col variation value_at_11 = "<<col<<" "<<v<<" "<<bias[col][v]->Eval(11)<<endl;
+      }
+    }
+  }
 
   //**************************************************************  
   //Create Tree 
@@ -79,6 +93,9 @@ void BuildAcceptanceMap(bool withTM = false, bool cutP=false){
   vector<float> gen_oneBinned(_NanaBins+1,0);
   vector<float> accepted_oneBinned(_NanaBins+1,0);
   vector<float> acc_oneBinned(_NanaBins+1,1);
+  vector<vector<vector<float> > > gen_oneB_biased(2, vector<vector<float> >(_NanaBins+1, vector<float>(_biasNmeth*(_biasNtoys+1), 0) ));
+  vector<vector<vector<float> > > accepted_oneB_biased(2, vector<vector<float> >(_NanaBins+1, vector<float>(_biasNmeth*(_biasNtoys+1), 0) ));
+  vector<vector<vector<float> > > acc_oneB_biased(2, vector<vector<float> >(_NanaBins+1, vector<float>(_biasNmeth*(_biasNtoys+1), 1) ));
 
   float nall=0;
   //**************************************************************
@@ -131,18 +148,48 @@ void BuildAcceptanceMap(bool withTM = false, bool cutP=false){
 	  h_fid->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt());
 	  gen_oneBinned[0] += 1;
 	  gen_oneBinned[b] += 1;
+
+	  //biased MC
+	  if(runAEtoys){
+	    for(int col=0;col<2;col++){
+	      for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
+		gen_oneB_biased[col][0][v] += getBias( bias[col][v] , gen3mu->Pt());
+		gen_oneB_biased[col][b][v] += getBias( bias[col][v] , gen3mu->Pt());
+	      }
+	    }
+	  }
+
 	  if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM)){
 	    accepted_oneBinned[0] += 1;
 	    accepted_oneBinned[b] += 1;	  
-	  }
+
+	    //biased MC
+	    if(runAEtoys){
+	      for(int col=0;col<2;col++){
+		for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
+		  accepted_oneB_biased[col][0][v] += getBias( bias[col][v] , gen3mu->Pt());
+		  accepted_oneB_biased[col][b][v] += getBias( bias[col][v] , gen3mu->Pt());
+		}
+	      }
+	    }
+	  }//end is accepted
+
 	}
-      }
+      }//end loop on bins
 
     }//end Bc loop
   } //end event loop
 
-  for(int b=1;b<=_NanaBins;b++)
+  for(int b=0;b<=_NanaBins;b++){
     acc_oneBinned[b] = accepted_oneBinned[b]/gen_oneBinned[b];
+    if(runAEtoys){
+      for(int col=0;col<2;col++){
+	for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
+	  acc_oneB_biased[col][b][v] = accepted_oneB_biased[col][b][v]/gen_oneB_biased[col][b][v];	
+	}
+      }
+    }
+  }
 
   //**************************************************************
   //Lines for fiducial cuts
@@ -246,6 +293,7 @@ void BuildAcceptanceMap(bool withTM = false, bool cutP=false){
   TFile out_file("acceptanceMap.root","RECREATE");
   hp_acceptance->Write();
   out_file.WriteObject(&acc_oneBinned,"acceptance_oneBinned");
+  if(runAEtoys) out_file.WriteObject(&acc_oneB_biased,"acceptance_oneBinned_biased");
 
   out_file.Close();
   
