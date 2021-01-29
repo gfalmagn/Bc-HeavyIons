@@ -97,15 +97,15 @@ void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0){ //kinBin==
   loader.AddTree(tbkgBCM, "Background", 1.,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting);  //background weight = 1 
   // loader.AddTree(tbkgTRUEJ, "Background", 1.,(TCut)(cutBkg+cutHalf1), TMVA::Types::kTraining);//this sample is somewhat redundant, but keep it for more complete description of bkg
   // loader.AddTree(tbkgTRUEJ, "Background", 1.,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting);
-  loader.AddTree(tbkgFLIPJ, "Background", 0.7,(TCut)(cutBkg+cutHalf1), TMVA::Types::kTraining);
-  loader.AddTree(tbkgFLIPJ, "Background", 0.7,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting);
+  loader.AddTree(tbkgFLIPJ, "Background", ispp?0.77:0.7,(TCut)(cutBkg+cutHalf1), TMVA::Types::kTraining);
+  loader.AddTree(tbkgFLIPJ, "Background", ispp?0.77:0.7,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting);
   if(addMCjpsi){
-    loader.AddTree(tbkgBTOJPSI, "Background", 2.,(TCut)(cutBkg+(TString)" && muW_isJpsiBro"+cutHalf1), TMVA::Types::kTraining);
-    loader.AddTree(tbkgBTOJPSI, "Background", 2.,(TCut)(cutBkg+(TString)" && muW_isJpsiBro"+cutHalf2), TMVA::Types::kTesting); 
-    loader.AddTree(tbkgBTOJPSI, "Background", ispp?1.2:1.,(TCut)(cutBkg+(TString)" && !muW_isJpsiBro"+cutHalf1), TMVA::Types::kTraining);
-    loader.AddTree(tbkgBTOJPSI, "Background", ispp?1.2:1.,(TCut)(cutBkg+(TString)" && !muW_isJpsiBro"+cutHalf2), TMVA::Types::kTesting); 
-    loader.AddTree(tbkgPROMPTJPSI, "Background", ispp?1.2:1.,(TCut)(cutBkg+cutHalf1), TMVA::Types::kTraining);
-    loader.AddTree(tbkgPROMPTJPSI, "Background", ispp?1.2:1.,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting); 
+    loader.AddTree(tbkgBTOJPSI, "Background", ispp?1.75:2.6,(TCut)(cutBkg+(TString)" && muW_isJpsiBro"+cutHalf1), TMVA::Types::kTraining);
+    loader.AddTree(tbkgBTOJPSI, "Background", ispp?1.75:2.6,(TCut)(cutBkg+(TString)" && muW_isJpsiBro"+cutHalf2), TMVA::Types::kTesting); 
+    loader.AddTree(tbkgBTOJPSI, "Background", 0.6,(TCut)(cutBkg+(TString)" && !muW_isJpsiBro"+cutHalf1), TMVA::Types::kTraining);
+    loader.AddTree(tbkgBTOJPSI, "Background", 0.6,(TCut)(cutBkg+(TString)" && !muW_isJpsiBro"+cutHalf2), TMVA::Types::kTesting); 
+    loader.AddTree(tbkgPROMPTJPSI, "Background", 0.6,(TCut)(cutBkg+cutHalf1), TMVA::Types::kTraining);
+    loader.AddTree(tbkgPROMPTJPSI, "Background", 0.6,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting); 
   }
   loader.SetWeightExpression( "w_simple2" );
 
@@ -206,8 +206,11 @@ void ClassifierSigBkg(bool ispp=true, bool forCorrMatrix=false){
   }
   else{
     Classifier(ispp,true,1);
+    cout<<endl<<endl;
     Classifier(ispp,false,1);
+    cout<<endl<<endl;
     Classifier(ispp,true,2);
+    cout<<endl<<endl;
     Classifier(ispp,false,2);
   }
 }

@@ -25,7 +25,7 @@
 
 
 //Draw all samples for a given variable
-void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lowerCut, bool leftLeg){
+void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lowerCut, bool leftLeg, bool noROC=false){
   cout<<"Draw variable "<<varName<<endl;
   gStyle->SetOptStat(0);
 
@@ -37,9 +37,11 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
   }
   Color_t cols[] = {kCyan, kMagenta+1, kGreen, kRed-2, kBlue, kOrange-7, kOrange, kGreen+4, kGreen+1};
 
-  TCanvas* c = new TCanvas("c"+varName,"c",3000,1500);
-  c->Divide(2,1);
-  c->cd(1);
+  TCanvas* c = new TCanvas("c"+varName,"c",noROC?1500:3000,1500);
+  if(!noROC){
+    c->Divide(2,1);
+    c->cd(1);
+  }
   TLegend* leg = new TLegend(leftLeg?0.14:0.59,ispp?0.67:0.61,leftLeg?0.42:0.98,0.9);
   leg->SetBorderSize(0);
   leg->SetFillStyle(0);
@@ -64,9 +66,19 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
   leg->SetTextSize(0.035);
   leg->Draw("same");
 
-  c->cd(1)->SetLeftMargin(0.12);
-  c->cd(1)->SetRightMargin(0.022);
-  c->cd(1)->SetBottomMargin(0.12);
+  if(noROC){
+    c->SetLeftMargin(0.12);
+    c->SetRightMargin(0.022);
+    c->SetBottomMargin(0.12);
+
+    c->SaveAs(varName+(TString)(ispp?"_pp":"_PbPb")+".pdf");    
+  } else{
+    c->cd(1)->SetLeftMargin(0.12);
+    c->cd(1)->SetRightMargin(0.022);
+    c->cd(1)->SetBottomMargin(0.12);
+  }
+
+  if(noROC) return; 
 
   //ROC CURVES
   c->cd(2)->SetBottomMargin(0.12);
@@ -157,6 +169,9 @@ void drawVariables(bool ispp=true){
   float Bc_VtxProb[ntrees], Bc_log1min_VtxProb[ntrees];
   float QQ_VtxProb[ntrees], QQ_log1min_VtxProb[ntrees];
   float QQ_dca[ntrees], QQ_log_dca[ntrees];
+  float dR_jpsi[ntrees];
+  float dR_muWmi[ntrees];
+  float dR_muWpl[ntrees];
   float dR_sum[ntrees];
   float dR_jpsiOverMuW[ntrees];
   float dR_jpsiMuW[ntrees];
@@ -209,11 +224,12 @@ void drawVariables(bool ispp=true){
   vector<TH1F*> h_SumDxyMu;
   vector<TH1F*> h_SumDzMu;
   vector<TH1F*> h_BDT;
+  vector<TH1F*> h_AllDimuDeltaR;
 
   int nbins = 41;
-  vector<TString> varName = {"VtxProb","QQVtxProb","alpha","alpha3D","TauSignif","TauSignif3D","mcorr","dca","QQMuWImbal","SumDeltaR","dRJpsiOverMuW","SumDxyMu","SumDzMu","BDT"};
-  vector<bool> lowercut = {1,1,0,0,1,1,0,0,0,0,1,1,1,1};
-  vector<bool> leftLeg = {0,0,0,0,0,0,0,0,0,0,0,0,0,1};
+  vector<TString> varName = {"VtxProb","QQVtxProb","alpha","alpha3D","TauSignif","TauSignif3D","mcorr","dca","QQMuWImbal","SumDeltaR","dRJpsiOverMuW","SumDxyMu","SumDzMu","BDT","AllDimuDeltaR"};
+  vector<bool> lowercut = {1,1,0,0,1,1,0,0,0,0,1,1,1,1,0};
+  vector<bool> leftLeg = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0};
   for(int iT=0; iT<(int)ntrees+1; iT++){ //order is important
     h_VProb.push_back(new TH1F("h_"+varName[0]+"_"+(TString)to_string(iT),"Trimuon vertex probability;VtxProb(#mu#mu#mu);norm to 1",nbins,_vtxProb_cut,1));
     h_QQVProb.push_back(new TH1F("h_"+varName[1]+"_"+(TString)to_string(iT),"J/#psi vertex probability;VtxProb(J/#psi);norm to 1",nbins,_QQvtxProb_cut,1));
@@ -229,9 +245,11 @@ void drawVariables(bool ispp=true){
     h_SumDxyMu.push_back(new TH1F("h_"+varName[12]+"_"+(TString)to_string(iT),"Sum of significances of muon 2D displacement to PV;sum(d_{xy}(#mu)/#sigma);norm to 1",nbins,0,40));
     h_SumDzMu.push_back(new TH1F("h_"+varName[13]+"_"+(TString)to_string(iT),"Sum of significances of muon z displacement to PV;sum(d_{z}(#mu)/#sigma);norm to 1",nbins,0,40));
     h_BDT.push_back(new TH1F("h_"+varName[14]+"_"+(TString)to_string(iT),"BDT;BDT;norm to 1",nbins,_BDTcuts(ispp)[0]-0.2,_BDTcuts(ispp)[_BDTcuts(ispp).size()-1]+0.02));
+    h_AllDimuDeltaR.push_back(new TH1F("h_"+varName[10]+"_"+(TString)to_string(iT),"#DeltaR of all dimuon pairs of trimuon;#DeltaR(#mu_{i}#mu_{j});norm to 1",nbins,0,3.25));
   }
+  int nSpeHist = 1;
 
-  vector<vector<TH1F*> > hist{h_VProb,h_QQVProb,h_alpha,h_alpha3D,h_TauSignif,h_Tau3DSignif,h_mcorr,h_dca,h_QQMuWImbal,h_SumDeltaR,h_dRJpsiOverMuW,h_SumDxyMu,h_SumDzMu,h_BDT};
+  vector<vector<TH1F*> > hist{h_VProb,h_QQVProb,h_alpha,h_alpha3D,h_TauSignif,h_Tau3DSignif,h_mcorr,h_dca,h_QQMuWImbal,h_SumDeltaR,h_dRJpsiOverMuW,h_SumDxyMu,h_SumDzMu,h_BDT,h_AllDimuDeltaR};
 
   for(int iT=0; iT<(int)ntrees; iT++){
     if(iT==7) continue;
@@ -255,6 +273,9 @@ void drawVariables(bool ispp=true){
     T[iT]->SetBranchAddress("QQmuW_ptImbal", &QQmuW_ptImbal[iT]);
     T[iT]->SetBranchAddress("Bc_ctauSignif", &Bc_ctauSignif[iT]);
     T[iT]->SetBranchAddress("Bc_ctauSignif3D", &Bc_ctauSignif3D[iT]);
+    T[iT]->SetBranchAddress("dR_jpsi", &dR_jpsi[iT]);
+    T[iT]->SetBranchAddress("dR_muWmi", &dR_muWmi[iT]);
+    T[iT]->SetBranchAddress("dR_muWpl", &dR_muWpl[iT]);
     T[iT]->SetBranchAddress("dR_sum_shiftedM", &dR_sum[iT]);
     T[iT]->SetBranchAddress("dR_jpsiOverMuW_shiftedM", &dR_jpsiOverMuW[iT]);
     T[iT]->SetBranchAddress("dR_jpsiMuW_shiftedM", &dR_jpsiMuW[iT]);
@@ -276,11 +297,16 @@ void drawVariables(bool ispp=true){
       T[iT]->GetEntry(j);
       vector<float> v{Bc_VtxProb[iT],QQ_VtxProb[iT],Bc_alpha[iT],Bc_alpha3D[iT],Bc_ctauSignif[iT],Bc_ctauSignif3D[iT],Bc_CorrM[iT],QQ_dca[iT],QQmuW_ptImbal[iT],dR_sum[iT],dR_jpsiOverMuW[iT],MuonDxySignif_sum[iT],MuonDzSignif_sum[iT],BDT[iT]};
 
-      for(int ih=0;ih<hist.size();ih++){
-	hist[ih][iT]->Fill(v[ih],weight[iT]);
-	if(iT==5 && muW_isJpsiBro[iT])
-	  hist[ih][ntrees]->Fill(v[ih],weight[iT]);
+      int iT2 = (iT==5 && muW_isJpsiBro[iT])?ntrees:iT;
+      for(int ih=0;ih<hist.size()-nSpeHist;ih++){
+	hist[ih][iT2]->Fill(v[ih],weight[iT]);
       }
+
+      //AllDimuDeltaR
+      hist[hist.size()-1][iT2]->Fill( dR_jpsi[iT] ,weight[iT]);
+      hist[hist.size()-1][iT2]->Fill( dR_muWmi[iT] ,weight[iT]);
+      hist[hist.size()-1][iT2]->Fill( dR_muWpl[iT] ,weight[iT]);
+
 
       // h_QQVProb[iT]->Fill(QQ_VtxProb[iT],weight[iT]);
       // h_alpha[iT]->Fill(Bc_alpha[iT],weight[iT]);
@@ -319,10 +345,11 @@ void drawVariables(bool ispp=true){
   } 
   //END loop on trees
 
-  for(int ih=0;ih<hist.size();ih++){
+  for(int ih=0;ih<hist.size()-nSpeHist;ih++){
     DrawVar(hist[ih],ntrees,varName[ih],ispp,lowercut[ih],leftLeg[ih]);
   }
-  
+  DrawVar(hist[hist.size()-1],ntrees,varName[hist.size()-1],ispp,0,leftLeg[hist.size()-1],true);
+
   delete fullFile;
   
 }

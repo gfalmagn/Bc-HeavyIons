@@ -46,7 +46,7 @@ void GetNormalization(bool ispp = true, bool isPrompt = false){
   TFile *fileMC = TFile::Open(ispp?(isPrompt?
 			      "/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/PromptJpsi/Oniatree_MC_trimuons_PromptJpsi_ptHatMinCombined_05082019.root"
 				    :"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/NonPromptJpsi/MConiatree/crab_BJPsiMM_TuneCUETP8M1_5p02TeV_pythia8_05082019_wLambdabFor10_ptHatMinCombined_ONIATREE.root"):
-			      (isPrompt?"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/PromptJpsi/Jpsi_pThat-2_TuneCP5-EvtGen_HydjetDrumMB_trimuons_oniatree_09012020.root"
+			      (isPrompt?"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/PromptJpsi/Jpsi_pThat-2_TuneCP5_HydjetDrumMB_HINPbPbAutumn18DR_trimuons_oniatree_25012021.root" //Jpsi_pThat-2_TuneCP5-EvtGen_HydjetDrumMB_trimuons_oniatree_09012020.root
 			       :"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/NonPromptJpsi/BToJpsi_pThat-2_TuneCP5-EvtGen_HydjetDrumMB_trimuons_oniatree_09012020.root"),"READ");
   TTree *TMC = (TTree*)fileMC->Get("hionia/myTree");
   int neventsMC = (int)TMC->GetEntries();
@@ -181,6 +181,7 @@ void GetNormalization(bool ispp = true, bool isPrompt = false){
   TCanvas * c1 = new TCanvas("c1","XS(pt)",2000,2000);
   c1->Divide(1,2);
   c1->SetLeftMargin(0.11);
+  c1->cd(1)->SetBottomMargin(0.12);
   c1->cd(1)->SetLogy();
   c1->cd(1)->SetLogx();
   h_QQ_Pt->SetLineColor(kBlue);
@@ -190,7 +191,8 @@ void GetNormalization(bool ispp = true, bool isPrompt = false){
   h_QQ_Pt->SetMinimum(0.4*dataXS->GetY()[nbins-1]);
   h_QQ_Pt->SetMaximum(2.5*h_QQ_Pt->GetMaximum());
   h_QQ_Pt->GetXaxis()->SetMoreLogLabels();
-  h_QQ_Pt->GetYaxis()->SetMoreLogLabels();
+  h_QQ_Pt->GetXaxis()->SetTitleSize(0.051);
+  h_QQ_Pt->GetYaxis()->SetTitleSize(0.051);
   h_QQ_Pt->Draw();
   dataXS->SetMarkerStyle(20);
   dataXS->SetMarkerSize(2.5);
@@ -201,16 +203,17 @@ void GetNormalization(bool ispp = true, bool isPrompt = false){
   dataXS->Draw("Psame");
 
   
-  TLegend lgd(0.7,0.7,0.9,0.9);
+  TLegend lgd(0.65,0.68,0.9,0.9);
   lgd.SetFillStyle(0);
   lgd.SetBorderSize(0);
-  lgd.SetTextSize(0.04);
+  lgd.SetTextSize(0.05);
   lgd.AddEntry(h_QQ_Pt, "#sigma#times BF MC", "l");
   lgd.AddEntry(dataXS,"#sigma#times BF data","p");
   lgd.DrawClone("same");
 
   c1->cd(2)->SetLogy();
   c1->cd(2)->SetLogx();
+  c1->cd(2)->SetBottomMargin(0.12);
   dataMCratio->SetTitle("cross section data/MC ratio");
   dataMCratio->GetYaxis()->SetTitle("#sigma_{data}/#sigma_{MC}");
   dataMCratio->GetXaxis()->SetTitle("Gen J/#psi p_{T} [GeV]");
@@ -222,6 +225,8 @@ void GetNormalization(bool ispp = true, bool isPrompt = false){
   dataMCratio->SetLineColor(kBlack);
   dataMCratio->GetXaxis()->SetMoreLogLabels();
   dataMCratio->GetYaxis()->SetMoreLogLabels();
+  dataMCratio->GetXaxis()->SetTitleSize(0.051);
+  dataMCratio->GetYaxis()->SetTitleSize(0.051);
   dataMCratio->Draw("AP");
 
   //Fit the ratio with exponential/constant function
@@ -234,14 +239,15 @@ void GetNormalization(bool ispp = true, bool isPrompt = false){
   // fratio->SetParNames("tau","ptlim","constant");  
   
   if(isPrompt){
-    fratio->SetParameters(0.6,21,0.1);
     if(ispp){ 
+      fratio->SetParameters(0.6,20,0.4);
       fratio->SetParLimits(0,0.5,0.8);
       fratio->SetParLimits(1,19,24);
       fratio->SetParLimits(2,0.33,0.52);
     }else{
-      fratio->SetParLimits(0,0.7,1.8);
-      fratio->SetParLimits(1,15,25);
+      fratio->SetParameters(0.5,13,0.0001);
+      fratio->SetParLimits(0,0.2,1.4);
+      fratio->SetParLimits(1,10,20);
       fratio->SetParLimits(2,0.,0.001);
     }
   }

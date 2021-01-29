@@ -27,7 +27,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
   //if(useBDTbins) System->Exec("cp BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+"_copystep2.root");
   auto fullFile = TFile::Open("BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root","UPDATE");
   //  fullFile->Cp("BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+"_copystep"+(TString)(useBDTbins?"2":"0")+".root");
-  int ntrees = ispp?10:9;
+  int ntrees = 9;//ispp?10:9;
 
   float muW_eta[ntrees];
   float mumi_eta[ntrees];
@@ -43,9 +43,9 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
   float weight[ntrees];
   float BDT[ntrees];
 
-  TString treeName[] = {"bkgWRONGSIGN","bkgBCMASS","bkgTRUEJPSI","sigRegion","signal_MC","bToJpsi_MC","PromptJpsi_MC","dimuonTrk","flipJpsi","flipJpsibMC"};
+  TString treeName[] = {"bkgWRONGSIGN","bkgBCMASS","bkgTRUEJPSI","sigRegion","signal_MC","bToJpsi_MC","PromptJpsi_MC","dimuonTrk","flipJpsi"};//,"flipJpsibMC"};
   TString prettyName[] = {"WRONGSIGN","J/Psi sidebands","High mass control","signal region","MC signal expectation",
-			  "MC NonPromptJpsi","MC PromptJpsi","dimuon+track (misID)","flipped J/Psi","flipped J/Psi on Nonprompt MC"};
+			  "MC NonPromptJpsi","MC PromptJpsi","dimuon+track (misID)","flipped J/Psi"};//,"flipped J/Psi on Nonprompt MC"};
   vector<TTree*> T;
   for(int itree=0;itree<ntrees;itree++){
     T.push_back((TTree*)fullFile->Get(treeName[itree]));

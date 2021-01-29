@@ -21,7 +21,7 @@ void MakeInputTrees(bool ispp = true){
   //Create Tree and branches
   vector<TTree*> Trees; vector<int> nentries;
   
-  TFile *fileData = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/DoubleMu_Run2017G_AOD_Run_306546_306826_OniaTree_TripleMuBc_07082019.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/data/HIDoubleMuon_HIDoubleMuonPsiPeri_Run2018A_AOD_OniaTree_Run_326381_327564_BcTrimuon_16122019.root","READ");
+  TFile *fileData = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/DoubleMu_Run2017G-09Aug2019_UL2017_AOD_Run_306546_306826_OniaTree_TripleMuBc_25012021.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/data/HIDoubleMuon_HIDoubleMuonPsiPeri_Run2018A_AOD_OniaTree_Run_326381_327564_BcTrimuon_25012021.root","READ");
   Trees.push_back( (TTree*)fileData->Get("hionia/myTree") );
   nentries.push_back( (int)Trees[0]->GetEntries() );
   std::cout<<"nevents data = "<<nentries[0]<<"\n";
@@ -39,7 +39,7 @@ void MakeInputTrees(bool ispp = true){
   std::cout<<"nevents B->J/psi MC = "<<nentries[2]<<"\n";
   //Trees[2]->Print();
 
-  TFile *fileMCpromptJ = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/PromptJpsi/Oniatree_MC_trimuons_PromptJpsi_ptHatMinCombined_05082019.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/PromptJpsi/Jpsi_pThat-2_TuneCP5-EvtGen_HydjetDrumMB_trimuons_oniatree_09012020.root","READ");
+  TFile *fileMCpromptJ = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/PromptJpsi/Oniatree_MC_trimuons_PromptJpsi_ptHatMinCombined_05082019.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/PromptJpsi/Jpsi_pThat-2_TuneCP5_HydjetDrumMB_HINPbPbAutumn18DR_trimuons_oniatree_25012021.root","READ");
   Trees.push_back( (TTree*)fileMCpromptJ->Get("hionia/myTree") );
   nentries.push_back( (int)Trees[3]->GetEntries() );
   std::cout<<"nevents Prompt J/psi MC = "<<nentries[3]<<"\n";
@@ -51,19 +51,19 @@ void MakeInputTrees(bool ispp = true){
   std::cout<<"nevents dimuon+track data = "<<nentries[4]<<"\n";
   //Trees[4]->Print();
 
-  TFile *fileFlipJpsi = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/flipJpsi/DoubleMu_Run2017G_AOD_Run_306546_306826_OniaTree_TripleMuBc_flippedJpsi_13112019.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/flippedJpsi/HIDoubleMuon_HIDoubleMuonPsiPeri_Run2018A_AOD_OniaTree_Run_326381_327564_flippedJpsi_BcTrimuon_27122019.root","READ");
+  TFile *fileFlipJpsi = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/flipJpsi/DoubleMu_Run2017G-09Aug2019_UL2017_AOD_Run_306546_306826_OniaTree_flippedJpsi_25012021.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/flippedJpsi/HIDoubleMuon_HIDoubleMuonPsiPeri_Run2018A_AOD_OniaTree_Run_326381_327564_flippedJpsi_BcTrimuon_25012021.root","READ");
   Trees.push_back( (TTree*)fileFlipJpsi->Get("hionia/myTree") );
   nentries.push_back( (int)Trees[5]->GetEntries() );
   std::cout<<"nevents flipped-Jpsi data = "<<nentries[5]<<"\n";
   //  Trees[5]->Print();
 
-  if(ispp){
-    TFile *fileFlipJpsibMC = TFile::Open("/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/NonPromptJpsi/flipJpsi/BJPsiMM_TuneCUETP8M1_5p02TeV_pythia8_09092020_ptHatMin2_ONIATREE_flipJpsi.root","READ");
-    Trees.push_back( (TTree*)fileFlipJpsibMC->Get("hionia/myTree") );
-    nentries.push_back( (int)Trees[6]->GetEntries() );
-    std::cout<<"nevents flipped-Jpsi b->Jpsi MC = "<<nentries[6]<<"\n";
-    //  Trees[6]->Print();
-  }
+  // if(ispp){
+  //   TFile *fileFlipJpsibMC = TFile::Open("/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/NonPromptJpsi/flipJpsi/BJPsiMM_TuneCUETP8M1_5p02TeV_pythia8_09092020_ptHatMin2_ONIATREE_flipJpsi.root","READ");
+  //   Trees.push_back( (TTree*)fileFlipJpsibMC->Get("hionia/myTree") );
+  //   nentries.push_back( (int)Trees[6]->GetEntries() );
+  //   std::cout<<"nevents flipped-Jpsi b->Jpsi MC = "<<nentries[6]<<"\n";
+  //   //  Trees[6]->Print();
+  // }
 
   const int nInputT = Trees.size();
 
@@ -75,6 +75,7 @@ void MakeInputTrees(bool ispp = true){
   UInt_t INLS[nInputT]; TBranch *b_INLS[nInputT];
   Short_t INnPV[nInputT]; TBranch *b_INnPV[nInputT];
   int INCentrality[nInputT]; TBranch *b_INCentrality[nInputT];
+  float SumET_HF[nInputT]; TBranch *b_SumET_HF[nInputT];
   ULong64_t HLTriggers[nInputT]; TBranch *b_HLTriggers[nInputT];
   Short_t Reco_3mu_size[nInputT]; TBranch *b_Reco_3mu_size[nInputT];
   Short_t Reco_3mu_charge[nInputT][300]; TBranch *b_Reco_3mu_charge[nInputT];
@@ -163,6 +164,10 @@ void MakeInputTrees(bool ispp = true){
     } else if(i!=4) {
       b_INCentrality[i] = Trees[i]->GetBranch("Centrality");
       b_INCentrality[i]->SetAddress(&INCentrality[i]);
+      
+      if(i!=1 && i!=2){ //CHANGE THIS !!! when samples are re-run
+	b_SumET_HF[i] = Trees[i]->GetBranch("SumET_HF");
+	b_SumET_HF[i]->SetAddress(&SumET_HF[i]);}
     }
 
     b_HLTriggers[i] = Trees[i]->GetBranch("HLTriggers");
@@ -400,7 +405,7 @@ void MakeInputTrees(bool ispp = true){
   out_trees.push_back(new TTree("PromptJpsi_MC","MC tree with Prompt Jpsi"));
   out_trees.push_back(new TTree("dimuonTrk","tree with dimuon-track reconstructed the trimuon-way (muW is a track)"));
   out_trees.push_back(new TTree("flipJpsi","tree with trimuon formed from a Jpsi whose PV-SV and momentum have been flipped"));
-  if(ispp) out_trees.push_back(new TTree("flipJpsibMC","tree with trimuon formed from a Jpsi whose PV-SV and momentum have been flipped, from the b->Jpsi MC"));
+  //  if(ispp) out_trees.push_back(new TTree("flipJpsibMC","tree with trimuon formed from a Jpsi whose PV-SV and momentum have been flipped, from the b->Jpsi MC"));
 
   //**************************************************************
   //Create the ouput branches   
@@ -410,6 +415,8 @@ void MakeInputTrees(bool ispp = true){
   UInt_t LS[ntrees];
   int nPV[ntrees];
   int Centrality[ntrees];
+  int Centrality_Up[ntrees];
+  int Centrality_Down[ntrees];
   float Bc_M[ntrees];
   int Bc_charge[ntrees];
   float Bc_CorrM[ntrees];
@@ -421,6 +428,8 @@ void MakeInputTrees(bool ispp = true){
   float Bc_Pt[ntrees];
   float genBc_Pt[ntrees];
   float gen3mu_Pt[ntrees];
+  float genBc_Y[ntrees];
+  float gen3mu_Y[ntrees];
   float Bc_Y[ntrees];
   float Bc_phi[ntrees];
   float Bc_ctau[ntrees];
@@ -512,6 +521,8 @@ void MakeInputTrees(bool ispp = true){
       out_trees[i]->Branch("nPV",&nPV[i],"nPV/I");
     }else{
       out_trees[i]->Branch("Centrality",&Centrality[i],"Centrality/I");
+      out_trees[i]->Branch("Centrality_Up",&Centrality_Up[i],"Centrality_Up/I");
+      out_trees[i]->Branch("Centrality_Down",&Centrality_Down[i],"Centrality_Down/I");
     }
     out_trees[i]->Branch("Bc_M",&Bc_M[i],"Bc_M/F");
     out_trees[i]->Branch("Bc_charge",&Bc_charge[i],"Bc_charge/I");
@@ -525,6 +536,8 @@ void MakeInputTrees(bool ispp = true){
     if(i==4){
       out_trees[i]->Branch("genBc_Pt",&genBc_Pt[i],"genBc_Pt/F");
       out_trees[i]->Branch("gen3mu_Pt",&gen3mu_Pt[i],"gen3mu_Pt/F");
+      out_trees[i]->Branch("genBc_Y",&genBc_Y[i],"genBc_Y/F");
+      out_trees[i]->Branch("gen3mu_Y",&gen3mu_Y[i],"gen3mu_Y/F");
     }
     out_trees[i]->Branch("Bc_Y",&Bc_Y[i],"Bc_Y/F");
     out_trees[i]->Branch("Bc_phi",&Bc_phi[i],"Bc_phi/F");
@@ -695,7 +708,7 @@ void MakeInputTrees(bool ispp = true){
 	  Short_t muplidx_3[3] = { Reco_3mu_mupl_idx[iIpt][BcNb], Reco_QQ_mupl_idx[iIpt][QQidx_3[1]], Reco_QQ_mupl_idx[iIpt][QQidx_3[2]] };
 
 	  int nCandidatePairs = (fabs(Reco_3mu_charge[iIpt][BcNb])==1)?2:3; //use candidates for all three Jpsi-dimuon choices if Bc_charge is wrong, and only the two OS pairs if Bc_charge is right
-	  if(iIpt>=4) nCandidatePairs = 1;
+	  if(iIpt>=4) nCandidatePairs = 1; //!!!! HERE change to iIpt>0 ?
 
 	  //**************************************************************
 	  //Loop on the 2 or 3 possible Jpsi dimuon choices 
@@ -815,9 +828,9 @@ void MakeInputTrees(bool ispp = true){
 		goodTree = fabs(Reco_3mu_charge[iIpt][BcNb])==1 && Reco_QQ_sign[iIpt][QQidx]==0 && inLooseMassRange(QQCandM)//(inJpsiMassRange(QQCandM, maxEta<1.5) || inJpsiMassSB(QQCandM, maxEta<1.5))
 		  && (BcCandM < _mMax) && (BcCandM > 3.3);
 		if(inJpsiMassRange(QQCandM, maxEta<1.5)){
-		  w_simple[i] = 1/7.;} //7 versions of Jpsi flipping are added
+		  w_simple[i] = 1/13.;} //13 versions of Jpsi flipping are added
 		else if(inJpsiMassSB(QQCandM, maxEta<1.5)){
-		  w_simple[i] = -1/7.;} // simple background subtraction (considering linear background) to keep only true J/psi's
+		  w_simple[i] = -1/13.;} // simple background subtraction (considering linear background) to keep only true J/psi's
 		else{
 		  w_simple[i] = 0;}
 		break;
@@ -853,6 +866,10 @@ void MakeInputTrees(bool ispp = true){
 	      QQ_dca[i] = Reco_QQ_dca[iIpt][QQidx];
 	      QQ2_VtxProb[i] = (QQ2idx<Reco_QQ_size[iIpt] && QQ2idx>-1)?(Reco_QQ_VtxProb[iIpt][QQ2idx]):0;
 	      QQ2_dca[i] = (QQ2idx<Reco_QQ_size[iIpt] && QQ2idx>-1)?(Reco_QQ_dca[iIpt][QQ2idx]):100;
+	      if(iIpt>=5){//flipJpsi
+		QQ2_VtxProb[i] = 0.9999;
+		QQ2_dca[i] = 1e-6;
+	      }
 
 	      muW_inLooseAcc[i] = ((iIpt!=4)?Reco_mu_InLooseAcc:Reco_trk_InLooseAcc)[iIpt][muWidx];
 	      muW_inTightAcc[i] = ((iIpt!=4)?Reco_mu_InTightAcc:Reco_trk_InTightAcc)[iIpt][muWidx];
@@ -957,7 +974,16 @@ void MakeInputTrees(bool ispp = true){
 		  LS[i] = 0;
 		}
 		if(ispp){ nPV[i] = INnPV[iIpt];//(int)round(INnPV[iIpt]);
-		}else{ Centrality[i] = INCentrality[iIpt];}
+		}else{ 
+		  Centrality[i] = INCentrality[iIpt]; //getHiBinFromhiHF(SumET_HF[iIpt],0);
+		  if(iIpt==0 || iIpt==3 || iIpt==5){ //CHANGE THIS !!!! when samples are re-run
+		    Centrality_Up[i] = getHiBinFromhiHF(SumET_HF[iIpt],1);
+		    Centrality_Down[i] = getHiBinFromhiHF(SumET_HF[iIpt],-1);
+		  }else{
+		    Centrality_Up[i] = Centrality[i];
+		    Centrality_Down[i] = Centrality[i];
+		  }
+		}
 
 		bkgType[i] = i;
 		if(iIpt==1 && i==5) bkgType[i] = 9; //new bkgType for unmatched trimuons from signal MC, merged in the b->Jpsi background //BEWARE, this was =7 before introduction of dimuon+track!
@@ -1057,17 +1083,23 @@ void MakeInputTrees(bool ispp = true){
 
 		if(iIpt==1){
 		  if(genBcIdx>-1){
-		  TLorentzVector *genBc = (TLorentzVector*) Gen_Bc_4mom[iIpt]->At(genBcIdx);
-		  TLorentzVector *gen3mu = (TLorentzVector*) Gen_3mu_4mom[iIpt]->At(genBcIdx);
-		  genBc_Pt[i] = genBc->Pt();
-		  gen3mu_Pt[i] = gen3mu->Pt();}
+		    TLorentzVector *genBc = (TLorentzVector*) Gen_Bc_4mom[iIpt]->At(genBcIdx);
+		    TLorentzVector *gen3mu = (TLorentzVector*) Gen_3mu_4mom[iIpt]->At(genBcIdx);
+		    genBc_Pt[i] = genBc->Pt();
+		    gen3mu_Pt[i] = gen3mu->Pt();
+		    genBc_Y[i] = genBc->Rapidity();
+		    gen3mu_Y[i] = gen3mu->Rapidity();
+		  }
 		  else{ 
-		    genBc_Pt[i] = 0;
-		    gen3mu_Pt[i] = 0;}
+		    genBc_Y[i] = 0;
+		    gen3mu_Y[i] = 0;
+		    genBc_Y[i] = 0;
+		    gen3mu_Y[i] = 0;
+		  }
 		}
 
 		if(Bc_CorrM_shiftedM[i] > _BcCorrM_cut(ispp) || dR_sum_shiftedM[i]>7.5) continue; //cuts no signal in PbPb, and 0.1% in pp
-		if(!ispp && Centrality[i]>180) continue; //keep 0-90% centrality
+		if(!ispp && min(Centrality[i],min(Centrality_Up[i],Centrality_Down[i]))>180) continue; //keep 0-90% centrality
 	    	     
 		if(!(std::isnan(w_simple[i]))){
 		  if(!ispp && i==3 && Bc_M[i]<_mBcMax){ //whether to blind 3/4 of the events of signal region

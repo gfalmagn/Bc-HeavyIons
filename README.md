@@ -12,7 +12,7 @@
   * `rt "addJpsiChoiceWeight.C(true,false)"`
   * `cp BDT_InputTree_pp.root BDT_InputTree_pp_copystep1.root`
 - Train BDT:
-  * `rt "ClassifierSigBkg.C(true)"`
+  * `rt "ClassifierSigBkg.C(true)" > BDT_trainingOutput_pp.txt`
   * `rt "addBDTvariable.C(true)"`
   * `cp BDT_InputTree_pp.root BDT_InputTree_pp_copystep2.root`
 - Add the Jpsi choice weight, with probabilities that depend on the BDT value (purer dimuon mass distro when looking at high BDT):
@@ -20,7 +20,7 @@
   * `cp BDT_InputTree_pp.root BDT_InputTree_pp_copystep3.root`
 
 ## Preliminaries (BDT-linked)
-- Determine a less powerful version of BDT variable, but that is uncorrelated from the mass
+- Determine a less powerful version of BDT variable, but that is uncorrelated from the mass. Actually, should do this AFTER first nominal fit, for extracting postfit normalisations
   * `cd ~/BDT/`
   * `rt -b "UncorrelateBDTfromM.C(true)"'
 - Determine the BDT binning (written in a header file), for each strategy and kinematic bin. The first time, when the header file does not exist yet, have to run it with option `firstTime=true`, before the second addJpsiChoiceWeight.C running 

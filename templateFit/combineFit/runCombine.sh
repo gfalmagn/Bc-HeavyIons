@@ -28,7 +28,7 @@ makeWorkspace() {
     text2workspace.py datacard${BASENAME}.txt -o datacard${BASENAME}${HISTSYST}.root -P HiggsAnalysis.CombinedLimit.PhysicsModel:multiSignalModel --PO 'map=.*Kin1/BcSig:r1[1,0,6]' --PO 'map=.*Kin2/BcSig:r2[1,0,6]' --channel-masks  --keyword-value METAFITSYST=${HISTSYST} -v 0 > /dev/null
 }
 runCombineBase() {
-    echo combine -d datacard${BASENAME}${HISTSYST}.root -M FitDiagnostics --saveNormalizations --saveOverallShapes --saveShapes -n $(FULLNAME) --saveWithUncertainties -v 0
+    echo ValidateDatacards.py datacard${BASENAME}${HISTSYST}.root && combine -d datacard${BASENAME}${HISTSYST}.root -M FitDiagnostics --saveNormalizations --saveOverallShapes --saveShapes -n $(FULLNAME) --saveWithUncertainties -v 0
 }
 printSyst() {
     echo -e "\n*********\n   "${HISTSYST}${FITSYST}"\n********\n"
@@ -89,6 +89,7 @@ if [ "$nominalOnly" = false ] ; then
     eval $(runCombineBase)
 fi
 
+
 #comment this for reference
 : <<'END'
 combine -M GoodnessOfFit --algorithm saturated datacard_pp_2bins.root --seed 1111
@@ -100,13 +101,18 @@ combine -M Significance datacard_PbPb.root -t -1 --expectSignal=0.57 --toysFreq 
 combine -d datacard_PbPb_2bins.root -M FitDiagnostics --saveNormalizations -n _PbPb_2bins_wSigToys --saveWithUncertainties --toysFreq -t 300 --setParameters r1=1.15,r2=0.6 --seed 999
 combine -d datacard_pp_2bins.root -M FitDiagnostics --saveNormalizations -n _pp_2bins_wSigToys --saveWithUncertainties --toysFreq -t 300 --setParameters r1=0.85,r2=1.15 --seed 999
 
-combineTool.py -M Impacts -d datacard_BDTuncorrFromM_PbPb.root --doInitialFit -m 125 --robustFit 1
-combineTool.py -M Impacts -d datacard_BDTuncorrFromM_PbPb.root --doFits -m 125 --robustFit 1
-combineTool.py -M Impacts -d datacard_BDTuncorrFromM_PbPb.root -m 125 -o impacts_BDTuncorrFromM_PbPb.json
-plotImpacts.py -i impacts_BDTuncorrFromM_PbPb.json -o impacts_BDTuncorrFromM_PbPb
+combineTool.py -M Impacts -d datacard_PbPb_2bins.root --doInitialFit -m 125 --robustFit 1
+combineTool.py -M Impacts -d datacard_PbPb_2bins.root --doFits -m 125 --robustFit 1
+combineTool.py -M Impacts -d datacard_PbPb_2bins.root -m 125 -o impacts_BDTuncorrFromM_PbPb.json
+plotImpacts.py -i impacts_PbPb_2bins.json -o impacts_PbPb_2bins
 
 combine -M MultiDimFit datacard_PbPb_2bins.root --algo grid --points 625 --setParameterRanges r1=0,2.7:r2=0,1.2 -n _PbPb
 combine -M MultiDimFit datacard_pp_2bins.root --algo grid --points 625 --setParameterRanges r1=0.5,1.3:r2=0.7,1.5 -n _pp
+
+combine -d  datacard_pp_2bins.root -M FitDiagnostics -t -1 --expectSignal 0 --setParameters r1=0,r2=0 -n _pp_zeroSigCheck #r1 r2 should be 0
+combine -d  datacard_PbPb_2bins.root -M FitDiagnostics -t -1 --expectSignal 0 --setParameters r1=0,r2=0 -n _PbPb_zeroSigCheck
+combine -d  datacard_pp_2bins.root -M FitDiagnostics -t -1 --setParameters r1=1,r2=1 -n _pp_Sig1Check #r1 r2 should be 1
+combine -d  datacard_PbPb_2bins.root -M FitDiagnostics -t -1 --setParameters r1=1,r2=1 -n _PbPb_Sig1Check
 
 END
 

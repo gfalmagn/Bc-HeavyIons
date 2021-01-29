@@ -13,6 +13,7 @@
 #include "TGaxis.h"
 #include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
+#include "../acceptance/SgMuonAcceptanceCuts.h"
 
 void drawFakeJpsi(bool ispp=true){
 
@@ -23,6 +24,7 @@ void drawFakeJpsi(bool ispp=true){
   int ntrees = 9;
 
   TTree* T = (TTree*)fullFile->Get("bkgBCMASS");
+  TTree* Ts = (TTree*)fullFile->Get("signal_MC");
   TTree* Td = (TTree*)fullFile->Get("sigRegion");
   TTree* Tnp = (TTree*)fullFile->Get("bToJpsi_MC");
 
@@ -31,6 +33,8 @@ void drawFakeJpsi(bool ispp=true){
   TH1F* h_hiSB = new TH1F("h_hiSB",";trimuon mass [GeV];N", 20,3.3,7.3);
   TH1F* h_tightEta = new TH1F("h_tightEta",";dimuon mass [GeV];N", (int)( (2*JpeakWid+JpeakLoBuf+JpeakHiBuf+1e-5)/0.01), m_Jpsi-JpeakLo-JpeakLoBuf-JpeakWid/2,m_Jpsi+JpeakHi+JpeakHiBuf+JpeakWid/2);
   TH1F* h_looseEta = new TH1F("h_looseEta",";dimuon mass [GeV];N",  (int)( (2*JpeakWid+JpeakLoBuf+JpeakHiBuf+1e-5)/0.01), m_Jpsi-JpeakLo-JpeakLoBuf-JpeakWid/2,m_Jpsi+JpeakHi+JpeakHiBuf+JpeakWid/2);
+  TH2F* hVProbBelow006VsDca = new TH2F("hVProbBelow006VsDca",";dca(J/#psi) [mm];eff(VtxProb<0.06)",12,0,ispp?0.11:0.10, 2,-0.5,1.5);
+  TH2F* hVProbBelow004VsDca = new TH2F("hVProbBelow004VsDca",";dca(J/#psi) [mm];eff(VtxProb<0.04)",12,0,ispp?0.11:0.10, 2,-0.5,1.5);
 
   float Bc_M;
   float QQ_M;
@@ -94,6 +98,35 @@ void drawFakeJpsi(bool ispp=true){
   Td->SetBranchAddress("mupl_eta", &dmupl_eta);
   Td->SetBranchAddress("mumi_eta", &dmumi_eta);
 
+  float sBc_M;
+  float sQQ_M;
+  float sQQ_dca;
+  float sBc_Pt;
+  float sBc_Y;
+  float sBc_VtxProb;
+  float sweight;
+  float sBDT;
+  float smuW_eta;
+  float smupl_eta;
+  float smumi_eta;
+  float smuW_pt;
+  float smupl_pt;
+  float smumi_pt;
+  Ts->SetBranchAddress("QQ_M", &sQQ_M);
+  Ts->SetBranchAddress("QQ_dca", &sQQ_dca);
+  Ts->SetBranchAddress("Bc_M", &sBc_M);
+  Ts->SetBranchAddress("Bc_Pt", &sBc_Pt);
+  Ts->SetBranchAddress("Bc_Y", &sBc_Y);
+  Ts->SetBranchAddress("Bc_VtxProb", &sBc_VtxProb);
+  Ts->SetBranchAddress("BDT", &sBDT);
+  Ts->SetBranchAddress("weight", &sweight);
+  Ts->SetBranchAddress("muW_eta", &smuW_eta);
+  Ts->SetBranchAddress("mupl_eta", &smupl_eta);
+  Ts->SetBranchAddress("mumi_eta", &smumi_eta);
+  Ts->SetBranchAddress("muW_Pt", &smuW_pt);
+  Ts->SetBranchAddress("mupl_Pt", &smupl_pt);
+  Ts->SetBranchAddress("mumi_Pt", &smumi_pt);
+
   bool wFidCuts = false;
   //*******************************************
   //Fill the histograms
@@ -141,6 +174,23 @@ void drawFakeJpsi(bool ispp=true){
       h_bToJ->Fill(npBc_M,npweight);    
   }
 
+  //signal MC
+  float nsig=0, nAccTau=0;
+  for(int j=0; j<Ts->GetEntries(); j++){
+    
+    Ts->GetEntry(j);
+    if(wFidCuts) 
+      if(!inFidCuts(0, sBc_Pt, sBc_Y)) continue; //fiducial cuts
+
+    hVProbBelow006VsDca->Fill(sQQ_dca,(float)(sBc_VtxProb<0.06),sweight);    
+    hVProbBelow004VsDca->Fill(sQQ_dca,(float)(sBc_VtxProb<0.04),sweight);    
+
+    nsig+= sweight;
+    if((tightAcc(smumi_pt,smumi_eta) && tightAcc(smupl_pt,smupl_eta) && looseAcc(smuW_pt*3/5,smuW_eta)) ||
+       tightAcc(smuW_pt*3/5,smuW_eta))
+      nAccTau+= sweight;
+  }
+  cout<<"proportion of signal trimuons which pass acceptance cuts with pT(mu_W)/2 = "<<nAccTau/nsig<<endl;
 
   gStyle->SetOptStat(0);
 
@@ -202,5 +252,41 @@ void drawFakeJpsi(bool ispp=true){
   t4.Draw("same");
 
   c3->SaveAs("figs/BcM_separateJpsiSidebands_"+(TString)(ispp?"pp":"PbPb")+".pdf");
+
+  gStyle->SetOptStat(0);
+
+  TCanvas *c4 = new TCanvas("c4","c4",3000,1500);
+  c4->Divide(2,1);
+  TProfile* hprof_VProbBelow004VsDca = hVProbBelow004VsDca->ProfileX();
+  TProfile* hprof_VProbBelow006VsDca = hVProbBelow006VsDca->ProfileX();
+
+  c4->cd(1);
+  c4->cd(1)->SetLeftMargin(0.13);
+  c4->cd(1)->SetRightMargin(0.03);
+  hprof_VProbBelow004VsDca->SetMinimum(0);
+  hprof_VProbBelow004VsDca->GetYaxis()->SetTitle("eff(VtxProb<0.04)");
+  hprof_VProbBelow004VsDca->Draw("E");
+
+  TF1* vprobcut004Fit = new TF1("fit004","[0]+x*[1]",0,1.1);
+  hprof_VProbBelow004VsDca->Fit(vprobcut004Fit);
+  cout<<"VtxProb<0.04: values of fit at 0, 0.087, and ratio of the two = "<<vprobcut004Fit->Eval(0)<<" "<<vprobcut004Fit->Eval(0.087)<<" "<<vprobcut004Fit->Eval(0.087)/vprobcut004Fit->Eval(0)<<endl;
+  cout<<"Fraction of rejected trimuons with tau decays from (VtxProb<0.04) fit, and 5% rejected by VtxProb<0.01 = "<<0.05*vprobcut004Fit->Eval(0.087)/vprobcut004Fit->Eval(0)<<endl;
+
+  c4->cd(2);
+  c4->cd(2)->SetLeftMargin(0.13);
+  c4->cd(2)->SetRightMargin(0.03);
+  hprof_VProbBelow006VsDca->SetMinimum(0);
+  hprof_VProbBelow006VsDca->GetYaxis()->SetTitle("eff(VtxProb<0.06)");
+  hprof_VProbBelow006VsDca->Draw("E");
+
+  TF1* vprobcut006Fit = new TF1("fit006","[0]+x*[1]",0,1.1);
+  hprof_VProbBelow006VsDca->Fit(vprobcut006Fit);
+  cout<<"VtxProb<0.06: values of fit at 0, 0.087, and ratio of the two = "<<vprobcut006Fit->Eval(0)<<" "<<vprobcut006Fit->Eval(0.087)<<" "<<vprobcut006Fit->Eval(0.087)/vprobcut006Fit->Eval(0)<<endl;
+  cout<<"Fraction of rejected trimuons with tau decays from (VtxProb<0.06) fit, and 5% rejected by VtxProb<0.01 = "<<0.05*vprobcut006Fit->Eval(0.087)/vprobcut006Fit->Eval(0)<<endl;
+
+
+  
+
+  c4->SaveAs("figs/SigMC_VProbCutEfficiency_Vs_QQdca_"+(TString)(ispp?"pp":"PbPb")+".pdf");
 
 }

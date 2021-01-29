@@ -13,6 +13,7 @@
 #include "TGaxis.h"
 #include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
+#include "../helpers/Definitions.h"
 
 void drawFlipJpsi(bool ispp=true, bool highMass = false){
 
@@ -27,14 +28,14 @@ void drawFlipJpsi(bool ispp=true, bool highMass = false){
   TTree* Tnp = (TTree*)fullFile->Get("bToJpsi_MC");
   //TTree* Td = (TTree*)fullFile->Get("sigRegion");
 
-  TH1F* h_yields = new TH1F("h_yields",(TString)(ispp?"pp":"PbPb")+" yields;J/#psi rotation angle;counts", 9,0,9);
-  TH1F* h_oppEta = new TH1F("h_oppEta",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,7.3);
-  TH1F* h_samEta = new TH1F("h_samEta",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,7.3);
-  TH1F* h_oppPhi = new TH1F("h_oppPhi",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,7.3);
-  TH1F* h_otherPhi = new TH1F("h_otherPhi",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,7.3);
-  TH1F* h_MCtrueJ = new TH1F("h_MCtrueJ",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,7.3);
-  TH1F* h_fliptrueJ = new TH1F("h_fliptrueJ",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,7.3);
-  TH1F* h_pBcM = new TH1F("h_pBcM",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,7.3);
+  TH1F* h_yields = new TH1F("h_yields",(TString)(ispp?"pp":"PbPb")+" yields;J/#psi rotation angle;counts", 15,0,15);
+  TH1F* h_oppEta = new TH1F("h_oppEta",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,_mMax);
+  TH1F* h_samEta = new TH1F("h_samEta",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,_mMax);
+  TH1F* h_oppPhi = new TH1F("h_oppPhi",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,_mMax);
+  TH1F* h_otherPhi = new TH1F("h_otherPhi",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,_mMax);
+  TH1F* h_MCtrueJ = new TH1F("h_MCtrueJ",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,_mMax);
+  TH1F* h_fliptrueJ = new TH1F("h_fliptrueJ",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,_mMax);
+  TH1F* h_pBcM = new TH1F("h_pBcM",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,_mMax);
   TH1F* h_BDT = new TH1F("h_BDT",";BDT;normalised to 1", ispp?20:16,-0.6,0.6);
   TH1F* h_dBDT = new TH1F("h_dBDT",";BDT;normalised to 1", ispp?20:16,-0.6,0.6);
 
@@ -97,13 +98,13 @@ void drawFlipJpsi(bool ispp=true, bool highMass = false){
     if(highMass)
       if(Bc_M<6.2) continue;
     
-    h_yields->Fill(flipJpsi+1e-3,weight*7);
+    h_yields->Fill(flipJpsi+1e-3,weight*13);
     h_fliptrueJ->Fill(Bc_M,weight);
 
-    if(flipJpsi<5) h_oppEta->Fill(Bc_M,weight*7);
-    else h_samEta->Fill(Bc_M,weight*7);
-    if(flipJpsi==1 || flipJpsi==6) h_oppPhi->Fill(Bc_M,weight*7);
-    else h_otherPhi->Fill(Bc_M,weight*7);
+    if(flipJpsi<9) h_oppEta->Fill(Bc_M,weight*13);
+    else h_samEta->Fill(Bc_M,weight*13);
+    if((flipJpsi>=6 && flipJpsi<=8) || flipJpsi>=11) h_oppPhi->Fill(Bc_M,weight*13);
+    else h_otherPhi->Fill(Bc_M,weight*13);
 
     h_BDT->Fill(BDT,weight);        
   }
@@ -151,14 +152,20 @@ void drawFlipJpsi(bool ispp=true, bool highMass = false){
   h_yields->SetTitleOffset(0.2);
   h_yields->SetLineWidth(4);
   h_yields->GetXaxis()->SetBinLabel(1,"");
-  h_yields->GetXaxis()->SetBinLabel(2,"#eta #rightarrow #minus#eta, #Delta#phi = #pi");
-  h_yields->GetXaxis()->SetBinLabel(3,"#eta #rightarrow #minus#eta, #Delta#phi = #frac{#pi}{2}");
-  h_yields->GetXaxis()->SetBinLabel(4,"#eta #rightarrow #minus#eta, #Delta#phi = 0");
-  h_yields->GetXaxis()->SetBinLabel(5,"#eta #rightarrow #minus#eta, #Delta#phi = #minus#frac{#pi}{2}");
-  h_yields->GetXaxis()->SetBinLabel(6,"#Delta#eta = 0, #Delta#phi = #frac{#pi}{2}");
-  h_yields->GetXaxis()->SetBinLabel(7,"#Delta#eta = 0, #Delta#phi = #pi");
-  h_yields->GetXaxis()->SetBinLabel(8,"#Delta#eta = 0, #Delta#phi = #minus#frac{#pi}{2}");
-  h_yields->GetXaxis()->SetBinLabel(9,"");
+  h_yields->GetXaxis()->SetBinLabel(2,"#eta #rightarrow #minus#eta, #Delta#phi = 0");
+  h_yields->GetXaxis()->SetBinLabel(3,"#eta #rightarrow #minus#eta, #Delta#phi = #frac{#pi}{4}");
+  h_yields->GetXaxis()->SetBinLabel(4,"#eta #rightarrow #minus#eta, #Delta#phi = #minus #frac{#pi}{4}");
+  h_yields->GetXaxis()->SetBinLabel(5,"#eta #rightarrow #minus#eta, #Delta#phi = #frac{#pi}{2}");
+  h_yields->GetXaxis()->SetBinLabel(6,"#eta #rightarrow #minus#eta, #Delta#phi = #minus #frac{#pi}{2}");
+  h_yields->GetXaxis()->SetBinLabel(7,"#eta #rightarrow #minus#eta, #Delta#phi = #frac{3#pi}{4}");
+  h_yields->GetXaxis()->SetBinLabel(8,"#eta #rightarrow #minus#eta, #Delta#phi = #minus #frac{3#pi}{4}");
+  h_yields->GetXaxis()->SetBinLabel(9,"#eta #rightarrow #minus#eta, #Delta#phi = #pi");
+  h_yields->GetXaxis()->SetBinLabel(10,"#Delta#eta = 0, #Delta#phi = #frac{#pi}{2}");
+  h_yields->GetXaxis()->SetBinLabel(11,"#Delta#eta = 0, #Delta#phi = #minus #frac{#pi}{2}");
+  h_yields->GetXaxis()->SetBinLabel(12,"#Delta#eta = 0, #Delta#phi = #frac{3#pi}{4}");
+  h_yields->GetXaxis()->SetBinLabel(13,"#Delta#eta = 0, #Delta#phi = #minus #frac{3#pi}{4}");
+  h_yields->GetXaxis()->SetBinLabel(14,"#Delta#eta = 0, #Delta#phi = #pi");
+  h_yields->GetXaxis()->SetBinLabel(15,"");
   h_yields->GetXaxis()->SetTitleOffset(-0.7);
   h_yields->GetXaxis()->SetTitleSize(0.046);
   h_yields->GetXaxis()->SetLabelSize(0.06);

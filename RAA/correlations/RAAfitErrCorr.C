@@ -15,6 +15,16 @@
 
 void RAAfitErrCorr(bool fromfit=true){
 
+  vector<float> *AEcorr12_pp;
+  vector<float> *AEcorr12_PbPb;
+  vector<vector<double> > *InvAccEff_pp;
+  vector<vector<double> > *InvAccEff_PbPb;
+  TFile *infile2 = new TFile("../../twoSteps/AccEffFrom2ndStepToys.root","READ");
+  infile2->GetObject("InvAccEffFrom2ndStep_LinearisedCorrelationFactor_pp", AEcorr12_pp);
+  infile2->GetObject("InvAccEffFrom2ndStep_LinearisedCorrelationFactor_PbPb", AEcorr12_PbPb);
+  infile2->GetObject("InvAccEffFrom2ndStep_withSystErr_pp", InvAccEff_pp);
+  infile2->GetObject("InvAccEffFrom2ndStep_withSystErr_PbPb", InvAccEff_PbPb);
+
   vector<float> *y_nom_pp;
   vector<vector<float> > *y_fitErr_pp;
   vector<float> *r1r2Corr_pp;
@@ -30,10 +40,22 @@ void RAAfitErrCorr(bool fromfit=true){
   infile->GetObject("FinalCorrectedYield_fitError_PbPb", y_fitErr_PbPb);
   infile->GetObject("r1r2Correlation_PbPb", r1r2Corr_PbPb);
 
-  float rho_pp = fromfit?((*r1r2Corr_pp)[0]):temp_corr_AcceffSyst_pp;
-  float rho_PbPb = fromfit?((*r1r2Corr_PbPb)[0]):temp_corr_AcceffSyst_PbPb;
+  float rho_pp = fromfit?((*r1r2Corr_pp)[0]):((*AEcorr12_pp)[0]);
+  float rho_PbPb = fromfit?((*r1r2Corr_PbPb)[0]):((*AEcorr12_PbPb)[0]);
   cout<<"corr factor pp = "<<rho_pp<<endl;
   cout<<"corr factor PbPb = "<<rho_PbPb<<endl;
+
+  vector<float> yErr_pp;
+  yErr_pp.push_back(fromfit?(*y_fitErr_pp)[0][0]:(
+						  (float)(*InvAccEff_pp)[0][1] * (*y_nom_pp)[0] / (*InvAccEff_pp)[0][0])); //error of AccEff on y_nom
+  yErr_pp.push_back(fromfit?(*y_fitErr_pp)[1][0]:(
+						  (float)(*InvAccEff_pp)[1][1] * (*y_nom_pp)[1] / (*InvAccEff_pp)[1][0])); //error of AccEff on y_nom
+  vector<float> yErr_PbPb;
+  yErr_PbPb.push_back(fromfit?(*y_fitErr_PbPb)[0][0]:(
+						  (float)(*InvAccEff_PbPb)[0][1] * (*y_nom_PbPb)[0] / (*InvAccEff_PbPb)[0][0])); //error of AccEff on y_nom
+  yErr_PbPb.push_back(fromfit?(*y_fitErr_PbPb)[1][0]:(
+						  (float)(*InvAccEff_PbPb)[1][1] * (*y_nom_PbPb)[1] / (*InvAccEff_PbPb)[1][0])); //error of AccEff on y_nom
+						    
 
   const int n = 200000;
   double X1_pp,X2_pp,X1_PbPb,X2_PbPb,X1_RAA,X2_RAA;
@@ -51,12 +73,12 @@ void RAAfitErrCorr(bool fromfit=true){
   float norm2PbPb1 = NMB_PbPb * TAA_090 * (-_BcPtmin[1]+_BcPtmax[1]);
   
   cout<<"pp nominal: "<<(*y_nom_pp)[0]/normpp0<<" "<<(*y_nom_pp)[1]/normpp1<<endl;
-  cout<<"pp error: "<<(*y_fitErr_pp)[0][0]/normpp0<<" "<<(*y_fitErr_pp)[1][0]/normpp1<<endl;
+  cout<<"pp error: "<<yErr_pp[0]/normpp0<<" "<<yErr_pp[1]/normpp1<<endl;
   cout<<"PbPb nominal: "<<(*y_nom_PbPb)[0]/normPbPb0<<" "<<(*y_nom_PbPb)[1]/normPbPb1<<endl;
-  cout<<"PbPb error: "<<(*y_fitErr_PbPb)[0][0]/normPbPb0<<" "<<(*y_fitErr_PbPb)[1][0]/normPbPb1<<endl;
+  cout<<"PbPb error: "<<yErr_PbPb[0]/normPbPb0<<" "<<yErr_PbPb[1]/normPbPb1<<endl;
 
-  TH2D* h_pp = new TH2D("h_pp","pp",300,(*y_nom_pp)[0]/normpp0 - 4*(*y_fitErr_pp)[0][0]/normpp0,(*y_nom_pp)[0]/normpp0 + 4*(*y_fitErr_pp)[0][0]/normpp0,300,(*y_nom_pp)[1]/normpp1 - 4*(*y_fitErr_pp)[1][0]/normpp1,(*y_nom_pp)[1]/normpp1 + 4*(*y_fitErr_pp)[1][0]/normpp1);
-  TH2D* h_PbPb = new TH2D("h_PbPb","PbPb",300,max((float)0.,(*y_nom_PbPb)[0]/normPbPb0 - 4*(*y_fitErr_PbPb)[0][0]/normPbPb0),(*y_nom_PbPb)[0]/normPbPb0 + 4*(*y_fitErr_PbPb)[0][0]/normPbPb0,300,max((float)0.,(*y_nom_PbPb)[1]/normPbPb1 - 4*(*y_fitErr_PbPb)[1][0]/normPbPb1),(*y_nom_PbPb)[1]/normPbPb1 + 4*(*y_fitErr_PbPb)[1][0]/normPbPb1);
+  TH2D* h_pp = new TH2D("h_pp","pp",300,(*y_nom_pp)[0]/normpp0 - 4*yErr_pp[0]/normpp0,(*y_nom_pp)[0]/normpp0 + 4*yErr_pp[0]/normpp0,300,(*y_nom_pp)[1]/normpp1 - 4*yErr_pp[1]/normpp1,(*y_nom_pp)[1]/normpp1 + 4*yErr_pp[1]/normpp1);
+  TH2D* h_PbPb = new TH2D("h_PbPb","PbPb",300,max((float)0.,(*y_nom_PbPb)[0]/normPbPb0 - 4*yErr_PbPb[0]/normPbPb0),(*y_nom_PbPb)[0]/normPbPb0 + 4*yErr_PbPb[0]/normPbPb0,300,max((float)0.,(*y_nom_PbPb)[1]/normPbPb1 - 4*yErr_PbPb[1]/normPbPb1),(*y_nom_PbPb)[1]/normPbPb1 + 4*yErr_PbPb[1]/normPbPb1);
   TH2D* h_RAA = new TH2D("h_RAA","RAA",300,0.,3,300,0.2,0.9);
   
   for(int i=0;i<n;i++){
@@ -64,11 +86,10 @@ void RAAfitErrCorr(bool fromfit=true){
     //    rengine.Gaussian2D((*y_fitErr_PbPb)[0],(*y_fitErr_PbPb)[1],rho_PbPb,&(x1_PbPb[i]),&(x2_PbPb[i]));
 
     double z1 = gRandom->Gaus(),z2 = gRandom->Gaus(),z3 = gRandom->Gaus(),z4 = gRandom->Gaus();
-
-    X1_pp = ((*y_fitErr_pp)[0][0] * z1 + (*y_nom_pp)[0])/normpp0; //correlate the X1 and X2 with rho_pp
-    X2_pp = ((*y_fitErr_pp)[1][0] * ( rho_pp*z1+sqrt(1-pow(rho_pp,2))*z2 ) + (*y_nom_pp)[1])/normpp1;
-    X1_PbPb = ((*y_fitErr_PbPb)[0][0] * z3 + (*y_nom_PbPb)[0])/normPbPb0;
-    X2_PbPb = ((*y_fitErr_PbPb)[1][0] * ( rho_PbPb*z3+sqrt(1-pow(rho_PbPb,2))*z4 ) + (*y_nom_PbPb)[1])/normPbPb1;
+    X1_pp = (yErr_pp[0] * z1 + (*y_nom_pp)[0])/normpp0; //correlate the X1 and X2 with rho_pp
+    X2_pp = (yErr_pp[1] * ( rho_pp*z1+sqrt(1-pow(rho_pp,2))*z2 ) + (*y_nom_pp)[1])/normpp1;
+    X1_PbPb = (yErr_PbPb[0] * z3 + (*y_nom_PbPb)[0])/normPbPb0;
+    X2_PbPb = (yErr_PbPb[1] * ( rho_PbPb*z3+sqrt(1-pow(rho_PbPb,2))*z4 ) + (*y_nom_PbPb)[1])/normPbPb1;
     X1_PbPb = max(X1_PbPb,0.);
     X2_PbPb = max(X2_PbPb,0.);
     X1_RAA = X1_PbPb*norm2pp0/(X1_pp*norm2PbPb0) ;
@@ -78,6 +99,7 @@ void RAAfitErrCorr(bool fromfit=true){
     h_RAA->Fill(X1_RAA,X2_RAA);
     // cout<<"X1_pp z1 X1_PbPb z2 = "<<X1_pp<<" "<<z1<<" "<<X1_PbPb<<" "<<z2<<endl;
     // cout<<"X2_pp z3 X2_PbPb z4 = "<<X2_pp<<" "<<z3<<" "<<X2_PbPb<<" "<<z4<<endl;
+    // cout<<X1_RAA<<" "<<X2_RAA<<endl;
   }
 
   cout<<"h_pp->GetCorrelationFactor() = "<<h_pp->GetCorrelationFactor()<<endl;

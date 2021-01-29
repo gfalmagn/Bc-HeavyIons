@@ -1,3 +1,7 @@
+double AugmentBelowOne(double base, double factor){
+  return base + factor*(1-base);
+}
+
 //All functions are from true pp TnP results, in: ~/TnP/CMSSW_9_4_12/src/MuonAnalysis/TagAndProbe/test/results
 //pp track->Global-muon eff
 double Efficiency1(double pt, double eta, bool isMC){
@@ -11,12 +15,13 @@ double Efficiency1(double pt, double eta, bool isMC){
     } else return 0;
   }
   else{
+    double addFact = TMath::ATan(pt/1.5) / (TMath::Pi()/2);
     if(fabs(eta)<1.2){
-      return 3.09240*(TMath::Erf((pt-1.97227)/1.41718)*TMath::Exp(-0.00042*pt))-2.10974;
+      return addFact * 3.09240*(TMath::Erf((pt-1.97227)/1.41718)*TMath::Exp(-0.00042*pt))-2.10974;
     }else if (fabs(eta)>=1.2 && fabs(eta)<1.8){
-      return 3.04183*(TMath::Erf((pt-0.74461)/1.33635)*TMath::Exp(-0.00000*pt))-2.08233;
+      return addFact * 3.04183*(TMath::Erf((pt-0.74461)/1.33635)*TMath::Exp(-0.00000*pt))-2.08233;
     }else if (fabs(eta)>=1.8 && fabs(eta)<2.4){
-      return 0.85986*(TMath::Erf((pt-0.85652)/1.20367)*TMath::Exp(-0.00182*pt))+0.10307;
+      return addFact * 0.85986*(TMath::Erf((pt-0.85652)/1.20367)*TMath::Exp(-0.00182*pt))+0.10307;
     }else return 0;
   }
 }
@@ -61,14 +66,15 @@ double Efficiency2times3(double pt, double eta, bool isMC){
     }else return 0;
   }
   else{
+    double addFact = 0.6;
     if(fabs(eta)<1.2){
-      return 1.57388*(TMath::Erf((pt-1.75360)/1.68781)*TMath::Exp(-0.00105*pt))-0.61811;
+      return AugmentBelowOne(1.57388*(TMath::Erf((pt-1.75360)/1.68781)*TMath::Exp(-0.00105*pt))-0.61811 , addFact);
     }else if (fabs(eta)>=1.2 && fabs(eta)<1.8){
-      return 3.10710*(TMath::Erf((pt+8.02355)/8.30784)*TMath::Exp(-0.00001*pt))-2.17027;
+      return AugmentBelowOne(3.10710*(TMath::Erf((pt+8.02355)/8.30784)*TMath::Exp(-0.00001*pt))-2.17027 , addFact);
     }else if (fabs(eta)>=1.8 && fabs(eta)<2.1){
-      return 4.54910*(TMath::Erf((pt+0.75206)/1.89159)*TMath::Exp(-0.00180*pt))-3.58225;
+      return AugmentBelowOne(4.54910*(TMath::Erf((pt+0.75206)/1.89159)*TMath::Exp(-0.00180*pt))-3.58225 , addFact);
     }else if (fabs(eta)>=2.1 && fabs(eta)<2.4){
-      return 0.92282*(TMath::Erf((pt-0.55830)/1.07141)*TMath::Exp(-0.00463*pt))+0.04455;
+      return AugmentBelowOne(0.92282*(TMath::Erf((pt-0.55830)/1.07141)*TMath::Exp(-0.00463*pt))+0.04455 , addFact);
     }else return 0;
   }
 }

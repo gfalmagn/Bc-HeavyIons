@@ -16,8 +16,7 @@
 #include "../PbPb18/Utilities/EVENTUTILS.h"
 #include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
-#include "../acceptance/SgMuonAcceptanceCuts.h"
-#include "../helpers/AccEff2DBinning.h"
+#include "../helpers/Tools.h"
 
 void plotToyAccEff(bool ispp=true){
 
@@ -40,30 +39,44 @@ void plotToyAccEff(bool ispp=true){
   feff->GetObject("efficiency_oneBinned"+(TString)(ispp?"_pp":"_PbPb"), eff_oneBinned);
 
   //histograms of acc and eff filled with toys
-  vector<vector<TH1F*> > acc_toys(_biasNmeth);
-  vector<vector<TH1F*> > eff_toys(_biasNmeth);
-  vector<vector<TH1F*> > acceff_toys(_biasNmeth);
+  vector<vector<TH1F*> > accI_toys(_biasNmeth);
+  vector<vector<TH1F*> > effI_toys(_biasNmeth);
+  vector<vector<TH1F*> > acceffI_toys(_biasNmeth);
+  
+  //output
+  vector<vector<float> > acceffI_biased(_NanaBins);
+  vector<float> DevToMean(_NanaBins);
+  vector<vector<double> > nomiAndErr(_NanaBins);
 
   int col = ispp?0:1;
   for(int b=1;b<=_NanaBins;b++){
     
     //histograms definition
-    float typacc = (*acc_oneBinned)[b];
-    float typeff = (*eff_oneBinned)[b][0];
-    float typacceff = typacc*typeff;
+    float accI_unbiased = 1/(*acc_oneBinned)[b];
+    float effI_unbiased = 1/(*eff_oneBinned)[b][0];
+    float acceffI_unbiased = accI_unbiased*effI_unbiased;
+    float maxacc = MaxVec((*acc_biased)[col][b], 1/accI_unbiased, ispp?1e5:(_biasNmeth+2*_biasNtoys));//exclude outliers (especially 4) from third method
+    float minacc = MinVec((*acc_biased)[col][b], 1/accI_unbiased);
+    float maxeff = MaxVec((*eff_biased)[b], 1/effI_unbiased, ispp?1e5:(_biasNmeth+2*_biasNtoys));
+    float mineff = MinVec((*eff_biased)[b], 1/effI_unbiased);
+    float maxacceff = maxacc*maxeff;
+    float minacceff = minacc*mineff;
+    for(int m=0;m<_biasNmeth;m++) acceffI_biased[b-1].push_back(1/((*acc_biased)[col][b][m] * (*eff_biased)[b][m]));
+
     for(int m=0;m<_biasNmeth;m++){
 
-      acc_toys[m].push_back(new TH1F("acc_toys"+(TString)(ispp?"_pp":"_PbPb")+"_bin"+(TString)to_string(b)+"_meth"+(TString)to_string(m), "acceptance toys "+(TString)(ispp?"pp":"PbPb")+" bin"+(TString)to_string(b)+";acceptance;n_{toys}", 22, (ispp?0.98:0.75)*typacc, (ispp?1.12:1.2)*typacc));
-      eff_toys[m].push_back(new TH1F("eff_toys"+(TString)(ispp?"_pp":"_PbPb")+"_bin"+(TString)to_string(b)+"_meth"+(TString)to_string(m), "efficiency toys "+(TString)(ispp?"pp":"PbPb")+" bin"+(TString)to_string(b)+";efficiency;n_{toys}", 22, (ispp?0.99:0.8)*typeff, (ispp?1.04:1.2)*typeff));
-      acceff_toys[m].push_back(new TH1F("acceff_toys"+(TString)(ispp?"_pp":"_PbPb")+"_bin"+(TString)to_string(b)+"_meth"+(TString)to_string(m), "acc #times eff toys "+(TString)(ispp?"pp":"PbPb")+" bin"+(TString)to_string(b)+";acc #times eff ;n_{toys}", 22, (ispp?0.98:0.65)*typacceff, (ispp?1.15:1.2)*typacceff));
-      
+      accI_toys[m].push_back(new TH1F("acc_toys"+(TString)(ispp?"_pp":"_PbPb")+"_bin"+(TString)to_string(b)+"_meth"+(TString)to_string(m), "acceptance toys "+(TString)(ispp?"pp":"PbPb")+" bin"+(TString)to_string(b)+";1/acceptance;n_{toys}", 23, 1/maxacc-0.05*(1/minacc - 1/maxacc) , 1/minacc+0.05*(1/minacc - 1/maxacc)));
+      effI_toys[m].push_back(new TH1F("eff_toys"+(TString)(ispp?"_pp":"_PbPb")+"_bin"+(TString)to_string(b)+"_meth"+(TString)to_string(m), "efficiency toys "+(TString)(ispp?"pp":"PbPb")+" bin"+(TString)to_string(b)+";1/efficiency;n_{toys}", 23, 1/maxeff-0.05*(1/mineff - 1/maxeff) , 1/mineff+0.05*(1/mineff - 1/maxeff)));
+      acceffI_toys[m].push_back(new TH1F("acceff_toys"+(TString)(ispp?"_pp":"_PbPb")+"_bin"+(TString)to_string(b)+"_meth"+(TString)to_string(m), "acc #times eff toys "+(TString)(ispp?"pp":"PbPb")+" bin"+(TString)to_string(b)+";1/(acc #times eff) ;n_{toys}", 23, 1/maxacceff-0.05*(1/minacceff - 1/maxacceff) , 1/minacceff+0.05*(1/minacceff - 1/maxacceff)));
+
       //Run over all toys
       for(int t=0;t<_biasNtoys;t++){
 	int ntoy = _biasNmeth + m*_biasNtoys + t;
 	//cout<<"b toyNumber acc eff = "<<b<<" "<<t<<" "<< (*acc_biased)[col][b][ntoy] <<" "<<(*eff_biased)[b][ntoy]<<endl;
-	acc_toys[m][b-1]->Fill((*acc_biased)[col][b][ntoy]);
-	eff_toys[m][b-1]->Fill((*eff_biased)[b][ntoy]);
-	acceff_toys[m][b-1]->Fill((*acc_biased)[col][b][ntoy] * (*eff_biased)[b][ntoy]);
+	accI_toys[m][b-1]->Fill(1/((*acc_biased)[col][b][ntoy]));
+	effI_toys[m][b-1]->Fill(1/((*eff_biased)[b][ntoy]));
+	acceffI_biased[b-1].push_back(1/((*acc_biased)[col][b][ntoy] * (*eff_biased)[b][ntoy]));
+	acceffI_toys[m][b-1]->Fill(acceffI_biased[b-1][ntoy]);
       }
     }
 
@@ -87,7 +100,7 @@ void plotToyAccEff(bool ispp=true){
 
     //plot
     gStyle->SetOptStat(0);
-    TLegend *leg = new TLegend(0.62,0.67,0.9,0.89);
+    TLegend *leg = new TLegend(0.12,0.62,0.45,0.89);
     leg->SetBorderSize(0);
     leg->SetTextSize(0.04);
 
@@ -97,48 +110,124 @@ void plotToyAccEff(bool ispp=true){
     c1->cd(1)->SetLeftMargin(0.09);
     c1->cd(1)->SetRightMargin(0.02);
     for(int m=0;m<_biasNmeth;m++){
-      acc_toys[m][b-1]->SetLineColor(cols[m]);
-      acc_toys[m][b-1]->SetLineWidth(2);
-      acc_toys[m][b-1]->GetYaxis()->SetRangeUser(0,1.1*acc_toys[m][b-1]->GetMaximum());
-      acc_toys[m][b-1]->GetYaxis()->SetTitleOffset(1.15);
-      acc_toys[m][b-1]->Draw((TString)((m==0)?"hist":"histsame"));
-      leg->AddEntry(acc_toys[m][b-1], _biasMethName[m]);
-      biasedNom[m].DrawLine((*acc_biased)[col][b][m],0, (*acc_biased)[col][b][m], 0.4*acc_toys[0][b-1]->GetMaximum()); //positioned after SetRangeUser
+      accI_toys[m][b-1]->SetLineColor(cols[m]);
+      accI_toys[m][b-1]->SetLineWidth(2);
+      accI_toys[m][b-1]->GetYaxis()->SetRangeUser(0,1.15*accI_toys[m][b-1]->GetMaximum());
+      accI_toys[m][b-1]->GetYaxis()->SetTitleOffset(1.15);
+      accI_toys[m][b-1]->Draw((TString)((m==0)?"hist":"histsame"));
+      leg->AddEntry(accI_toys[m][b-1], _biasMethName[m]);
+      biasedNom[m].DrawLine(1/(*acc_biased)[col][b][m],0, 1/(*acc_biased)[col][b][m], 0.4*accI_toys[0][b-1]->GetMaximum()); //positioned after SetRangeUser
     }
-    unbiased->DrawLine(typacc,0, typacc, 0.4*acc_toys[0][b-1]->GetMaximum());
+    unbiased->DrawLine(accI_unbiased,0, accI_unbiased, 0.4*accI_toys[0][b-1]->GetMaximum());
     leg->AddEntry(dum, "unbiased MC");
-    leg->Draw("same");
 
     c1->cd(2)->SetLeftMargin(0.09);
     c1->cd(2)->SetRightMargin(0.02);
     for(int m=0;m<_biasNmeth;m++){
-      eff_toys[m][b-1]->SetLineColor(cols[m]);
-      eff_toys[m][b-1]->SetLineWidth(2);
-      eff_toys[m][b-1]->GetYaxis()->SetRangeUser(0,1.1*eff_toys[m][b-1]->GetMaximum());
-      eff_toys[m][b-1]->GetYaxis()->SetTitleOffset(1.15);
-      eff_toys[m][b-1]->Draw((TString)((m==0)?"hist":"histsame"));
-      biasedNom[m].DrawLine((*eff_biased)[b][m],0, (*eff_biased)[b][m], 0.4*eff_toys[0][b-1]->GetMaximum());
+      effI_toys[m][b-1]->SetLineColor(cols[m]);
+      effI_toys[m][b-1]->SetLineWidth(2);
+      effI_toys[m][b-1]->GetYaxis()->SetRangeUser(0,1.15*effI_toys[m][b-1]->GetMaximum());
+      effI_toys[m][b-1]->GetYaxis()->SetTitleOffset(1.15);
+      effI_toys[m][b-1]->Draw((TString)((m==0)?"hist":"histsame"));
+      biasedNom[m].DrawLine(1/(*eff_biased)[b][m],0, 1/(*eff_biased)[b][m], 0.4*effI_toys[0][b-1]->GetMaximum());
     }
-    unbiased->DrawLine(typeff,0, typeff, 0.4*eff_toys[0][b-1]->GetMaximum());
+    unbiased->DrawLine(effI_unbiased,0, effI_unbiased, 0.4*effI_toys[0][b-1]->GetMaximum());
 
     c1->cd(3)->SetLeftMargin(0.09);
     c1->cd(3)->SetRightMargin(0.02);
     for(int m=0;m<_biasNmeth;m++){
-      acceff_toys[m][b-1]->SetLineColor(cols[m]);
-      acceff_toys[m][b-1]->SetLineWidth(2);
-      acceff_toys[m][b-1]->GetYaxis()->SetRangeUser(0,1.1*acceff_toys[m][b-1]->GetMaximum());
-      acceff_toys[m][b-1]->GetYaxis()->SetTitleOffset(1.15);
-      acceff_toys[m][b-1]->Draw((TString)((m==0)?"hist":"histsame"));
-      biasedNom[m].DrawLine((*acc_biased)[col][b][m] * (*eff_biased)[b][m],0, (*acc_biased)[col][b][m] * (*eff_biased)[b][m], 0.4*acceff_toys[0][b-1]->GetMaximum());
+      acceffI_toys[m][b-1]->SetLineColor(cols[m]);
+      acceffI_toys[m][b-1]->SetLineWidth(2);
+      acceffI_toys[m][b-1]->GetYaxis()->SetRangeUser(0,1.15*acceffI_toys[m][b-1]->GetMaximum());
+      acceffI_toys[m][b-1]->GetYaxis()->SetTitleOffset(1.15);
+      acceffI_toys[m][b-1]->Draw((TString)((m==0)?"hist":"histsame"));
+      biasedNom[m].DrawLine(acceffI_biased[b-1][m],0, acceffI_biased[b-1][m], 0.4*acceffI_toys[0][b-1]->GetMaximum());
     }
-    unbiased->DrawLine(typacceff,0, typacceff, 0.4*acceff_toys[0][b-1]->GetMaximum());
+    unbiased->DrawLine(acceffI_unbiased,0, acceffI_unbiased, 0.4*acceffI_toys[0][b-1]->GetMaximum());
+    leg->Draw("same");
+
     c1->SaveAs("figs/AcceptanceEfficiencyToys_"+(TString)(ispp?"pp":"PbPb")+"_bin"+(TString)to_string(b)+".pdf");
 
-    cout<<(TString)(ispp?"pp ":"PbPb ")<<"bin "<<b<<" unbiased one-binned AccEff = "<<typacceff<<endl;
-    for(int m=0;m<_biasNmeth;m++)
-      cout<<(TString)(ispp?"pp ":"PbPb ")<<"bin "<<b<<" mean, rms, and rms/mean of AccEff for toys of biasing method "<<_biasMethName[m]<<" = "<<acceff_toys[m][b-1]->GetMean()<<" "<<acceff_toys[m][b-1]->GetRMS()<<" "<<acceff_toys[m][b-1]->GetRMS() / acceff_toys[m][b-1]->GetMean()<<endl;
+    TCanvas *c3 = new TCanvas("c3","c3",1500,1500);
+    c3->SetLeftMargin(0.09);
+    c3->SetRightMargin(0.02);
+    for(int m=0;m<_biasNmeth;m++){
+      acceffI_toys[m][b-1]->Draw((TString)((m==0)?"hist":"histsame"));
+      biasedNom[m].DrawLine(acceffI_biased[b-1][m],0, acceffI_biased[b-1][m], 0.4*acceffI_toys[0][b-1]->GetMaximum());
+    }
+    unbiased->DrawLine(acceffI_unbiased,0, acceffI_unbiased, 0.4*acceffI_toys[0][b-1]->GetMaximum());
+    leg->Draw("same");
 
+    c3->SaveAs("figs/AcceptanceEfficiencyToys_"+(TString)(ispp?"pp":"PbPb")+"_bin"+(TString)to_string(b)+"_onlyAccEffProduct.pdf");
+
+    //Get mean of the three possible nominal values, and low and high RMS from this mean
+    //mean
+    double mean = SimpleMean(acceffI_biased[b-1],0, _biasNmeth-1);
+    //Deviation of the three nominals to the mean
+    double DevToMeanLo = 0, DevToMeanHi = 0;
+    for(int m=0;m<_biasNmeth;m++){
+      if(acceffI_biased[b-1][m] < mean - DevToMeanLo) DevToMeanLo = fabs(acceffI_biased[b-1][m]-mean);
+      if(acceffI_biased[b-1][m] > mean + DevToMeanHi) DevToMeanHi = fabs(acceffI_biased[b-1][m]-mean);
+    }
+    //The RMS's for the three methods, from their respective nominal
+    vector<vector<double> > meanAndRMS; 
+    for(int m=0;m<_biasNmeth;m++) meanAndRMS.push_back( DoubleSidedRMS(acceffI_biased[b-1], 
+								       _biasNmeth+m*_biasNtoys, _biasNmeth+(m+1)*_biasNtoys-1,
+								       acceffI_biased[b-1][m]) );
+    //Find max RMS of the three methods
+    meanAndRMS.push_back(vector<double>{mean,0,0,0});
+    for(int m=0;m<_biasNmeth;m++){
+      if(meanAndRMS[m][1] > meanAndRMS[_biasNmeth][1]) meanAndRMS[_biasNmeth][1] = meanAndRMS[m][1];//total
+      if(meanAndRMS[m][2] > meanAndRMS[_biasNmeth][2]) meanAndRMS[_biasNmeth][2] = meanAndRMS[m][2];//lo
+      if(meanAndRMS[m][3] > meanAndRMS[_biasNmeth][3]) meanAndRMS[_biasNmeth][3] = meanAndRMS[m][3];//hi
+    }
+
+    //Write output
+    cout<<(TString)(ispp?"pp ":"PbPb ")<<"bin "<<b<<" unbiased one-binned AccEffInverse = "<<acceffI_unbiased<<endl;
+    for(int m=0;m<_biasNmeth;m++)
+      cout<<(TString)(ispp?"pp ":"PbPb ")<<"bin "<<b<<" mean, lo rms/mean, up rms/mean, relative_difference_with_unbiased of AccEffInverse for toys of biasing method "<<_biasMethName[m]<<" = "<<meanAndRMS[m][0]<<" "<<meanAndRMS[m][2]/meanAndRMS[m][0]<<" "<<meanAndRMS[m][3]/meanAndRMS[m][0]<<" "<<(meanAndRMS[m][0] - acceffI_unbiased)/acceffI_unbiased <<endl;
+    cout<<"Mean of the three nominals (final nominal), max rel Up deviation, max rel Lo deviation = "<<meanAndRMS[_biasNmeth][0]<<" "<<DevToMeanHi/meanAndRMS[_biasNmeth][0]<<" "<<DevToMeanLo/meanAndRMS[_biasNmeth][0]<<endl;
+    cout<<"Maximal (among three methods) rel RMS total, lo, hi = "<<meanAndRMS[_biasNmeth][1]/meanAndRMS[_biasNmeth][0]<<" "<<meanAndRMS[_biasNmeth][2]/meanAndRMS[_biasNmeth][0]<<" "<<meanAndRMS[_biasNmeth][3]/meanAndRMS[_biasNmeth][0]<<endl;
+
+    //Add the deviation of the three nominal to their means into the final syst error
+    DevToMean[b-1] = (DevToMeanLo+DevToMeanHi)/2;
+    meanAndRMS[_biasNmeth][1] = sqrt(pow(meanAndRMS[_biasNmeth][1],2) + pow(DevToMean[b-1],2));
+    meanAndRMS[_biasNmeth][2] = sqrt(pow(meanAndRMS[_biasNmeth][2],2) + pow(DevToMeanLo,2));
+    meanAndRMS[_biasNmeth][3] = sqrt(pow(meanAndRMS[_biasNmeth][3],2) + pow(DevToMeanHi,2));
+    cout<<"Final acceffInverse rel uncertainty total, lo, hi = "<<meanAndRMS[_biasNmeth][1]/meanAndRMS[_biasNmeth][0]<<" "<<meanAndRMS[_biasNmeth][2]/meanAndRMS[_biasNmeth][0]<<" "<<meanAndRMS[_biasNmeth][3]/meanAndRMS[_biasNmeth][0]<<endl;
+
+    nomiAndErr[b-1] = meanAndRMS[_biasNmeth];
   }
 
+  //Calculate ana bins correlation factor (result>0.999)
+  //Will assume 0.3 correlation for subdominant DevToMean 
+  vector<float> corrFactors;
+  for(int m=0;m<_biasNmeth;m++){
+    for(int b=0;b<_NanaBins;b++){
+      for(int b2=b+1;b2<_NanaBins;b2++){
+	float sumcor = 0, sum1=0, sum2=0;
+	for(int i=_biasNmeth+m*_biasNtoys;i<_biasNmeth+(m+1)*_biasNtoys;i++){
+	  sumcor += (acceffI_biased[b][i]-acceffI_biased[b][m]) * (acceffI_biased[b2][i]-acceffI_biased[b2][m]);
+	  sum1 += pow((acceffI_biased[b][i]-acceffI_biased[b][m]),2);
+	  sum2 += pow((acceffI_biased[b2][i]-acceffI_biased[b2][m]),2);
+	}
+	corrFactors.push_back(sumcor/sqrt(sum1*sum2));
+      }
+    }
+  }
+
+  float corrDevToMean = 0.3; //arbitrary but subdominant
+  float corrfact = SimpleMean(corrFactors,0,corrFactors.size()-1);
+  cout<<"correlation factors from the three methods (rms only), and mean = "<<corrFactors[0]<<" "<<corrFactors[1]<<" "<<corrFactors[2]<<" "<<corrfact<<endl;
+  vector<float> corrfactFinal;
+  corrfactFinal.push_back((corrDevToMean*DevToMean[0]*DevToMean[1] 
+			   + corrfact * sqrt(pow(nomiAndErr[0][1],2) - pow(DevToMean[0],2)) * sqrt(pow(nomiAndErr[1][1],2) - pow(DevToMean[1],2))
+			   )/ (nomiAndErr[0][1]*nomiAndErr[1][1]) );
+  cout<<"final correlation factor = "<<corrfactFinal[0]<<endl;
+
+  //Record the final correction 
+  TFile *fout = new TFile("AccEffFrom2ndStepToys.root","UPDATE");  
+  fout->WriteObject(&nomiAndErr,"InvAccEffFrom2ndStep_withSystErr_"+(TString)(ispp?"pp ":"PbPb "));
+  fout->WriteObject(&corrfactFinal,"InvAccEffFrom2ndStep_LinearisedCorrelationFactor_"+(TString)(ispp?"pp ":"PbPb "));
 
 }

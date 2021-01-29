@@ -27,12 +27,17 @@ void Draw_corrYields(bool ispp=true){
   vector<vector<float> > *eff_oneBinned;
   vector<float> *acc_oneBinned;
   vector<float> *r1r2Corr;
+  vector<vector<double> > *InvAccEff;
+  
 
   TFile *infile3 = new TFile("../acceptance/acceptanceMap.root","READ");
   infile3->GetObject("acceptance_oneBinned", acc_oneBinned);
 
   TFile *infile2 = new TFile("../efficiency/AcceptanceEfficiencyMap.root","READ");
   infile2->GetObject("efficiency_oneBinned"+(TString)(ispp?"_pp":"_PbPb"), eff_oneBinned);
+
+  TFile *infile4 = new TFile("../twoSteps/AccEffFrom2ndStepToys.root","READ");
+  infile4->GetObject("InvAccEffFrom2ndStep_withSystErr_"+(TString)(ispp?"pp":"PbPb"), InvAccEff);
 
   bool BDTuncorrFromM = false;
   TFile *infile = new TFile("corrected_yields.root","READ");
@@ -51,9 +56,10 @@ void Draw_corrYields(bool ispp=true){
 
   const int nbins = _NanaBins;
   double xErr[nbins], yErr[nbins], yErrMC[nbins], zero[nbins], x[nbins];
-  double x_nominal[nbins], x_no1stBDTbin[nbins], x_no1st2ndBDTbin[nbins];
-  double yErr_nominal[nbins], yErr_no1stBDTbin[nbins], yErr_no1st2ndBDTbin[nbins];
-  double y_nominal[nbins], y_no1stBDTbin[nbins], y_BDTeff23[nbins], y_no1st2ndBDTbin[nbins], y_BDTeff3[nbins], y_no1stBDTbin_BDTeffWAccEff[nbins], y_no1st2ndBDTbin_BDTeffWAccEff[nbins], y_oneBinned[nbins], y_MC[nbins], y_MCv2[nbins];
+  double x_EByE[nbins], x_no1stBDTbin[nbins], x_no1st2ndBDTbin[nbins], x_2steps[nbins];
+  double yErr_EByE[nbins], yErr_no1stBDTbin[nbins], yErr_no1st2ndBDTbin[nbins];
+  double y_2steps[nbins], yErr_2steps[nbins];
+  double y_EByE[nbins], y_no1stBDTbin[nbins], y_BDTeff23[nbins], y_no1st2ndBDTbin[nbins], y_BDTeff3[nbins], y_no1stBDTbin_BDTeffWAccEff[nbins], y_no1st2ndBDTbin_BDTeffWAccEff[nbins], y_oneBinned[nbins], y_MC[nbins], y_MCv2[nbins];
   for(int b=1;b<=nbins;b++){
     cout<<"analysis bin #"<<b<<endl;
     cout<<"one-binned acceptance, efficiency = "<<(*acc_oneBinned)[b]<<" "<<(*eff_oneBinned)[b][0]<<endl;
@@ -67,11 +73,12 @@ void Draw_corrYields(bool ispp=true){
 
     x[b-1] = (_BcPtmin[b]+_BcPtmax[b])/2;
     xErr[b-1] = (-_BcPtmin[b]+_BcPtmax[b])/2;
-    x_nominal[b-1] = x[b-1] + 0.06*((b==1)?3:1)*xErr[b-1];
+    x_EByE[b-1] = x[b-1] + 0.06*((b==1)?3:1)*xErr[b-1];
     x_no1stBDTbin[b-1] = x[b-1] + 0.12*((b==1)?3:1)*xErr[b-1];
     x_no1st2ndBDTbin[b-1] = x[b-1] + 0.16*((b==1)?3:1)*xErr[b-1];
+    x_2steps[b-1] = x[b-1] + 0.20*((b==1)?3:1)*xErr[b-1];
     zero[b-1] = 0;
-    y_nominal[b-1] = (*corrYield)[b][0];
+    y_EByE[b-1] = (*corrYield)[b][0];
     y_BDTeff23[b-1] = (*corrYield_BDT23)[b][2] + (*corrYield_BDT23)[b][3];
     y_BDTeff3[b-1] = (*corrYield_BDT3)[b][3];
     y_MC[b-1] = (*corrYield_MC)[b][0];
@@ -83,16 +90,20 @@ void Draw_corrYields(bool ispp=true){
     y_no1stBDTbin[b-1] = ((*corrYield)[b][2] + (*corrYield)[b][3]) / BDTeff_bins23;
     y_no1st2ndBDTbin[b-1] = (*corrYield)[b][3] / BDTeff_bin3;
     y_oneBinned[b-1] = (*Yields_postfit)[0][b][0] / ((*acc_oneBinned)[b] * (*eff_oneBinned)[b][0]);
+    y_2steps[b-1] = (*Yields_postfit)[0][b][0] * (*InvAccEff)[b-1][0];
+    yErr_2steps[b-1] = (*Yields_postfit)[0][b][0] * (*InvAccEff)[b-1][1];//sqrt(pow((*Yields_postfit)[0][b][0] * (*InvAccEff)[b-1][1], 2) + pow( (*rsig_relerr)[b][0] * y_2steps[b-1] ,2));
     yErr[b-1] = (*rsig_relerr)[b][0] * y_oneBinned[b-1];
-    yErr_nominal[b-1] = (*corrYieldErr)[b][0];
+    yErr_EByE[b-1] = (*corrYieldErr)[b][0];
     yErr_no1stBDTbin[b-1] = (*corrYieldErr_BDT23)[b][0];
     yErr_no1st2ndBDTbin[b-1] = (*corrYieldErr_BDT3)[b][0];
-    cout<<"b, y_nominal, yErr = "<<b<<" "<<y_nominal[b-1]<<" "<<yErr[b-1]<<endl;
+    cout<<"b, y_EByE, yErr = "<<b<<" "<<y_EByE[b-1]<<" "<<yErr[b-1]<<endl;
+    cout<<"Yields_postfit, InvAccEff, y_2steps, yErr_2steps = "<<(*Yields_postfit)[0][b][0]<<" "<<(*InvAccEff)[b-1][0]<<" "<<y_2steps[b-1]<<" "<<yErr_2steps[b-1]<<endl;
     cout<<"y_BDTeff23[b-1], corrYield_BDT23[b][2], corrYield_BDT23)[b][3] = "<<y_BDTeff23[b-1]<<" "<<(*corrYield_BDT23)[b][2] <<" "<< (*corrYield_BDT23)[b][3]<<endl; 
     cout<<"y_BDTeff3[b-1] = "<<y_BDTeff3[b-1]<<endl; 
   }
 
-  TGraphErrors *g_nominal = new TGraphErrors(nbins, x_nominal,y_nominal,zero,yErr_nominal);
+  TGraphErrors *g_EByE = new TGraphErrors(nbins, x_EByE,y_EByE,zero,yErr_EByE);
+  TGraphErrors *g_2steps = new TGraphErrors(nbins, x_2steps,y_2steps,zero,yErr_2steps);
   TGraphErrors *g_oneBinned = new TGraphErrors(nbins, x,y_oneBinned, xErr,yErr);
   TGraphErrors *g_BDTeff23 = new TGraphErrors(nbins, x_no1stBDTbin,y_BDTeff23, zero,zero);
   TGraphErrors *g_BDTeff3 = new TGraphErrors(nbins, x_no1st2ndBDTbin,y_BDTeff3, zero,zero);
@@ -104,9 +115,12 @@ void Draw_corrYields(bool ispp=true){
   TGraphErrors *g_MCv2 = new TGraphErrors(nbins, x,y_MCv2, xErr,zero);
 
   TCanvas *c1 = new TCanvas("c1","c1",2000,2000);
-  g_nominal->SetMarkerSize(3);
-  g_nominal->SetMarkerColor(kBlack);
-  g_nominal->SetMarkerStyle(20);
+  g_2steps->SetMarkerSize(4);
+  g_2steps->SetMarkerColor(kOrange+9);
+  g_2steps->SetMarkerStyle(33);
+  g_EByE->SetMarkerSize(3);
+  g_EByE->SetMarkerColor(kBlack);
+  g_EByE->SetMarkerStyle(20);
   g_oneBinned->SetMarkerSize(3);
   g_oneBinned->SetMarkerColor(kMagenta);
   g_oneBinned->SetMarkerStyle(34);
@@ -142,10 +156,11 @@ void Draw_corrYields(bool ispp=true){
   g_MC->GetXaxis()->SetTitle("p_{T}(#mu#mu#mu) [GeV]");
 
   TLegend *leg = new TLegend(0.45,0.6,0.9,0.9);
-  if(ispp) leg->AddEntry(g_nominal,"full event-by-event");
+  leg->AddEntry(g_2steps,"2-steps (nominal)");
+  if(ispp) leg->AddEntry(g_EByE,"full event-by-event");
   leg->AddEntry(g_oneBinned,"one-binned AccEff","lpe");
   leg->AddEntry(g_MC,"MC event-by-event crosscheck");
-  leg->AddEntry(g_MCv2,"MC event-by-event v2 crosscheck");
+  //leg->AddEntry(g_MCv2,"MC event-by-event v2 crosscheck");
   leg->AddEntry(g_no1stBDTbin,"no BDT bin 1");
   leg->AddEntry(g_BDTeff23,"no BDT bin 1, BDT eff map");
   leg->AddEntry(g_no1st2ndBDTbin,"no BDT bin 1-2");
@@ -154,13 +169,14 @@ void Draw_corrYields(bool ispp=true){
   leg->SetBorderSize(0);
 
   g_MC->Draw("AP");
-  if(ispp) g_nominal->Draw("Psame");
+  if(ispp) g_EByE->Draw("Psame");
   g_oneBinned->Draw("Psame");
   g_no1stBDTbin->Draw("Psame");
   g_no1st2ndBDTbin->Draw("Psame");
   g_BDTeff23->Draw("Psame");
   g_BDTeff3->Draw("Psame");
-  g_MCv2->Draw("Psame");
+  //  g_MCv2->Draw("Psame");
+  g_2steps->Draw("Psame");
   leg->Draw("same");
   if(!ispp) gPad->SetLogy();
 
@@ -185,9 +201,9 @@ void Draw_corrYields(bool ispp=true){
 
   for(int b=0;b<nbins;b++){
     if(ispp) {
-      y_nom[b] = (y_nominal[b] + y_oneBinned[b] + y_BDTeff23[b])/3;
+      y_nom[b] = (y_EByE[b] + y_oneBinned[b] + y_BDTeff23[b])/3;
       //systErr = max deviation from average of the 3 methods
-      y_systErr[b] = fabs(y_nom[b] - y_nominal[b]);
+      y_systErr[b] = fabs(y_nom[b] - y_EByE[b]);
       y_systErr[b] = max(y_systErr[b] , (float)fabs(y_nom[b] - y_oneBinned[b]) );
       y_systErr[b] = max(y_systErr[b] , (float)fabs(y_nom[b] - y_BDTeff23[b]) );
     }

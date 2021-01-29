@@ -376,8 +376,8 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 	iProc.push_back(17); iProc.push_back(18);
 	//} //change BDT weights when the nominal Jpsi MC changes
 	if(ispp){
-	  if(flipJpsi[iT]==1 || flipJpsi[iT]==6) iProc.push_back(16); //flipJpsi opposite-side
-	  else iProc.push_back(15); //flipJpsi same-side
+	  if((flipJpsi[iT]>=6 && flipJpsi[iT]<=8) || flipJpsi[iT]>=11) iProc.push_back(16); //flipJpsi opposite-phi
+	  else iProc.push_back(15); //flipJpsi same-side in phi
 	}
       }
 
@@ -395,8 +395,8 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 	// }
 
 	if(iT>=5){ //weights of Jpsi MC or flipJpsi events
-	  if(ispp && iproc==15) w *= 7/5.;// *(ispp?1.:0.4);
-	  if(ispp && iproc==16) w *= 7/2.;// *(ispp?1.:0.4);	
+	  if(ispp && iproc==15) w *= 13/7.;
+	  if(ispp && iproc==16) w *= 13/6.;
 	  //BDT weights for flipJpsi
 	  for(int flipMeth=0; flipMeth<5;flipMeth++){
 	    if(iproc==(14+flipMeth) && applyBDTweights){

@@ -43,5 +43,67 @@ void AddTH1(TH1F* h, TH1F* h2){ //add h2 to h, even with different binnings /com
 
 double getBias(TH1F* h, double pt){
   int n = h->GetNbinsX();
-  return h->GetBinContent( 1 + (int)(n * (pt-_BcPtmin[0])/(_BcPtmax[0]-_BcPtmin[0])) );
+  if(pt<_BcPtmin[0]){
+    float y1 = h->GetBinContent(1);
+    float y4 = h->GetBinContent(4);
+    float x = (int)(n * (pt-_BcPtmin[0])/(_BcPtmax[0]-_BcPtmin[0]) );
+    return y1 + (y4-y1)*x/3;
+  }
+  else
+    return h->GetBinContent( 1 + (int)(n * (pt-_BcPtmin[0])/(_BcPtmax[0]-_BcPtmin[0])) );
+}
+
+double MaxVec(vector<float> v, float lastitem, int maxsize  = 1e9){
+  float res = -1e20;
+  if (lastitem>res) res = lastitem;
+  for(int i=0;i<v.size()-1;i++){
+    if(i>=maxsize) break;
+    if(v[i]>res) res = v[i];
+  }
+  return res;
+}
+
+double MinVec(vector<float> v, float lastitem, int maxsize = 1e9){
+  float res = 1e20;
+  if (lastitem<res) res = lastitem;
+  for(int i=0;i<v.size()-1;i++){
+    if(i>=maxsize) break;
+    if(v[i]<res) res = v[i];
+  }
+  return res;
+}
+
+double SimpleMean(vector<float> v, int firstit, int lastit){
+  int n=lastit-firstit+1;
+
+  double res=0;
+  for(int i=firstit; i<=lastit;i++){
+    res += v[i];
+  }
+  return res/n;
+}
+
+vector<double> DoubleSidedRMS(vector<float> v, int firstit, int lastit, double mean){
+  int nLo=0, nHi=0, nTot=0;
+  double resLo=0, resHi=0, resTot=0;
+  for(int i=firstit; i<=lastit;i++){
+    resTot += pow(v[i] - mean,2);
+    nTot += 1;
+    if(v[i]>mean){
+      resHi += pow(v[i] - mean,2);
+      nHi += 1;
+    }
+    else{
+      resLo += pow(v[i] - mean,2);
+      nLo += 1;
+    }
+  }
+
+  vector<double> res;
+  res.push_back(mean);
+  res.push_back(sqrt(resTot/(nTot-1))); //we do not give it exactly the mean of the elements, so it could be n and not n-1, but whatever
+  res.push_back(sqrt(resLo/(nLo-1)));
+  res.push_back(sqrt(resHi/(nHi-1)));
+
+  return res;
 }

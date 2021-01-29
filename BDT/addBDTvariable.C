@@ -36,7 +36,7 @@ void addBDTvariable(bool ispp=true, bool withTM=false){
   //gSystem->Exec("cp BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+"_copystep1.root");  
   auto fullFile = TFile::Open("BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root","UPDATE");
   //  fullFile->Cp("BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+"_copystep1.root");
-  int ntrees = ispp?10:9;
+  int ntrees = 9;//ispp?10:9;
 
   //Initialization of variables
   float Bc_CorrM[ntrees];
