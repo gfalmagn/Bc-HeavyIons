@@ -22,9 +22,9 @@ void drawChecks(bool ispp, float GOFdataval, string seed);
 
 void drawFitChecks(){
   cout<<"\n______________ PP _______________________\n"<<endl;
-  drawChecks(true,109.7,"2235");
+  drawChecks(true,138.4,"2235");
   cout<<"\n______________ PBPB _______________________\n"<<endl;
-  drawChecks(false,113.8,"2235");
+  drawChecks(false,56.4,"2235");
 }
 
 void drawChecks(bool ispp=true, float GOFdataval=100, string seed="2235"){
@@ -78,8 +78,8 @@ void drawChecks(bool ispp=true, float GOFdataval=100, string seed="2235"){
 
   //NLL scan
   auto d2_toys = d_toys.Define("chi2", "2*deltaNLL");
-  auto NLL = d2_toys.Filter("chi2<25").Profile2D({"nll","",25,static_cast<double>(ispp?0.5:0.),static_cast<double>(ispp?1.3:2.7),
-	                                                   25,static_cast<double>(ispp?0.7:0.),static_cast<double>(ispp?1.5:1.2)},
+  auto NLL = d2_toys.Filter("chi2<25").Profile2D({"nll","",25,static_cast<double>(ispp?0.45:0.),static_cast<double>(ispp?1.25:2.8),
+	                                                   25,static_cast<double>(ispp?0.8:0.),static_cast<double>(ispp?1.6:1.1)},
                                                   "r1","r2","chi2");
   auto NLLv2 = d2_toys.Profile2D(      {"nll","",25,static_cast<double>(ispp?0.5:0.),static_cast<double>(ispp?1.3:2.7),
 	                         25,static_cast<double>(ispp?0.7:0.),static_cast<double>(ispp?1.5:1.2)},
@@ -143,7 +143,7 @@ void drawChecks(bool ispp=true, float GOFdataval=100, string seed="2235"){
   auto filename = "/home/llr/cms/falmagne/Bc/templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/higgsCombine_"+s_ispp+".GoodnessOfFit.mH120."+seed+".root";  
   cout<<"GOODNESS OF FIT : read file "<<filename<<endl;
   ROOT::RDataFrame d_gfit("limit", filename); //filename cannot handle TString pfffrr....
-  auto testStat = d_gfit.Histo1D({"","",40,static_cast<double>(ispp?60:30),static_cast<double>(ispp?160:120)},"limit");
+  auto testStat = d_gfit.Histo1D({"","",40,static_cast<double>(ispp?70:23),static_cast<double>(ispp?168:83)},"limit");
 
   testStat->SetLineWidth(3);
   testStat->GetXaxis()->SetTitle("test statistic");
@@ -181,9 +181,9 @@ void drawChecks(bool ispp=true, float GOFdataval=100, string seed="2235"){
   cout<<"SIGNAL TOYS : read file "<<filename4<<endl;
   ROOT::RDataFrame d_sigtoys("tree_fit_sb", filename4); //filename cannot handle TString pfffrr....
   
-  auto r1r2 = d_sigtoys.Histo2D({"",";r1;r2;",25,static_cast<double>(ispp?0.6:0.),static_cast<double>(ispp?1.1:2.3),25,static_cast<double>(ispp?0.95:0.3),static_cast<double>(ispp?1.45:0.95)},"r1","r2");
-  auto r1err = d_sigtoys.Histo1D({"",";r1 uncertainty;n toys",30,static_cast<double>(ispp?0.0665:0.24),static_cast<double>(ispp?0.086:0.46)},"r1Err");
-  auto r2err = d_sigtoys.Histo1D({"",";r2 uncertainty;n toys",30,static_cast<double>(ispp?0.051:0.073),static_cast<double>(ispp?0.062:0.115)},"r2Err");
+  auto r1r2 = d_sigtoys.Histo2D({"",";r1;r2;",25,static_cast<double>(ispp?0.6:0.),static_cast<double>(ispp?1.1:2.3),25,static_cast<double>(ispp?0.95:0.15),static_cast<double>(ispp?1.45:0.8)},"r1","r2");
+  auto r1err = d_sigtoys.Histo1D({"",";r1 uncertainty;n toys",30,static_cast<double>(ispp?0.068:0.22),static_cast<double>(ispp?0.084:0.43)},"r1Err");
+  auto r2err = d_sigtoys.Histo1D({"",";r2 uncertainty;n toys",30,static_cast<double>(ispp?0.052:0.065),static_cast<double>(ispp?0.063:0.11)},"r2Err");
 				 
   TCanvas *c3 = new TCanvas("c3","c3",4500,1500);
   c3->Divide(3,1);

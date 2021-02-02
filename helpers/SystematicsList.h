@@ -10,4 +10,6 @@ Color_t systCol[] = {kRed,kMagenta, kGreen,kGreen+3, kBlue,kBlue+2, kCyan,kCyan-
 Style_t systStyle[] = {20,33, 21,25, 22,26, 23,32,34,47,39,41  ,20}; //last one for averaged nominal
 
 bool usedInRMS[] = {0,1,1,1,1,1,1,1,0,0,0,0}; //false for nominal
+int _nRMSblocks = 3;
+int RMSblock[] = {1,1,2,2,3,3,3,3,0,0,0,0}; //needs to be in increasing order, then zero's
 float usedInNominalAverage[] = {1,0,1,0,0.5,0.5,0.5,0.5,0,0,0,0};

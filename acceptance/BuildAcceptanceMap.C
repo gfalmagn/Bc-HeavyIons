@@ -15,7 +15,7 @@
 #include "SgMuonAcceptanceCuts.h"
 #include "../helpers/AccEff2DBinning.h"
 
-void BuildAcceptanceMap(bool withTM = false, bool cutP=false, bool runAEtoys=true){
+void BuildAcceptanceMap(bool runAEtoys=true, bool withTM = false){
 
   //**************************************************************  
   //Grab the variations of the pT bias of MC, from first step r1 and r2
@@ -113,7 +113,6 @@ void BuildAcceptanceMap(bool withTM = false, bool cutP=false, bool runAEtoys=tru
     for(int iBc=0;iBc<Gen_Bc_size;iBc++){
       TLorentzVector *genBc = (TLorentzVector*) Gen_Bc_4mom->At(iBc);
       TLorentzVector *gen3mu = (TLorentzVector*) Gen_3mu_4mom->At(iBc);
-      if(cutP && gen3mu->P()<11) continue;
 
       int QQidx = Gen_Bc_QQ_idx[iBc];
       TLorentzVector *genQQ = (TLorentzVector*) Gen_QQ_4mom->At(QQidx);
@@ -250,8 +249,8 @@ void BuildAcceptanceMap(bool withTM = false, bool cutP=false, bool runAEtoys=tru
   hY_acc->SetLineWidth(2);
   hY_acc->Draw();
 
-  c1->SaveAs("figs/AcceptanceMap_regularBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(cutP?"_cutP":"")+".pdf");
-  c1->SaveAs("figs/AcceptanceMap_regularBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(cutP?"_cutP":"")+".png");
+  c1->SaveAs("figs/AcceptanceMap_regularBins"+(TString)(withTM?"_withTrackerMu":"")+".pdf");
+  c1->SaveAs("figs/AcceptanceMap_regularBins"+(TString)(withTM?"_withTrackerMu":"")+".png");
 
   //**************************************************************
   //Draw TH2Poly
@@ -285,8 +284,8 @@ void BuildAcceptanceMap(bool withTM = false, bool cutP=false, bool runAEtoys=tru
   line3->Draw("same");
   line4->Draw("same");
 
-  c2->SaveAs("figs/AcceptanceMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(cutP?"_cutP":"")+".pdf");
-  c2->SaveAs("figs/AcceptanceMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(cutP?"_cutP":"")+".png");
+  c2->SaveAs("figs/AcceptanceMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+".pdf");
+  c2->SaveAs("figs/AcceptanceMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+".png");
 
   //**************************************************************
   //output file

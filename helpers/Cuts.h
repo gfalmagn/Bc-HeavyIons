@@ -4,6 +4,8 @@ vector<float> _BcYmin{0., 1.3,  0.}; //don't modify spacing and dots, for subseq
 vector<float> _BcYmax{2.3, 2.3, 2.3};
 vector<float> _BcPtmin{6., 6., 11.};
 vector<float> _BcPtmax{50., 11., 50.};
+vector<float> _Centmin{0., 0., 20.};
+vector<float> _Centmax{90., 20., 90.};
 
 bool inFidCuts(int kinBin, float pt, float rap){
   if(kinBin>0)

@@ -226,7 +226,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
       weight[iT] = w_simple[iT];
       if(!ispp && iT==3 && BDT[iT]<(_withTM?-0.2:-0.3)) weight[iT] = w_unblind[iT]; //unblind data events in the low-BDT CR
 
-      if(iT!=0 && iT!=7) { //forget WRONGSIGN and dimuon+track 
+      if(iT!=0 && iT<7) { //forget WRONGSIGN and dimuon+track and FLIPJPSI
 
 	float maxEta = max(fabs(muW_eta[iT]),max(fabs(mumi_eta[iT]),fabs(mupl_eta[iT])));
 	int kbin = nBDTb; //kbin 0 is for all BDT values

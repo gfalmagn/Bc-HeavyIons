@@ -12,7 +12,7 @@ double efficiency(double *x, double *p){
     if(p[1]>0.5 && p[1]<1.5) return Efficiency2(x[0],x[1],false);
     if(p[1]>1.5 && p[1]<2.5) return (Efficiency2(x[0],x[1],false)==0)?0:( Efficiency2times3(x[0],x[1],false)/Efficiency2(x[0],x[1],false) );
     if(p[1]>2.5 && p[1]<3.5) return Efficiency2times3(x[0],x[1],false);
-    if(p[1]>3.5 && p[1]<4.5) return (Efficiency2(x[0],x[1],false)==0)?0:( Efficiency1(x[0],x[1],false) * Efficiency2times3(x[0],x[1],false)/Efficiency2(x[0],x[1],false) );
+    if(p[1]>3.5 && p[1]<4.5) return Efficiency1(x[0],x[1],false) * Efficiency2(x[0],x[1],false);
     else return Efficiency1(x[0],x[1],false)*Efficiency2times3(x[0],x[1],false);
   }
   else { //MC
@@ -20,7 +20,7 @@ double efficiency(double *x, double *p){
     if(p[1]>0.5 && p[1]<1.5) return Efficiency2(x[0],x[1],true);
     if(p[1]>1.5 && p[1]<2.5) return (Efficiency2(x[0],x[1],true)==0)?0:( Efficiency2times3(x[0],x[1],true)/Efficiency2(x[0],x[1],true) );
     if(p[1]>2.5 && p[1]<3.5) return Efficiency2times3(x[0],x[1],true);
-    if(p[1]>3.5 && p[1]<4.5) return (Efficiency2(x[0],x[1],true)==0)?0:( Efficiency1(x[0],x[1],true) * Efficiency2times3(x[0],x[1],true)/Efficiency2(x[0],x[1],true) );
+    if(p[1]>3.5 && p[1]<4.5) return Efficiency1(x[0],x[1],true) * Efficiency2(x[0],x[1],true);
     else return Efficiency1(x[0],x[1],true)*Efficiency2times3(x[0],x[1],true);
   }
 }
@@ -37,10 +37,10 @@ void CheckToyEffFunctions(){
   TCanvas *c1 = new TCanvas("c1","c1",1500,1500);
   eff->SetParameters(0, 0); //data l
   eff->Draw("surf");  
-  eff2->SetParameters(0, 1); //data l->t
+  eff2->SetParameters(0, 4); //data t
   eff2->SetLineColor(kBlue);
   eff2->Draw("surfsame");  
-  eff3->SetParameters(0, 2); //data t->t'
+  eff3->SetParameters(0, 5); //data t'
   eff3->SetLineColor(kGreen+2);
   eff3->Draw("surfsame");  
 
@@ -54,13 +54,26 @@ void CheckToyEffFunctions(){
   TCanvas *c2 = new TCanvas("c2","c2",1500,1500);
   eff4->SetParameters(1, 0); //mc l
   eff4->Draw("surf");  
-  eff5->SetParameters(1, 1); //mc l->t
+  eff5->SetParameters(1, 4); //mc t
   eff5->SetLineColor(kBlue);
   eff5->Draw("surfsame");  
-  eff6->SetParameters(1, 2); //mc t->t'
+  eff6->SetParameters(1, 5); //mc t'
   eff6->SetLineColor(kGreen+2);
   eff6->Draw("surfsame");  
 
+  int n=100;
+  for(int i=0;i<n;i++){  
+    for(int j=0;j<n;j++){  
+      float x = i*20./n;
+      float y = -2.4+i*4.8/n; 
+      // cout<<"x,y,eff,eff2,eff3 = "<<x<<" "<<y<<" "<<eff->Eval(x,y)<<" "<<eff2->Eval(x,y)<<" "<<eff3->Eval(x,y)<<endl;
+      // cout<<"x,y,eff4,eff5,eff6 = "<<x<<" "<<y<<" "<<eff4->Eval(x,y)<<" "<<eff5->Eval(x,y)<<" "<<eff6->Eval(x,y)<<endl;
+      if(eff->Eval(x,y)<eff2->Eval(x,y)) cout<<"WARNING: data l<t for pt,eta = "<<x<<" "<<y<<endl;
+      if(eff2->Eval(x,y)<eff3->Eval(x,y)) cout<<"WARNING: data t<t' for pt,eta = "<<x<<" "<<y<<endl;
+      if(eff4->Eval(x,y)<eff5->Eval(x,y)) cout<<"WARNING: MC l<t for pt,eta = "<<x<<" "<<y<<endl;
+      if(eff5->Eval(x,y)<eff6->Eval(x,y)) cout<<"WARNING: MC t<t' for pt,eta = "<<x<<" "<<y<<endl;
+    }
+  }
   //"loose" efficiency should be:
   //eff->SetParameters(dataOrMC, 0);
   //"normal" efficiency (product of the first 2 efficiencies) should be:

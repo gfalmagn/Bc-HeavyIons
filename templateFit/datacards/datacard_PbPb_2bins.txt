@@ -2,11 +2,11 @@ imax 6
 jmax 3
 kmax 5
 ---------------
-shapes data_obs   * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM 
-shapes BcSig      * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM 
-shapes FakeJpsi   * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM $CHANNEL/$PROCESS_$SYSTEMATIC/BcM
-shapes NPJpsi     * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM $CHANNEL/$PROCESS_$SYSTEMATIC/BcM
-shapes flipJpsi   * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM $CHANNEL/$PROCESS_$SYSTEMATIC/BcM
+shapes data_obs   * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM$BLIND 
+shapes BcSig      * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM$BLIND 
+shapes FakeJpsi   * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM$BLIND $CHANNEL/$PROCESS_$SYSTEMATIC/BcM$BLIND
+shapes NPJpsi     * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM$BLIND $CHANNEL/$PROCESS_$SYSTEMATIC/BcM$BLIND
+shapes flipJpsi   * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM$BLIND $CHANNEL/$PROCESS_$SYSTEMATIC/BcM$BLIND
 ---------------
 bin		     BDT1Kin1  BDT2Kin1  BDT3Kin1  BDT1Kin2  BDT2Kin2  BDT3Kin2
 observation 	     -1        -1	 -1    	   -1	     -1	       -1

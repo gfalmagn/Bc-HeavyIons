@@ -15,7 +15,7 @@ double Efficiency1(double pt, double eta, bool isMC){
     } else return 0;
   }
   else{
-    double addFact = TMath::ATan(pt/1.5) / (TMath::Pi()/2);
+    double addFact = TMath::ATan(pt/0.5) / (TMath::Pi()/2);
     if(fabs(eta)<1.2){
       return addFact * 3.09240*(TMath::Erf((pt-1.97227)/1.41718)*TMath::Exp(-0.00042*pt))-2.10974;
     }else if (fabs(eta)>=1.2 && fabs(eta)<1.8){
@@ -66,7 +66,7 @@ double Efficiency2times3(double pt, double eta, bool isMC){
     }else return 0;
   }
   else{
-    double addFact = 0.6;
+    double addFact = 0.2;
     if(fabs(eta)<1.2){
       return AugmentBelowOne(1.57388*(TMath::Erf((pt-1.75360)/1.68781)*TMath::Exp(-0.00105*pt))-0.61811 , addFact);
     }else if (fabs(eta)>=1.2 && fabs(eta)<1.8){

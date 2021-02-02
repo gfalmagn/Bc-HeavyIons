@@ -91,16 +91,15 @@ void drawEffMap(TH2Poly* hpEff, TH2Poly* hpSel, TH2Poly* hpAcc, TLine* l1, TLine
 
 }
 
-void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBins=false, bool runAEtoys=true){
+void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=false, bool integratePtBins=false){
 
   //**************************************************************  
   //Grab the variations of the pT bias of MC, from first step r1 and r2
   vector<TH1F*> bias;
-  if(runAEtoys==false){
+  if(runAEtoys){
     TFile *BiasFile = TFile::Open("../twoSteps/pTBiases.root","READ");
     for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
       bias.push_back((TH1F*)BiasFile->Get("pTbias_"+(TString)(ispp?"pp":"PbPb")+"_var"+(TString)to_string(v)));
-      //cout<<"variation value_at_11 = "<<v<<" "<<bias[v]->Eval(11)<<endl;
     }
   }
   
@@ -585,7 +584,7 @@ void BuildEffMap(bool ispp = true, bool BDTuncorrFromM=false, bool integratePtBi
             float PperpTrimu = TMath::Sin(Bc_alpha3D) * recBc->P();
             float Bc_CorrM = sqrt(BcCandM*BcCandM + PperpTrimu*PperpTrimu) + PperpTrimu;
             if(Bc_CorrM>_BcCorrM_cut(ispp)) continue;
-	    if(!ispp && Centrality>180) continue; //keep 0-90% centrality                                                                                                                                                              
+	    if(!ispp && ((float)Centrality < 2*_Centmin[0] || (float)Centrality >= 2*_Centmax[0])) continue; //keep 0-90% centrality
 
 	    if(muW_trig && !(muW_L2 || muW_L3)) cout<<"!!!! PROBLEM with muW trigger consistency"<<endl;
 	    if(mupl_trig && !(mupl_L2 || mupl_L3)) cout<<"!!!! PROBLEM with mupl trigger consistency"<<endl;

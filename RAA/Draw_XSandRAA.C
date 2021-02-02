@@ -57,7 +57,7 @@ void Draw_XSandRAA(){
   TFile *infile = new TFile("../AccEffCorr/corrected_yields.root","UPDATE");
   infile->GetObject("Yields_postfit_pp", Yields_postfit_pp);
   infile->GetObject("Yields_postfit_PbPb", Yields_postfit_PbPb);
-  infile->GetObject("FinalCorrectedYield_pp", y_nom_pp);
+  infile->GetObject("FinalCorrectedYield_2ndStep_pp", y_nom_pp);
   infile->GetObject("FinalCorrectedYield_fitError_pp", y_fitErr_pp);
   infile->GetObject("FinalCorrectedYield_AccEffSystError_pp", y_acceffErr_pp);
   infile->GetObject("TagAndProbe_relError_pp", TnPrelErr_pp);
@@ -66,7 +66,7 @@ void Draw_XSandRAA(){
   infile->GetObject("CorrectedYields_MetafitSyst_LinearizedCorrelationMatrixpp", metafitErrCorr_pp);
   infile->GetObject("r1r2Correlation_pp", r1r2Corr_pp);
   infile->GetObject("rsig_relerr_pp", rsig_relerr_pp);
-  infile->GetObject("FinalCorrectedYield_PbPb", y_nom_PbPb);
+  infile->GetObject("FinalCorrectedYield_2ndStep_PbPb", y_nom_PbPb);
   infile->GetObject("FinalCorrectedYield_fitError_PbPb", y_fitErr_PbPb);
   infile->GetObject("FinalCorrectedYield_AccEffSystError_PbPb", y_acceffErr_PbPb);
   infile->GetObject("TagAndProbe_relError_PbPb", TnPrelErr_PbPb);
@@ -120,8 +120,8 @@ void Draw_XSandRAA(){
       //y values
       float normpp = L_pp * (_BcPtmax[trueb+1]-_BcPtmin[trueb+1]) * (_BcYmax[trueb+1]-_BcYmin[trueb+1]);
       float normPbPb = NMB_PbPb * TAA_090 * (_BcPtmax[trueb+1]-_BcPtmin[trueb+1]) * (_BcYmax[trueb+1]-_BcYmin[trueb+1]); //Leq_PbPb if we choose the lumi option
-      y[0][b][m] = (*Yields_postfit_pp)[0][trueb+1][0] * (*InvAccEff_pp)[trueb][0] / normpp; //(*y_nom_pp)[trueb] / normpp
-      y[1][b][m] = (*Yields_postfit_PbPb)[0][trueb+1][0] * (*InvAccEff_PbPb)[trueb][0] / normPbPb;
+      y[0][b][m] = (*y_nom_pp)[trueb] / normpp;//(*Yields_postfit_pp)[0][trueb+1][0] * (*InvAccEff_pp)[trueb][0] / normpp; //
+      y[1][b][m] = (*y_nom_PbPb)[trueb] / normPbPb;//(*Yields_postfit_PbPb)[0][trueb+1][0] * (*InvAccEff_PbPb)[trueb][0] / normPbPb;
       y[2][b][m] = y[1][b][m]/y[0][b][m];
 
       //metafit error

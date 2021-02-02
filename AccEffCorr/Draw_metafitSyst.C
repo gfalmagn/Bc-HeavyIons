@@ -12,10 +12,11 @@
 #include "../helpers/Cuts.h"
 #include "../helpers/SystematicsList.h"
 
-void Draw_metafitSyst(){
+void Draw_metafitSyst(bool firstStep=true){
   
   bool averageNomError = false; //for the new nominal (average over some fit methods), take the average of the fit errors too
   bool doAverageNominal = true;
+  bool RMSbyBlocks = true;
   Color_t cols[4] = {1,634,810,882};//kBlack,kRed+2,kOrange+10,kViolet+2//,kBlue+2 602;
 
   vector<vector<vector<float> > > *Yields_postfit[2][_nMetafitSyst];
@@ -23,11 +24,17 @@ void Draw_metafitSyst(){
   vector<vector<float> > *eff_oneBinned[3];
   vector<float> *acc_oneBinned[3];
 
+  vector<vector<double> > *InvAccEff_pp;
+  vector<vector<double> > *InvAccEff_PbPb;
+  TFile *infile4 = new TFile("../twoSteps/AccEffFrom2ndStepToys.root","READ");
+  infile4->GetObject("InvAccEffFrom2ndStep_withSystErr_pp", InvAccEff_pp);
+  infile4->GetObject("InvAccEffFrom2ndStep_withSystErr_PbPb", InvAccEff_PbPb);
+
   vector<float> y_nom[3];
   vector<float> y_systErrLo[3];
-  vector<float> y_systErrLo_maxDev[3];
+  vector<vector<float> > y_systErrLo_maxDev[3];
   vector<float> y_systErrHi[3];
-  vector<float> y_systErrHi_maxDev[3];
+  vector<vector<float> > y_systErrHi_maxDev[3];
   vector<float> y_systCorr[3];
   //vector<float> y_fitErr(nbins);
 
@@ -40,7 +47,7 @@ void Draw_metafitSyst(){
   TMultiGraph* gSystRatio_all[3][nbins];
   double xErrLo[_nMetafitSyst+1][nbins], xErrHi[_nMetafitSyst+1][nbins], x[_nMetafitSyst+1][nbins], zero[nbins], newy[1];
   double yErrLo[3][_nMetafitSyst+1][nbins], yErrHi[3][_nMetafitSyst+1][nbins], yErrLo_ratio[3][_nMetafitSyst+1][nbins], yErrHi_ratio[3][_nMetafitSyst+1][nbins];
-  double y_oneBinned[3][_nMetafitSyst+1][nbins], y_ratio[3][_nMetafitSyst+1][nbins];
+  double y_oneBinned[3][_nMetafitSyst+1][nbins], y_ratio[3][_nMetafitSyst+1][nbins]; //oneBinned is actually corrected by the 2-steps Acc x Eff, if firstStep==false
 
   //DRAW CMS Preliminary 
   TLatex CMStag;
@@ -66,9 +73,9 @@ void Draw_metafitSyst(){
     float ynom[nbins];
     float relerrLoNom[nbins];
     float relerrHiNom[nbins];
-    for(int b=1;b<=nbins;b++)
-      {nAvNominal[b-1] = 0; ynom[b-1] = 0;
-	relerrLoNom[b-1] = 0; relerrHiNom[b-1] = 0;}
+    for(int b=1;b<=nbins;b++){
+      nAvNominal[b-1] = 0; ynom[b-1] = 0;
+      relerrLoNom[b-1] = 0; relerrHiNom[b-1] = 0;}
     
     //x (pt) and error
     for(int b=1;b<=nbins;b++){
@@ -93,8 +100,10 @@ void Draw_metafitSyst(){
 	for(int b=1;b<=nbins;b++){
 	  //cout<<"analysis bin #"<<b<<endl;
 	  //      cout<<"one-binned acceptance, efficiency = "<<(*acc_oneBinned)[b]<<" "<<(*eff_oneBinned)[b][0]<<endl;
-
-	  y_oneBinned[ispp][isys][b-1] = (*Yields_postfit[ispp][isys])[0][b][0] / ((*acc_oneBinned[ispp])[b] * (*eff_oneBinned[ispp])[b][0]);
+	  float invAE;
+	  if(firstStep) invAE = 1 / (((*acc_oneBinned[ispp])[b] * (*eff_oneBinned[ispp])[b][0]));
+	  else invAE = (*(ispp?InvAccEff_pp:InvAccEff_PbPb))[b-1][0];
+	  y_oneBinned[ispp][isys][b-1] = (*Yields_postfit[ispp][isys])[0][b][0] * invAE;
 	  yErrLo[ispp][isys][b-1] = (*rsig_relerr[ispp][isys])[b][1] * y_oneBinned[ispp][isys][b-1];
 	  yErrHi[ispp][isys][b-1] = (*rsig_relerr[ispp][isys])[b][2] * y_oneBinned[ispp][isys][b-1];
 
@@ -196,8 +205,8 @@ void Draw_metafitSyst(){
       CMStag.DrawLatex(0.19,0.80,"#font[52]{Preliminary}");
 
       c1->SetLeftMargin(0.15);
-      c1->SaveAs("figs/correctedYields_metafitSyst"+(TString)((ispp==1)?"_pp":((ispp==0)?"_PbPb":""))+".pdf");
-      c1->SaveAs("figs/correctedYields_metafitSyst"+(TString)((ispp==1)?"_pp":((ispp==0)?"_PbPb":""))+".png");
+      c1->SaveAs("figs/correctedYields_metafitSyst"+(TString)(firstStep?"_1stStep":"_2ndStep")+(TString)((ispp==1)?"_pp":((ispp==0)?"_PbPb":""))+".pdf");
+      c1->SaveAs("figs/correctedYields_metafitSyst"+(TString)(firstStep?"_1stStep":"_2ndStep")+(TString)((ispp==1)?"_pp":((ispp==0)?"_PbPb":""))+".png");
     }
 
     //******************************************************
@@ -208,16 +217,26 @@ void Draw_metafitSyst(){
       y_nom[ispp].push_back( y_oneBinned[ispp][_nMetafitSyst][b] );
       y_systErrLo[ispp].push_back( 0 ); //rms of the deviations to nominal y
       y_systErrHi[ispp].push_back( 0 );
-      y_systErrLo_maxDev[ispp].push_back( 0 );//max deviation from nominal
-      y_systErrHi_maxDev[ispp].push_back( 0 );
+      y_systErrLo_maxDev[ispp].push_back( vector<float>(_nRMSblocks+1,0) );//max deviation from nominal
+      y_systErrHi_maxDev[ispp].push_back( vector<float>(_nRMSblocks+1,0) );
       float nVarUsed = 0;
+      int iblock = 1;
       for(int isys=0;isys<_nMetafitSyst;isys++){ //include old nominal (0) in rms
 	cout<<"b, isys, name, yRatioToNominal, yerrlo, yerrhi = "<<b<<" "<<isys<<" "<<systPrettyName[isys]<<" "<<y_ratio[ispp][isys][b]<<" -"<<yErrLo_ratio[ispp][isys][b]<<" +"<<yErrHi_ratio[ispp][isys][b]<<endl;
-	if(usedInRMS[isys] || (doAverageNominal && isys==0)){
-	  y_systErrLo_maxDev[ispp][b] = max(y_systErrLo[ispp][b] , (float)max(0.,-(y_ratio[ispp][isys][b] - 1)) ); //for maximum deviation, take asymmetric error (ErrLo counts only downwards variations)
-	  y_systErrHi_maxDev[ispp][b] = max(y_systErrHi[ispp][b] , (float)max(0., (y_ratio[ispp][isys][b] - 1)) );
-	  y_systErrLo[ispp][b] += pow(y_ratio[ispp][isys][b] - 1 ,2); //symmetric systematic error here
-	  y_systErrHi[ispp][b] += pow(y_ratio[ispp][isys][b] - 1 ,2);
+	if(RMSblock[isys]>0 || (doAverageNominal && isys==0)){
+	  if(RMSblock[isys]>iblock) iblock += 1; //summing the deviation to the next block
+	  y_systErrLo_maxDev[ispp][b][0] = max(y_systErrLo[ispp][b] , (float)max(0.,-(y_ratio[ispp][isys][b] - 1)) ); //for maximum deviation, take asymmetric error (ErrLo counts only downwards variations)
+	  y_systErrHi_maxDev[ispp][b][0] = max(y_systErrHi[ispp][b] , (float)max(0., (y_ratio[ispp][isys][b] - 1)) );
+	  y_systErrLo_maxDev[ispp][b][iblock] = min((double)y_systErrLo_maxDev[ispp][b][iblock] , y_ratio[ispp][isys][b] - 1 );
+	  y_systErrHi_maxDev[ispp][b][iblock] = max((double)y_systErrHi_maxDev[ispp][b][iblock] , y_ratio[ispp][isys][b] - 1 );
+	  if(!RMSbyBlocks){
+	    y_systErrLo[ispp][b] += pow(y_ratio[ispp][isys][b] - 1 ,2); //symmetric systematic error here
+	    y_systErrHi[ispp][b] += pow(y_ratio[ispp][isys][b] - 1 ,2);
+	  }
+	  else if(RMSblock[isys+1]>iblock || RMSblock[isys+1]==0){
+	    y_systErrLo[ispp][b] += pow(max(fabs(y_systErrLo_maxDev[ispp][b][iblock]),y_systErrHi_maxDev[ispp][b][iblock]) ,2); //symmetric systematic error here
+	    y_systErrHi[ispp][b] += pow(max(fabs(y_systErrLo_maxDev[ispp][b][iblock]),y_systErrHi_maxDev[ispp][b][iblock]) ,2);
+	  }
 	  nVarUsed += 1;
 	}
 	else{
@@ -225,13 +244,13 @@ void Draw_metafitSyst(){
 	  float yerrVar = varLowerThanNom?(yErrHi_ratio[ispp][isys][b]):(yErrLo_ratio[ispp][isys][b]);
 	  float yerrNom = varLowerThanNom?(yErrLo_ratio[ispp][_nMetafitSyst][b]):(yErrHi_ratio[ispp][_nMetafitSyst][b]);
 	  cout<<"For this variation (not counted in systematic, we check (yratio-1) , sqrt(sigmayratio^2 + sigmayratio_nominal^2), ratio of the two = "<<y_ratio[ispp][isys][b]-1<<" "<<
-	    sqrt(pow(yerrVar,2)+pow(yerrNom,2))<<" "<<
-	    (y_ratio[ispp][isys][b]-1)/sqrt(pow(yerrVar,2)+pow(yerrNom,2))<<endl;
+	  sqrt(pow(yerrVar,2)+pow(yerrNom,2))<<" "<<
+	  (y_ratio[ispp][isys][b]-1)/sqrt(pow(yerrVar,2)+pow(yerrNom,2))<<endl;
 	}
       }
-      y_systErrLo[ispp][b] /= (nVarUsed-1);
+      y_systErrLo[ispp][b] /= ((RMSbyBlocks?_nRMSblocks:nVarUsed) - (RMSbyBlocks?0:1));
       y_systErrLo[ispp][b] = sqrt( y_systErrLo[ispp][b] );
-      y_systErrHi[ispp][b] /= (nVarUsed-1);
+      y_systErrHi[ispp][b] /= ((RMSbyBlocks?_nRMSblocks:nVarUsed) - (RMSbyBlocks?0:1));
       y_systErrHi[ispp][b] = sqrt( y_systErrHi[ispp][b] );
       cout<<"******   b, y relative systematic error = "<<b<<" "<<(y_systErrLo[ispp][b] + y_systErrHi[ispp][b])/2<<endl;
       //y_fitErr[b] = (*rsig_relerr)[b+1] * y_nom[ispp][b];
@@ -242,13 +261,22 @@ void Draw_metafitSyst(){
       for(int b2=b+1;b2<nbins;b2++){
 	y_systCorr[ispp].push_back(0);
 	float nVarUsed = 0;
-	for(int isys=0;isys<_nMetafitSyst;isys++){
-	  if(usedInRMS[isys] || (doAverageNominal && isys==0)){
-	    y_systCorr[ispp][idx] += (y_ratio[ispp][isys][b] -1) * (y_ratio[ispp][isys][b2] -1);
-	    nVarUsed += 1;
+	if(RMSbyBlocks){
+	  for(int iblo=0;iblo<_nRMSblocks;iblo++){
+	    float err1 = (fabs(y_systErrLo_maxDev[ispp][b][iblo])>y_systErrHi_maxDev[ispp][b][iblo])?( y_systErrLo_maxDev[ispp][b][iblo] ):( y_systErrHi_maxDev[ispp][b][iblo] );
+	    float err2 = (fabs(y_systErrLo_maxDev[ispp][b2][iblo])>y_systErrHi_maxDev[ispp][b2][iblo])?( y_systErrLo_maxDev[ispp][b2][iblo] ):( y_systErrHi_maxDev[ispp][b2][iblo] );
+	    y_systCorr[ispp][idx] += err1*err2;
+	  }
+	} else{
+	  for(int isys=0;isys<_nMetafitSyst;isys++){
+	    if(usedInRMS[isys] || (doAverageNominal && isys==0)){
+	      y_systCorr[ispp][idx] += (y_ratio[ispp][isys][b] -1) * (y_ratio[ispp][isys][b2] -1);
+	      nVarUsed += 1;
+	    }
 	  }
 	}
-	y_systCorr[ispp][idx] /= (nVarUsed-1);
+	
+	y_systCorr[ispp][idx] /= ((RMSbyBlocks?_nRMSblocks:nVarUsed) - (RMSbyBlocks?0:1));
 	y_systCorr[ispp][idx] /= ((y_systErrLo[ispp][b] + y_systErrHi[ispp][b])/2);
 	y_systCorr[ispp][idx] /= ((y_systErrLo[ispp][b2] + y_systErrHi[ispp][b2])/2);
 	cout<<"correlation factor of metafit syst between bins "<<b<<" and "<<b2<<" = "<<y_systCorr[ispp][idx]<<endl;
@@ -257,7 +285,7 @@ void Draw_metafitSyst(){
     }
 
     TFile * outf = new TFile("corrected_yields.root","UPDATE");
-    //  outf->WriteObject(&y_nom[ispp],"FinalCorrectedYield"+(TString)((ispp==1)?"_pp":"_PbPb"));
+    if(ispp<2) outf->WriteObject(&y_nom[ispp],"FinalCorrectedYield"+(TString)(firstStep?"_1stStep":"_2ndStep")+(TString)((ispp==1)?"_pp":"_PbPb"));
     outf->WriteObject(&y_systErrLo[ispp],(TString)((ispp<2)?"CorrectedYields":"RAA")+"_MetafitRelSystErrorLo_"+(TString)((ispp==1)?"pp":((ispp==0)?"PbPb":"")));
     outf->WriteObject(&y_systErrHi[ispp],(TString)((ispp<2)?"CorrectedYields":"RAA")+"_MetafitRelSystErrorHi_"+(TString)((ispp==1)?"pp":((ispp==0)?"PbPb":"")));
     outf->WriteObject(&y_systErrLo_maxDev[ispp],(TString)((ispp<2)?"CorrectedYields":"RAA")+"_MetafitRelSystErrorLoMaxDeviation"+(TString)((ispp==1)?"pp":((ispp==0)?"PbPb":"")));

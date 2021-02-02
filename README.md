@@ -3,7 +3,7 @@
 * `cd ~` means returning to the base directory
 
 ## Produce pre-selected samples
-
+- NB: No need to select on centrality (negligible effect of centrality bin variation)
 - Do pre-selection:
   * `cd ~/BDT/`
   * `rt "MakeInputTrees(true,false)"`
@@ -18,22 +18,26 @@
 - Add the Jpsi choice weight, with probabilities that depend on the BDT value (purer dimuon mass distro when looking at high BDT):
   * `rt "addJpsiChoiceWeight.C(true,true)"`
   * `cp BDT_InputTree_pp.root BDT_InputTree_pp_copystep3.root`
+- Check dimuon mass for Jpsi choice weight:
+  * `cd ~/JpsiMass/`
+  * `rt "drawJpsiMass.C(true)"`
+
 
 ## Preliminaries (BDT-linked)
 - Determine a less powerful version of BDT variable, but that is uncorrelated from the mass. Actually, should do this AFTER first nominal fit, for extracting postfit normalisations
   * `cd ~/BDT/`
-  * `rt -b "UncorrelateBDTfromM.C(true)"'
+  * `rt -b UncorrelateBDTfromM.C'
 - Determine the BDT binning (written in a header file), for each strategy and kinematic bin. The first time, when the header file does not exist yet, have to run it with option `firstTime=true`, before the second addJpsiChoiceWeight.C running 
   * `rt DetermineBDTcuts.C`
 - Weight the BDT distribution of the [true Jpsi + muon from different vertex] background, i.e. flipJpsi or Prompt+(uncorrelated)Non-prompt MC, to data in the mass control region (or in the signal reigon)
   * `rt -b "BDTweighting.C(true)"'
 
-## Acceptance and efficiency
-- Make the acceptance and efficiency maps. Only needs the pre-selected samples, and the BDT binning. Need to run twice, with or without BDTuncorrelatedFromM (changes BDT binning, hence BDT efficiency)
+## Acceptance and efficiency, first step (no pt spectrum correction)
+- Make the acceptance and efficiency maps. Only needs the pre-selected samples, and the BDT binning. Can be run with BDTuncorrelatedFromM=true (changes BDT binning, hence BDT efficiency), to obtain efficiency of being in some BDT bin
   * `cd ~/acceptance/`
-  * `rt BuildAcceptanceMap.C`
+  * `rt -b "BuildAcceptanceMap.C(false)"`
   * `cd ~/efficiency/`
-  * `rt -b runBuildEffMap.C`
+  * `rt -b "runBuildEffMap.C(false)"`
 
 ## Template fitting 
 - Make the templates histos for combine. Includes histos with acc eff corrections
@@ -56,9 +60,18 @@
 - Correct yields with event-by-event acc eff corrections
   * `cd ~/AccEffCorr/'
   * `rt -b runMetafitSysts.C'
+- Make toy biases for pt spectrum correction of MC. Use "1stStep==false" for cheking the convergence of the procedure.
+  * `cd ~/twoSteps/'
+  * `rt "MakeToyBiases.C(true)"'
+- Run toys for acceptance and efficiency
+  * `cd ~/acceptance/`
+  * `rt -b "BuildAcceptanceMap.C(true)"`
+  * `cd ~/efficiency/`
+  * `rt -b "runBuildEffMap.C(true)"`
+
 - Draw corrected yields for various acc eff methods, and get a systematic from it
-  * `rt "Draw_corrYields.C(true)"'
-  * `rt "Draw_corrYields.C(false)"'
+  * `rt -b "Draw_corrYields.C(true)"'
+  * `rt -b "Draw_corrYields.C(false)"'
 - Draw all meta-fit variations and extract a systematic
   * `rt Draw_metafitSyst.C'
 - Compute correlation factors for RAA from the ones for pp and PbPb
@@ -74,3 +87,6 @@
 - N-1 efficiencies (preselection section 3.4)
   * `cd ~/Bc/RAA/'
   * `python XSRAA_texTable.py'
+- BDT performance and overtraining
+  * `cd ~/Bc/BDT/'
+  * `python BDTperf_texTable.py'

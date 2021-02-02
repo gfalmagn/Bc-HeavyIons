@@ -691,24 +691,26 @@ void MakeInputTrees(bool ispp = true){
 	  if(iIpt==1) genBcIdx = Reco_3mu_whichGen[iIpt][BcNb];
 
 	  Short_t QQidx_3[3] = { Reco_3mu_QQ1_idx[iIpt][BcNb], Reco_3mu_QQ2_idx[iIpt][BcNb], Reco_3mu_QQss_idx[iIpt][BcNb] };
-	  if(fabs(Reco_3mu_charge[iIpt][BcNb])==3 && iIpt!=4){ //This fix for wrongsign can be removed after rerunning the oniatree
-	    bool foundit = false;
-	    if(Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_QQ_mumi_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]] && Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_QQ_mupl_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]]) {
-	      Reco_3mu_muW2_idx[iIpt][BcNb] = Reco_3mu_mumi_idx[iIpt][BcNb]; foundit=true;
-	    }
-	    if(Reco_3mu_mupl_idx[iIpt][BcNb]!=Reco_QQ_mumi_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]] && Reco_3mu_mupl_idx[iIpt][BcNb]!=Reco_QQ_mupl_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]]) {
-	      Reco_3mu_muW2_idx[iIpt][BcNb] = Reco_3mu_mupl_idx[iIpt][BcNb]; foundit=true;
-	    }
-	    if(!foundit) cout<<"Did not find muW for wrongsign Bc"<<endl;
-	  }
+	  // if(fabs(Reco_3mu_charge[iIpt][BcNb])==3 && iIpt!=4){ //This fix for wrongsign can be removed after rerunning the oniatree
+	  //   bool foundit = false;
+	  //   if(Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_QQ_mumi_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]] && Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_QQ_mupl_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]]) {
+	  //     Reco_3mu_muW2_idx[iIpt][BcNb] = Reco_3mu_mumi_idx[iIpt][BcNb]; foundit=true;
+	  //   }
+	  //   if(Reco_3mu_mupl_idx[iIpt][BcNb]!=Reco_QQ_mumi_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]] && Reco_3mu_mupl_idx[iIpt][BcNb]!=Reco_QQ_mupl_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]]) {
+	  //     Reco_3mu_muW2_idx[iIpt][BcNb] = Reco_3mu_mupl_idx[iIpt][BcNb]; foundit=true;
+	  //   }
+	  //   if(!foundit) cout<<"Did not find muW for wrongsign Bc"<<endl;
+	  // }
 	  Short_t muW3idx = (Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_3mu_muW2_idx[iIpt][BcNb])?(Reco_3mu_mumi_idx[iIpt][BcNb]):(Reco_3mu_mupl_idx[iIpt][BcNb]); //for the third dimuon choice, the muWidx=old_muWmi if old_muWmi!=muW2idx, and muWidx=old_muWpl otherwise
-	  if (iIpt!=4 && (muW3idx==Reco_3mu_muW_idx[iIpt][BcNb] || muW3idx==Reco_3mu_muW2_idx[iIpt][BcNb])) cout<<"!!!!!!!!! Wrong assignement of muW3idx !"<<endl;
+	  if (iIpt!=4 && (muW3idx==Reco_3mu_muW_idx[iIpt][BcNb] || muW3idx==Reco_3mu_muW2_idx[iIpt][BcNb]) && fabs(Reco_3mu_charge[iIpt][BcNb])!=1) cout<<"!!!!!!!!! Wrong assignement of muW3idx !"<<endl;
+	  if (iIpt!=4 && (Reco_3mu_muW_idx[iIpt][BcNb]==Reco_3mu_mumi_idx[iIpt][BcNb] || Reco_3mu_muW_idx[iIpt][BcNb]==Reco_3mu_mupl_idx[iIpt][BcNb] || Reco_3mu_mupl_idx[iIpt][BcNb]==Reco_3mu_mumi_idx[iIpt][BcNb] )) cout<<"!!! OOOPS! Wrong assignement of muon indices!"<<endl;
+	  if (iIpt!=4 && (Reco_3mu_muW2_idx[iIpt][BcNb]==Reco_QQ_mumi_idx[iIpt][QQidx_3[1]] || Reco_3mu_muW2_idx[iIpt][BcNb]==Reco_QQ_mupl_idx[iIpt][QQidx_3[1]] || Reco_QQ_mupl_idx[iIpt][QQidx_3[1]]==Reco_QQ_mumi_idx[iIpt][QQidx_3[1]] )) cout<<"!!! OOOPS! Wrong assignement of muon indices (2nd QQ choice) !"<<endl;
 	  Short_t muWidx_3[3] = { Reco_3mu_muW_idx[iIpt][BcNb], Reco_3mu_muW2_idx[iIpt][BcNb], muW3idx };
 	  Short_t mumiidx_3[3] = { Reco_3mu_mumi_idx[iIpt][BcNb], Reco_QQ_mumi_idx[iIpt][QQidx_3[1]], Reco_QQ_mumi_idx[iIpt][QQidx_3[2]] };
 	  Short_t muplidx_3[3] = { Reco_3mu_mupl_idx[iIpt][BcNb], Reco_QQ_mupl_idx[iIpt][QQidx_3[1]], Reco_QQ_mupl_idx[iIpt][QQidx_3[2]] };
 
 	  int nCandidatePairs = (fabs(Reco_3mu_charge[iIpt][BcNb])==1)?2:3; //use candidates for all three Jpsi-dimuon choices if Bc_charge is wrong, and only the two OS pairs if Bc_charge is right
-	  if(iIpt>=4) nCandidatePairs = 1; //!!!! HERE change to iIpt>0 ?
+	  if(iIpt>=4) nCandidatePairs = 1;
 
 	  //**************************************************************
 	  //Loop on the 2 or 3 possible Jpsi dimuon choices 
@@ -728,6 +730,7 @@ void MakeInputTrees(bool ispp = true){
 	      TLorentzVector *recBc = (TLorentzVector*) Reco_3mu_4mom[iIpt]->At(BcNb);
 	      TLorentzVector *recQQ = (TLorentzVector*) Reco_QQ_4mom[iIpt]->At(QQidx);
 	      if(muWidx==-1 || mumiidx==-1 || muplidx==-1) {cout<<"!!!!!!! one muon has a -1 index !! Skip this candidate"<<endl; continue;}
+	      if((muWidx>=Reco_mu_size[iIpt] || mumiidx>=Reco_mu_size[iIpt] || muplidx>=Reco_mu_size[iIpt]) && iIpt!=4) {cout<<"!!!!!!! Muon index > muons vectro size ! Skip this candidate"<<endl; continue;}
 	      TLorentzVector *recBc_muW = (TLorentzVector*) ((iIpt!=4)?Reco_mu_4mom:Reco_trk_4mom)[iIpt]->At(muWidx); //muW is a track in case of dimuon+track
 	      TLorentzVector *recBc_mumi = (TLorentzVector*) ((iIpt<5)?(Reco_mu_4mom[iIpt]->At(mumiidx)):(Reco_QQ_mumi_4mom[iIpt]->At(QQidx)));
 	      TLorentzVector *recBc_mupl = (TLorentzVector*) ((iIpt<5)?(Reco_mu_4mom[iIpt]->At(muplidx)):(Reco_QQ_mupl_4mom[iIpt]->At(QQidx)));
@@ -1099,7 +1102,7 @@ void MakeInputTrees(bool ispp = true){
 		}
 
 		if(Bc_CorrM_shiftedM[i] > _BcCorrM_cut(ispp) || dR_sum_shiftedM[i]>7.5) continue; //cuts no signal in PbPb, and 0.1% in pp
-		if(!ispp && min(Centrality[i],min(Centrality_Up[i],Centrality_Down[i]))>180) continue; //keep 0-90% centrality
+		if(!ispp && min(Centrality[i],min(Centrality_Up[i],Centrality_Down[i])) >= 2*_Centmax[0]) continue; //keep 0-90% centrality
 	    	     
 		if(!(std::isnan(w_simple[i]))){
 		  if(!ispp && i==3 && Bc_M[i]<_mBcMax){ //whether to blind 3/4 of the events of signal region

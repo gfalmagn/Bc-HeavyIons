@@ -20,7 +20,7 @@
 #include "../helpers/Cuts.h"
 #include "../helpers/Tools.h"
 
-void Uncorrelate(bool ispp=true, int kinBin=1){
+void Uncorrelate(bool ispp=true, int kinBin=1, int centBin=0){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -133,6 +133,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
   float BDT[ntrees];
   float weight[ntrees];
   int flipJpsi[ntrees];
+  int hiBin[ntrees];
 
   //init histograms
   double mbins[_nbinM(ispp)[0]+1];
@@ -159,11 +160,13 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
     T[iT]->SetBranchAddress("Bc_Pt", &Bc_Pt[iT]);
     if(iT==7) T[iT]->SetBranchAddress("flipJpsi", &flipJpsi[iT]);
     T[iT]->SetBranchAddress("weight", &weight[iT]);
+    if(!ispp) T[iT]->SetBranchAddress("Centrality", &hiBin[iT]);
 
     //BEGIN event loop on the analyzed tree
     for(int j=0; j<T[iT]->GetEntries(); j++){
       T[iT]->GetEntry(j);
       if(!inFidCuts(kinBin,Bc_Pt[iT],Bc_Y[iT])) continue;
+      if(!ispp && ((float)hiBin[iT] < 2*_Centmin[centBin] || (float)hiBin[iT] >= 2*_Centmax[centBin])) continue;
       
       float w = weight[iT];
       if(Bc_M[iT]>_mBcMax) w *= CRbinwRatio;
@@ -420,7 +423,9 @@ void Uncorrelate(bool ispp=true, int kinBin=1){
   outf->Close();
 }
 
-void UncorrelateBDTfromM(bool ispp){
-  Uncorrelate(ispp,1);
-  Uncorrelate(ispp,2);
+void UncorrelateBDTfromM(){
+  Uncorrelate(true,1);
+  Uncorrelate(true,2);
+  Uncorrelate(false,1);
+  Uncorrelate(false,2);
 }

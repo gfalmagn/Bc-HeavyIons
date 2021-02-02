@@ -16,7 +16,7 @@
 #include "../helpers/Definitions.h"
 #include "../helpers/Cuts.h"
 
-vector<float> DetermineCuts(bool ispp=true, bool BDTuncorrFromM=false, int kinBin=0, bool withTM=false, int varyBDTbin = 0, bool firstTime=false){
+vector<float> DetermineCuts(bool ispp=true, bool BDTuncorrFromM=false, int kinBin=0, int centBin=0, bool withTM=false, int varyBDTbin = 0, bool firstTime=false){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -31,6 +31,7 @@ vector<float> DetermineCuts(bool ispp=true, bool BDTuncorrFromM=false, int kinBi
   float weight;
   float w_simple2;
   float BDT;
+  int hiBin;
   T->SetBranchAddress("Bc_M", &Bc_M);
   T->SetBranchAddress("Bc_Pt", &Bc_Pt);
   T->SetBranchAddress("Bc_Y", &Bc_Y);
@@ -39,6 +40,7 @@ vector<float> DetermineCuts(bool ispp=true, bool BDTuncorrFromM=false, int kinBi
     T->SetBranchAddress("w_simple2", &w_simple2);
   else
     T->SetBranchAddress("weight", &weight);
+  if(!ispp) T->SetBranchAddress("Centrality", &hiBin);
 
   //*******************************************
   //Fetch BDT correction = f(M) to be subtracted from BDT, to uncorrelate it from mass
@@ -60,6 +62,7 @@ vector<float> DetermineCuts(bool ispp=true, bool BDTuncorrFromM=false, int kinBi
 
     //Keep events from the wanted analysis bin
     if(!inFidCuts(kinBin,Bc_Pt,Bc_Y)) continue;
+    if(!ispp && ((float)hiBin < 2*_Centmin[centBin] || (float)hiBin >= 2*_Centmax[centBin])) continue;
 
     h_BDT->Fill(BDT-bdtcorr, firstTime?w_simple2:weight);
 

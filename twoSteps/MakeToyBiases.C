@@ -205,7 +205,7 @@ int FindParamsPowerToLog(double *pars, double *y, vector<double> xbins, double f
   return r.Status();
 }
 
-void MakeToyBiases(bool plotOnly=false){
+void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
 
   gStyle->SetOptStat(0);
   auto h_test = new TH1F();
@@ -324,19 +324,24 @@ void MakeToyBiases(bool plotOnly=false){
   infile->GetObject("Yields_prefit_pp", Yields_prefit_pp);
   vector<vector<vector<float> > > *Yields_prefit_PbPb;
   infile->GetObject("Yields_prefit_PbPb", Yields_prefit_PbPb);
+  //nominal corrected yield
+  vector<float> *y_nom_pp;
+  infile->GetObject("FinalCorrectedYield"+(TString)(firstStep?"_1stStep":"_2ndStep")+"_pp", y_nom_pp);
+  vector<float> *y_nom_PbPb;
+  infile->GetObject("FinalCorrectedYield"+(TString)(firstStep?"_1stStep":"_2ndStep")+"_PbPb", y_nom_PbPb);
 
   //pp and PbPb corrected yields
-  vector<vector<double> > yield = vector<vector<double> >(2, vector<double>(_NanaBins,0));
+  //  vector<vector<double> > yield = vector<vector<double> >(2, vector<double>(_NanaBins,0));
   vector<vector<double> > ycorr = vector<vector<double> >(2, vector<double>(_NanaBins,0));
   vector<double> ptwidth, Ywidth;
   for(int b=0;b<_NanaBins;b++){
-    yield[0][b] = (*Yields_postfit_pp)[0][b+1][0];
-    yield[1][b] = (*Yields_postfit_PbPb)[0][b+1][0];
+    //yield[0][b] = (*Yields_postfit_pp)[0][b+1][0];
+    //yield[1][b] = (*Yields_postfit_PbPb)[0][b+1][0];
 
     ptwidth.push_back( _BcPtmax[b+1]-_BcPtmin[b+1] );
     Ywidth.push_back( _BcYmax[b+1]-_BcYmin[b+1] );
-    ycorr[0][b] = yield[0][b] / ((*acc_oneBinned)[b+1] * (*eff_oneBinned_pp)[b+1][0] * ptwidth[b] * Ywidth[b]);
-    ycorr[1][b] = yield[1][b] / ((*acc_oneBinned)[b+1] * (*eff_oneBinned_PbPb)[b+1][0] * ptwidth[b] * Ywidth[b]);
+    ycorr[0][b] = (*y_nom_pp)[b] / ( ptwidth[b] * Ywidth[b]); //yield[0][b] / ((*acc_oneBinned)[b+1] * (*eff_oneBinned_pp)[b+1][0]
+    ycorr[1][b] = (*y_nom_PbPb)[b] / ( ptwidth[b] * Ywidth[b]);//yield[1][b] / ((*acc_oneBinned)[b+1] * (*eff_oneBinned_PbPb)[b+1][0]
   }
 
   //Grab signal normalisations
@@ -360,10 +365,17 @@ void MakeToyBiases(bool plotOnly=false){
   vector<float> *r1r2Corr_PbPb;
   infile->GetObject("r1r2Correlation_PbPb", r1r2Corr_PbPb);
 
-  vector<vector<vector<float> > > *MetaFit_RelErr; //dimension1: pp,PbPb,RAA. dimension2: errlo, errhi, errsym. dimension3: pt bins (from 0)
-  infile->GetObject("MetaFit_RelErr",MetaFit_RelErr);
-  cout<<"Metafit relerr_pp low bin1 bin2 = "<< (*MetaFit_RelErr)[0][0][0]<<" "<<(*MetaFit_RelErr)[0][0][1]<<endl;
-  cout<<"Metafit relerr_PbPb low bin1 bin2 = "<< (*MetaFit_RelErr)[1][0][0]<<" "<<(*MetaFit_RelErr)[1][0][1]<<endl;
+  vector<float> *y_metafitRelErrLo_pp;
+  vector<float> *y_metafitRelErrHi_pp;
+  infile->GetObject("CorrectedYields_MetafitRelSystErrorLo_pp", y_metafitRelErrLo_pp);
+  infile->GetObject("CorrectedYields_MetafitRelSystErrorHi_pp", y_metafitRelErrHi_pp); 
+  vector<float> *y_metafitRelErrLo_PbPb;
+  vector<float> *y_metafitRelErrHi_PbPb;
+  infile->GetObject("CorrectedYields_MetafitRelSystErrorLo_PbPb", y_metafitRelErrLo_PbPb);
+  infile->GetObject("CorrectedYields_MetafitRelSystErrorHi_PbPb", y_metafitRelErrHi_PbPb); 
+
+  cout<<"Metafit relerr_pp low bin1 bin2 = "<< (*y_metafitRelErrLo_pp)[0]<<" "<<(*y_metafitRelErrLo_pp)[1]<<endl;
+  cout<<"Metafit relerr_PbPb low bin1 bin2 = "<< (*y_metafitRelErrLo_PbPb)[0]<<" "<<(*y_metafitRelErrLo_PbPb)[1]<<endl;
  
   vector<vector<float> > rSig(2, vector<float>(_NanaBins,0) );//[pp or PbPb][pt bins from 0]
   vector<vector<float> > rErrHi(2, vector<float>(_NanaBins,0));//[pp or PbPb][pt bins from 0]
@@ -379,35 +391,35 @@ void MakeToyBiases(bool plotOnly=false){
     cout<<"bin = "<<b+1<<endl;
     rSig[0][b] = (*rsig_pp)[b+1];
     cout<<"rSig[0][b] = "<<rSig[0][b]<<endl;
-    rErrLo[0][b] = rSig[0][b] * sqrt(pow((*rrelerr_pp)[b+1][1],2) + pow((*MetaFit_RelErr)[0][0][b],2));
+    rErrLo[0][b] = rSig[0][b] * sqrt(pow((*rrelerr_pp)[b+1][1],2) + pow((*y_metafitRelErrLo_pp)[b],2));
     cout<<"rErrLo[0][b] = "<<rErrLo[0][b]<<endl;
-    rErrHi[0][b] = rSig[0][b] * sqrt(pow((*rrelerr_pp)[b+1][2],2) + pow((*MetaFit_RelErr)[0][1][b],2));
-    yErrLo[0][b] = ycorr[0][b] * sqrt(pow((*rrelerr_pp)[b+1][1],2) + pow((*MetaFit_RelErr)[0][0][b],2));
+    rErrHi[0][b] = rSig[0][b] * sqrt(pow((*rrelerr_pp)[b+1][2],2) + pow((*y_metafitRelErrHi_pp)[b],2));
+    yErrLo[0][b] = ycorr[0][b] * sqrt(pow((*rrelerr_pp)[b+1][1],2) + pow((*y_metafitRelErrLo_pp)[b],2));
     cout<<"yErrLo[0][b] = "<<yErrLo[0][b]<<endl;
-    cout<<"relerrlo = "<<sqrt(pow((*rrelerr_pp)[b+1][1],2) + pow((*MetaFit_RelErr)[0][0][b],2))<<endl;
-    yErrHi[0][b] = ycorr[0][b] * sqrt(pow((*rrelerr_pp)[b+1][2],2) + pow((*MetaFit_RelErr)[0][1][b],2));
+    cout<<"relerrlo = "<<sqrt(pow((*rrelerr_pp)[b+1][1],2) + pow((*y_metafitRelErrLo_pp)[b],2))<<endl;
+    yErrHi[0][b] = ycorr[0][b] * sqrt(pow((*rrelerr_pp)[b+1][2],2) + pow((*y_metafitRelErrHi_pp)[b],2));
     cout<<"corrected yield pp   bin "<<b+1<<" = "<<ycorr[0][b]<<endl;
     cout<<"corrected yield pp (MC)   bin "<<b+1<<" = "<<h_pTMC_pp->GetBinContent(b+1)<<endl;
     
     rSig[1][b] = (*rsig_PbPb)[b+1];
     cout<<"rSig[1][b] = "<<rSig[1][b]<<endl;
-    rErrLo[1][b] = rSig[1][b] * sqrt(pow((*rrelerr_PbPb)[b+1][1],2) + pow((*MetaFit_RelErr)[1][0][b],2));
+    rErrLo[1][b] = rSig[1][b] * sqrt(pow((*rrelerr_PbPb)[b+1][1],2) + pow((*y_metafitRelErrLo_PbPb)[b],2));
     cout<<"rErrLo[1][b] = "<<rErrLo[1][b]<<endl;
-    rErrHi[1][b] = rSig[1][b] * sqrt(pow((*rrelerr_PbPb)[b+1][2],2) + pow((*MetaFit_RelErr)[1][1][b],2));
-    yErrLo[1][b] = ycorr[1][b] * sqrt(pow((*rrelerr_PbPb)[b+1][1],2) + pow((*MetaFit_RelErr)[1][0][b],2));
+    rErrHi[1][b] = rSig[1][b] * sqrt(pow((*rrelerr_PbPb)[b+1][2],2) + pow((*y_metafitRelErrHi_PbPb)[b],2));
+    yErrLo[1][b] = ycorr[1][b] * sqrt(pow((*rrelerr_PbPb)[b+1][1],2) + pow((*y_metafitRelErrLo_PbPb)[b],2));
     cout<<"yErrLo[1][b] = "<<yErrLo[1][b]<<endl;
-    cout<<"relerrlo = "<<sqrt(pow((*rrelerr_PbPb)[b+1][1],2) + pow((*MetaFit_RelErr)[1][0][b],2))<<endl;
-    yErrHi[1][b] = ycorr[1][b] * sqrt(pow((*rrelerr_PbPb)[b+1][2],2) + pow((*MetaFit_RelErr)[1][1][b],2));
+    cout<<"relerrlo = "<<sqrt(pow((*rrelerr_PbPb)[b+1][1],2) + pow((*y_metafitRelErrLo_PbPb)[b],2))<<endl;
+    yErrHi[1][b] = ycorr[1][b] * sqrt(pow((*rrelerr_PbPb)[b+1][2],2) + pow((*y_metafitRelErrHi_PbPb)[b],2));
     cout<<"corrected yield PbPb bin "<<b+1<<" = "<<ycorr[1][b]<<endl;
     cout<<"corrected yield PbPb (MC) bin "<<b+1<<" = "<<h_pTMC_PbPb->GetBinContent(b+1)<<endl;
   }
 
   corr[0][0] = ( (*r1r2Corr_pp)[0] * (*rrelerr_pp)[1][0] * (*rrelerr_pp)[2][0] //symmetric errors for correlations
-		 +(*metafitErrCorr_pp)[0] * (*MetaFit_RelErr)[0][2][0] * (*MetaFit_RelErr)[0][2][1]
-		 )/ sqrt( (pow((*rrelerr_pp)[1][0],2) + pow((*MetaFit_RelErr)[0][2][0],2)) * (pow((*rrelerr_pp)[2][0],2) + pow((*MetaFit_RelErr)[0][2][1],2)) ); //(Cov(1,2)+Cov'(1,2)) / (sigma_tot(1)*sigma_tot(2))
+		 +(*metafitErrCorr_pp)[0] * (((*y_metafitRelErrLo_pp)[0]+(*y_metafitRelErrHi_pp)[0])/2) * (((*y_metafitRelErrLo_pp)[1]+(*y_metafitRelErrHi_pp)[1])/2) 
+		 )/ sqrt( (pow((*rrelerr_pp)[1][0],2) + pow(((*y_metafitRelErrLo_pp)[0]+(*y_metafitRelErrHi_pp)[0])/2,2)) * (pow((*rrelerr_pp)[2][0],2) + pow(((*y_metafitRelErrLo_pp)[1]+(*y_metafitRelErrHi_pp)[1])/2,2)) ); //(Cov(1,2)+Cov'(1,2)) / (sigma_tot(1)*sigma_tot(2))
   corr[1][0] = ( (*r1r2Corr_PbPb)[0] * (*rrelerr_PbPb)[1][0] * (*rrelerr_PbPb)[2][0] //symmetric errors for correlations
-		 +(*metafitErrCorr_PbPb)[0] * (*MetaFit_RelErr)[1][2][0] * (*MetaFit_RelErr)[1][2][1]
-		 )/ sqrt( (pow((*rrelerr_PbPb)[1][0],2) + pow((*MetaFit_RelErr)[1][2][0],2)) * (pow((*rrelerr_PbPb)[2][0],2) + pow((*MetaFit_RelErr)[1][2][1],2)) ); //(Cov(1,2)+Cov'(1,2)) / (sigma_tot(1)*sigma_tot(2))
+		 +(*metafitErrCorr_PbPb)[0] * (((*y_metafitRelErrLo_PbPb)[0]+(*y_metafitRelErrHi_PbPb)[0])/2) * (((*y_metafitRelErrLo_PbPb)[1]+(*y_metafitRelErrHi_PbPb)[1])/2)
+		 )/ sqrt( (pow((*rrelerr_PbPb)[1][0],2) + pow(((*y_metafitRelErrLo_PbPb)[0]+(*y_metafitRelErrHi_PbPb)[0])/2,2)) * (pow((*rrelerr_PbPb)[2][0],2) + pow(((*y_metafitRelErrLo_PbPb)[1]+(*y_metafitRelErrHi_PbPb)[1])/2,2)) ); //(Cov(1,2)+Cov'(1,2)) / (sigma_tot(1)*sigma_tot(2))
 
   vector<vector<vector<double> > > dipoints = vector<vector<vector<double> > >(2, vector<vector<double> >(_biasNmeth*(_biasNtoys+1), vector<double>(4,0))); //[{x1,x2,r1,r2}] 
   vector<vector<vector<TF1*> > > mcfit = vector<vector<vector<TF1*> > >(2,vector<vector<TF1*> >(_biasNmeth, vector<TF1*>(2)));
@@ -438,8 +450,8 @@ void MakeToyBiases(bool plotOnly=false){
       double z22 = ( corr[col][0]*z1+sqrt(1-pow(corr[col][0],2))*z2 );
       double r1 = ycorr[col][0] + z1 * ((z1>0)?yErrHi:yErrLo)[col][0];
       double r2 = ycorr[col][1] + z22 * ((z22>0)?yErrHi:yErrLo)[col][1];
-      if(r1<0.1*ycorr[col][0]) r1=0.1*ycorr[col][0];
-      if(r2<0.1*ycorr[col][1]) r2=0.1*ycorr[col][1];
+      if(r1<0.1*ycorr[col][0]) {r1=0.1*ycorr[col][0]; cout<<"using minimal r1"<<endl;}
+      if(r2<0.1*ycorr[col][1]) {r2=0.1*ycorr[col][1]; cout<<"using minimal r2"<<endl;}
       if(v<_biasNmeth){
 	x_LW_MC.push_back( useLWabciss?x_LW[0]:(preAEmeanPt?avPt_preAE[0]:ptAverage[col][0]) );
 	x_LW_MC.push_back( useLWabciss?x_LW[1]:(preAEmeanPt?avPt_preAE[1]:ptAverage[col][1]) );
@@ -492,8 +504,8 @@ void MakeToyBiases(bool plotOnly=false){
 	      cout<<"MC integral fit"<<endl;
 	      mcfit[col][m][1] = (TF1*)mcfit[col][m][0]->Clone("MC_fitWithBinIntegral_meth"+(TString)(to_string(m)));
 	      double parsMC[] = {mcfit[col][m][1]->GetParameter(0), mcfit[col][m][1]->GetParameter(1)};
-	      double parLowLimsMC[] = {1e2, -12};
-	      double parHiLimsMC[] = {1e10, -0.5};
+	      double parLowLimsMC[] = {5e3, -8};
+	      double parHiLimsMC[] = {1e9, -1.5};
 	      int status = FindParamsPower(parsMC, yMC, xbins, parLowLimsMC, parHiLimsMC, 1);
 	      if (status!=0) cout<<"ROOT FINDING FAILED!! status "<<status<<" (power)"<<endl;
 	      mcfit[col][m][1]->SetParameters(parsMC[0],parsMC[1]);

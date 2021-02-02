@@ -140,6 +140,9 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
   int ntrees = 8;
 
   //Initialization of variables
+  int hiBin[ntrees];
+  int hiBin_Up[ntrees];
+  int hiBin_Down[ntrees];
   float Bc_CorrM[ntrees];
   float Bc_ctauSignif[ntrees];
   float Bc_ctauSignif3D[ntrees], Bc_log_ctauSignif3D[ntrees];
@@ -222,6 +225,9 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
   vector<TH1F*> h_BDT, h_BDTprob;
   vector<vector<TH1F*> > h_bdt(nProc, vector<TH1F*>(nCuts)); 
   vector<vector<TH1F*> > h_BcM(nProc, vector<TH1F*>(nCuts)); 
+  vector<vector<TH1F*> > h_BcM_blindYields(nProc, vector<TH1F*>(nCuts)); 
+  vector<vector<TH1F*> > h_BcM_centDown(nProc, vector<TH1F*>(nCuts)); 
+  vector<vector<TH1F*> > h_BcM_centUp(nProc, vector<TH1F*>(nCuts)); 
   vector<vector<TH1F*> > h_MeanInvAccEff(nProc, vector<TH1F*>(nCuts)); 
   vector<vector<TH1F*> > h_AccEffCorr(nProc, vector<TH1F*>(nCuts)); 
   vector<vector<TH1F*> > h_MeanInvAccEff_BDT23(nProc, vector<TH1F*>(nCuts)); 
@@ -274,6 +280,11 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 						    "Corrected yields VS 1/#alpha#times#varepsilon weights "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,BDTuncorrFromM)[k+1])+"]", nlogbins,logbins );
       h_BcPt[i][k] = new TH1F( "BcPt_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} p_{T} "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,BDTuncorrFromM)[k+1])+"]", 50, 0, 30 );
       h_QQM[i][k] = new TH1F( "QQM_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "J/#psi mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,BDTuncorrFromM)[k+1])+"]", nbinM, 2.6,3.6 );
+      if(!ispp){
+	h_BcM_centUp[i][k] = new TH1F( "BcM_centUp_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,BDTuncorrFromM)[k+1])+"]", nmbins, mbins );
+	h_BcM_centDown[i][k] = new TH1F( "BcM_centDown_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,BDTuncorrFromM)[k+1])+"]", nmbins, mbins );
+	h_BcM_blindYields[i][k] = new TH1F( "BcM_blindYields_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,BDTuncorrFromM)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,BDTuncorrFromM)[k+1])+"]", nmbins, mbins );
+      }
     }
   }
 
@@ -319,7 +330,12 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
     T[iT]->SetBranchAddress("muW_isJpsiBro", &muW_isJpsiBro[iT]);
     if(iT==7) T[iT]->SetBranchAddress("flipJpsi", &flipJpsi[iT]);
     T[iT]->SetBranchAddress("weight", &weight[iT]);
-    //    T[iT]->SetBranchAddress("eventNb", &eventNb[iT]);
+    if(!ispp){
+      T[iT]->SetBranchAddress("Centrality", &hiBin[iT]);
+      T[iT]->SetBranchAddress("Centrality_Up", &hiBin_Up[iT]);
+      T[iT]->SetBranchAddress("Centrality_Down", &hiBin_Down[iT]);
+    }
+    T[iT]->SetBranchAddress("eventNb", &eventNb[iT]);
 
     //BEGIN event loop on the analyzed tree
     for(int j=0; j<T[iT]->GetEntries(); j++){//T[iT]->GetEntries() 
@@ -429,25 +445,45 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
 	  if(BDTv[iT]-bdtcorr > BDTcut[k] && BDTv[iT]-bdtcorr < BDTcut[k+1]){
 	    int kForMbin = (massBinning==1)?(nCuts-1):((massBinning==2)?0:k);
 	    if(Bc_M[iT]>_mBcMax) w *= CRbinwRatio[kForMbin]; //compensate for larger bins in the high mass CR
-	    h_bdt[iproc][k]->Fill(BDTv[iT]-bdtcorr, w ); 
-	    h_BcM[iproc][k]->Fill(Bc_M[iT], w ); 
-	    h_BcPt[iproc][k]->Fill(Bc_Pt[iT], w ); 
-	    h_QQM[iproc][k]->Fill(QQ_M[iT], w );
 
-	    if(addAccEff){
-	      float acceff = hp_acceff->GetBinContent( hp_acceff->FindBin( fabs(Bc_Y[iT]) , Bc_Pt[iT] ));
-	      float acceffW = (acceff==0)?300:(1/acceff);
-	      h_MeanInvAccEff[iproc][k]->Fill(Bc_M[iT], w * acceffW);
-	      h_AccEffWeights[iproc][k]->Fill(acceffW, w);
-	      h_CorrYieldsVsAccEffWeights[iproc][k]->Fill(acceffW, w * acceffW);
-	      float effBDT23 = hpcoarse_inBDT23->GetBinContent( hpcoarse_inBDT23->FindBin( fabs(Bc_Y[iT]) , Bc_Pt[iT] ));
-	      float effBDT3 = hpcoarse_inBDT3->GetBinContent( hpcoarse_inBDT3->FindBin( fabs(Bc_Y[iT]) , Bc_Pt[iT] ));
-	      h_MeanInvAccEff_BDT23[iproc][k]->Fill(Bc_M[iT], w * acceffW / ((effBDT23==0)?1.5:effBDT23));
-	      h_MeanInvAccEff_BDT3[iproc][k]->Fill(Bc_M[iT], w * acceffW / ((effBDT3==0)?3.:effBDT3));
+	    if(!ispp && ((float)hiBin_Up[iT] >= 2*_Centmin[0] && (float)hiBin_Up[iT] < 2*_Centmax[0]))
+	      h_BcM_centUp[iproc][k]->Fill(Bc_M[iT], w ); 
+	    if(!ispp && ((float)hiBin_Down[iT] >= 2*_Centmin[0] && (float)hiBin_Down[iT] < 2*_Centmax[0]))
+	      h_BcM_centDown[iproc][k]->Fill(Bc_M[iT], w ); 
+
+	    if(ispp || ((float)hiBin[iT] >= 2*_Centmin[0] && (float)hiBin[iT] < 2*_Centmax[0])) {
+	      h_bdt[iproc][k]->Fill(BDTv[iT]-bdtcorr, w ); 
+	      h_BcM[iproc][k]->Fill(Bc_M[iT], w ); 
+	      h_BcPt[iproc][k]->Fill(Bc_Pt[iT], w ); 
+	      h_QQM[iproc][k]->Fill(QQ_M[iT], w );
+
+	      if(addAccEff){
+		float acceff = hp_acceff->GetBinContent( hp_acceff->FindBin( fabs(Bc_Y[iT]) , Bc_Pt[iT] ));
+		float acceffW = (acceff==0)?300:(1/acceff);
+		h_MeanInvAccEff[iproc][k]->Fill(Bc_M[iT], w * acceffW);
+		h_AccEffWeights[iproc][k]->Fill(acceffW, w);
+		h_CorrYieldsVsAccEffWeights[iproc][k]->Fill(acceffW, w * acceffW);
+		float effBDT23 = hpcoarse_inBDT23->GetBinContent( hpcoarse_inBDT23->FindBin( fabs(Bc_Y[iT]) , Bc_Pt[iT] ));
+		float effBDT3 = hpcoarse_inBDT3->GetBinContent( hpcoarse_inBDT3->FindBin( fabs(Bc_Y[iT]) , Bc_Pt[iT] ));
+		h_MeanInvAccEff_BDT23[iproc][k]->Fill(Bc_M[iT], w * acceffW / ((effBDT23==0)?1.5:effBDT23));
+		h_MeanInvAccEff_BDT3[iproc][k]->Fill(Bc_M[iT], w * acceffW / ((effBDT3==0)?3.:effBDT3));
+	      }
+
+	      if(!ispp) {
+		if(iproc==3){ 
+		  if(w>0 && w<1.1){ //blind all events in signal region
+		    if((j%4)!=0) w = 0;
+		  }
+		  else //already blinded data sig region events
+		    w /= 4;
+		}
+		else w /= 4; //adapt all backgrounds to blinded yields
+		h_BcM_blindYields[iproc][k]->Fill(Bc_M[iT], w);
+	      }	    
+	    
 	    }
-
-	  }
-	}
+	  }//fi (in BDT cuts)
+	}//END loop on BDT bins
       }//END loop on processes
       
     }
@@ -491,6 +527,11 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
       int didReg = MakePositive(h_BcM[i][k], regulLowStatShapes && i!=3 && i!=4);
       MakePositive(h_BcPt[i][k]);
       MakePositive(h_QQM[i][k]);
+      if(!ispp) {
+	MakePositive(h_BcM_blindYields[i][k]);
+	MakePositive(h_BcM_centDown[i][k]);
+	MakePositive(h_BcM_centUp[i][k]);
+      }
 
       int scaleWithProc = -1;
       if(i>9 && i<=13) scaleWithProc = 9;
@@ -507,6 +548,12 @@ void application(vector<float> BDTcut, bool ispp, bool BDTuncorrFromM, int kinBi
       h_BcM[i][k]->Write("BcM");
       h_BcPt[i][k]->Write("BcPt");
       h_QQM[i][k]->Write("JpsiM");
+
+      if(!ispp){
+	h_BcM_centDown[i][k]->Write("BcM_centDown");
+	h_BcM_centUp[i][k]->Write("BcM_centUp");
+	h_BcM_blindYields[i][k]->Write("BcM_blindYields");
+      }
 
       if(addAccEff) {
 	//MakePositive(h_MeanInvAccEff[i][k], (i!=3 && i!=4), didReg); //need same regularization as simple Bc_M
