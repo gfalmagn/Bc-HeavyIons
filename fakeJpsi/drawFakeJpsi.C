@@ -15,7 +15,7 @@
 #include "../helpers/Cuts.h"
 #include "../acceptance/SgMuonAcceptanceCuts.h"
 
-void drawFakeJpsi(bool ispp=true){
+void drawFakeJpsi(bool ispp=true, bool secondStep=true){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -29,8 +29,8 @@ void drawFakeJpsi(bool ispp=true){
   TTree* Tnp = (TTree*)fullFile->Get("bToJpsi_MC");
 
   TH1F* h_bToJ = new TH1F("h_bToJ",";trimuon mass [GeV];N", 28,3.3,5.75);
-  TH1F* h_lowSB = new TH1F("h_lowSB",";trimuon mass [GeV];N", 20,3.3,7.3);
-  TH1F* h_hiSB = new TH1F("h_hiSB",";trimuon mass [GeV];N", 20,3.3,7.3);
+  TH1F* h_lowSB = new TH1F("h_lowSB",";trimuon mass [GeV];N", 19,3.3,_mMax);
+  TH1F* h_hiSB = new TH1F("h_hiSB",";trimuon mass [GeV];N", 19,3.3,_mMax);
   TH1F* h_tightEta = new TH1F("h_tightEta",";dimuon mass [GeV];N", (int)( (2*JpeakWid+JpeakLoBuf+JpeakHiBuf+1e-5)/0.01), m_Jpsi-JpeakLo-JpeakLoBuf-JpeakWid/2,m_Jpsi+JpeakHi+JpeakHiBuf+JpeakWid/2);
   TH1F* h_looseEta = new TH1F("h_looseEta",";dimuon mass [GeV];N",  (int)( (2*JpeakWid+JpeakLoBuf+JpeakHiBuf+1e-5)/0.01), m_Jpsi-JpeakLo-JpeakLoBuf-JpeakWid/2,m_Jpsi+JpeakHi+JpeakHiBuf+JpeakWid/2);
   TH2F* hVProbBelow006VsDca = new TH2F("hVProbBelow006VsDca",";dca(J/#psi) [mm];eff(VtxProb<0.06)",12,0,ispp?0.11:0.10, 2,-0.5,1.5);
@@ -49,7 +49,7 @@ void drawFakeJpsi(bool ispp=true){
   T->SetBranchAddress("QQ_M", &QQ_M);
   T->SetBranchAddress("Bc_Pt", &Bc_Pt);
   T->SetBranchAddress("Bc_Y", &Bc_Y);
-  T->SetBranchAddress("BDT", &BDT);
+  T->SetBranchAddress(secondStep?"BDT2":"BDT", &BDT);
   T->SetBranchAddress("muW_eta", &muW_eta);
   T->SetBranchAddress("mupl_eta", &mupl_eta);
   T->SetBranchAddress("mumi_eta", &mumi_eta);
@@ -75,7 +75,7 @@ void drawFakeJpsi(bool ispp=true){
   Tnp->SetBranchAddress("Bc_M", &npBc_M);
   Tnp->SetBranchAddress("Bc_Pt", &npBc_Pt);
   Tnp->SetBranchAddress("Bc_Y", &npBc_Y);
-  Tnp->SetBranchAddress("BDT", &npBDT);
+  Tnp->SetBranchAddress(secondStep?"BDT2":"BDT", &npBDT);
   Tnp->SetBranchAddress("weight", &npweight);
   Tnp->SetBranchAddress("muW_isJpsiBro", &muW_isJpsiBro);
 
@@ -92,7 +92,7 @@ void drawFakeJpsi(bool ispp=true){
   Td->SetBranchAddress("Bc_M", &dBc_M);
   Td->SetBranchAddress("Bc_Pt", &dBc_Pt);
   Td->SetBranchAddress("Bc_Y", &dBc_Y);
-  Td->SetBranchAddress("BDT", &dBDT);
+  Td->SetBranchAddress(secondStep?"BDT2":"BDT", &dBDT);
   Td->SetBranchAddress("weight", &dweight);
   Td->SetBranchAddress("muW_eta", &dmuW_eta);
   Td->SetBranchAddress("mupl_eta", &dmupl_eta);
@@ -118,8 +118,8 @@ void drawFakeJpsi(bool ispp=true){
   Ts->SetBranchAddress("Bc_Pt", &sBc_Pt);
   Ts->SetBranchAddress("Bc_Y", &sBc_Y);
   Ts->SetBranchAddress("Bc_VtxProb", &sBc_VtxProb);
-  Ts->SetBranchAddress("BDT", &sBDT);
-  Ts->SetBranchAddress("weight", &sweight);
+  Ts->SetBranchAddress(secondStep?"BDT2":"BDT", &sBDT);
+  Ts->SetBranchAddress(secondStep?"weight2":"weight", &sweight);
   Ts->SetBranchAddress("muW_eta", &smuW_eta);
   Ts->SetBranchAddress("mupl_eta", &smupl_eta);
   Ts->SetBranchAddress("mumi_eta", &smumi_eta);
@@ -142,7 +142,7 @@ void drawFakeJpsi(bool ispp=true){
     else
       h_hiSB->Fill(Bc_M,weight);        
 
-    if(Bc_M>6.2 || Bc_M<3.5) continue; //mass SR for dimuon mass plot
+    if(Bc_M>_mBcMax || Bc_M<_mBcMin) continue; //mass SR for dimuon mass plot
     if(max(fabs(mupl_eta), max(fabs(mumi_eta),fabs(muW_eta))) <1.5)
       h_tightEta->Fill(QQ_M,weight);
     else
@@ -156,7 +156,7 @@ void drawFakeJpsi(bool ispp=true){
     if(wFidCuts) 
       if(!inFidCuts(0, dBc_Pt, dBc_Y)) continue; //fiducial cuts
 
-    if(dBc_M>6.2 || dBc_M<3.5) continue; //mass SR for dimuon mass plot
+    if(dBc_M>_mBcMax || dBc_M<_mBcMin) continue; //mass SR for dimuon mass plot
     if(max(fabs(dmupl_eta), max(fabs(dmumi_eta),fabs(dmuW_eta))) <1.5)
       h_tightEta->Fill(dQQ_M,dweight);
     else
@@ -186,11 +186,11 @@ void drawFakeJpsi(bool ispp=true){
     hVProbBelow004VsDca->Fill(sQQ_dca,(float)(sBc_VtxProb<0.04),sweight);    
 
     nsig+= sweight;
-    if((tightAcc(smumi_pt,smumi_eta) && tightAcc(smupl_pt,smupl_eta) && looseAcc(smuW_pt*3/5,smuW_eta)) ||
-       tightAcc(smuW_pt*3/5,smuW_eta))
+    if((tightAcc(smumi_pt,smumi_eta) && tightAcc(smupl_pt,smupl_eta) && looseAcc(smuW_pt*0.6,smuW_eta)) ||
+       tightAcc(smuW_pt*0.6,smuW_eta))
       nAccTau+= sweight;
   }
-  cout<<"proportion of signal trimuons which pass acceptance cuts with pT(mu_W)/2 = "<<nAccTau/nsig<<endl;
+  cout<<"proportion of signal trimuons which pass acceptance cuts with pT(mu_W)*0.6 = "<<nAccTau/nsig<<endl;
 
   gStyle->SetOptStat(0);
 

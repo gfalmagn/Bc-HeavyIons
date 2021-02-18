@@ -20,7 +20,7 @@
 #include "../helpers/Cuts.h"
 #include "../helpers/Tools.h"
 
-void Uncorrelate(bool ispp=true, int kinBin=1, int centBin=0){
+void Uncorrelate(bool ispp=true, int kinBin=1, int centBin=0,bool secondStep=false){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -140,9 +140,9 @@ void Uncorrelate(bool ispp=true, int kinBin=1, int centBin=0){
   for(int bx=0;bx<=_nbinM(ispp)[0];bx++){ 
     mbins[bx] = _Mbinning(ispp,0)[bx];
   }
-  vector<float> BDTcuts = _BDTcuts(ispp, kinBin);
-  double bdtlo = _withTM?-0.47:(BDTcuts[0]-0.05) , bdthi = _withTM?(ispp?0.31:0.39):(BDTcuts[BDTcuts.size()-1]+0.05);
-  int nbdt = 60;//_withTM?(ispp?50:40):35;
+  vector<float> BDTcuts = _BDTcuts(ispp, kinBin, secondStep);
+  double bdtlo = BDTcuts[0]-0.05 , bdthi = BDTcuts[BDTcuts.size()-1]+0.05;
+  int nbdt = 60;
   TH2F* h_BDTM_bkg = new TH2F("Bc_BDTM_bkg", "BDT vs M(B_{c}) background", _nbinM(ispp)[0], mbins, nbdt,bdtlo,bdthi);
   TH2F* h_BDTM_sig = new TH2F("Bc_BDTM_sig", "BDT vs M(B_{c}) signal", _nbinM(ispp)[0], mbins, nbdt,bdtlo,bdthi);
   TH2F* h_BDTM_data = new TH2F("Bc_BDTM_data", "BDT vs M(B_{c}) data", _nbinM(ispp)[0], mbins, nbdt,bdtlo,bdthi);
@@ -154,12 +154,12 @@ void Uncorrelate(bool ispp=true, int kinBin=1, int centBin=0){
     if(!usedForFit[iT]) continue;
     std::cout << "--- Processing: " << T[iT]->GetEntries() << " events of tree "<< treeName[iT] << std::endl;
 
-    T[iT]->SetBranchAddress("BDT", &BDT[iT]);
+    T[iT]->SetBranchAddress(secondStep?"BDT2":"BDT", &BDT[iT]);
     T[iT]->SetBranchAddress("Bc_M", &Bc_M[iT]);
     T[iT]->SetBranchAddress("Bc_Y", &Bc_Y[iT]);
     T[iT]->SetBranchAddress("Bc_Pt", &Bc_Pt[iT]);
     if(iT==7) T[iT]->SetBranchAddress("flipJpsi", &flipJpsi[iT]);
-    T[iT]->SetBranchAddress("weight", &weight[iT]);
+    T[iT]->SetBranchAddress((secondStep && iT==4)?"weight2":"weight", &weight[iT]);
     if(!ispp) T[iT]->SetBranchAddress("Centrality", &hiBin[iT]);
 
     //BEGIN event loop on the analyzed tree
@@ -182,7 +182,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1, int centBin=0){
 	//find BDT bin to get postfit correction
 	int k0 = 1;
 	for(int k=2;k<=_nChan(ispp);k++){
-	  if(BDT[iT]>_BDTcuts(ispp,kinBin)[k-1] && BDT[iT]<_BDTcuts(ispp,kinBin)[k])
+	  if(BDT[iT]>_BDTcuts(ispp,kinBin,false)[k-1] && BDT[iT]<_BDTcuts(ispp,kinBin,false)[k]) //1st step here because refers to 1st step fits
 	    k0 = k;
 	}
 
@@ -234,7 +234,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1, int centBin=0){
   h_BDTM_data->GetYaxis()->SetTitleOffset(0.8);
   h_BDTM_data->Draw("COLZ0");
   
-  c1->SaveAs("figs_UncorrBDT/BDTvsM_2D_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+".pdf");
+  c1->SaveAs("figs_UncorrBDT/BDTvsM_2D_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+(TString)(secondStep?"_2ndStep":"")+".pdf");
 
   //********************************************************
   //DRAW average BDT vs M
@@ -263,7 +263,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1, int centBin=0){
   gPad->SetRightMargin(0.05);
   avBDTvsM_data->Draw();
 
-  c2->SaveAs("figs_UncorrBDT/BDTvsM_profile_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+".pdf");
+  c2->SaveAs("figs_UncorrBDT/BDTvsM_profile_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+(TString)(secondStep?"_2ndStep":"")+".pdf");
 
   //********************************************************
   //Get BDT vs M histograms
@@ -288,7 +288,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1, int centBin=0){
       //find BDT bin to get postfit correction
       int k0 = 1;
       for(int k=2;k<=_nChan(ispp);k++){
-	if(BDT[iT]>_BDTcuts(ispp,kinBin)[k-1] && BDT[iT]<_BDTcuts(ispp,kinBin)[k])
+	if(BDT[iT]>_BDTcuts(ispp,kinBin,false)[k-1] && BDT[iT]<_BDTcuts(ispp,kinBin,false)[k]) //1st step here because refers to 1st step fits
 	  k0 = k;
       }
 
@@ -336,7 +336,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1, int centBin=0){
   h_corrBDT_data->GetYaxis()->SetTitle("BDT corrected");
   h_corrBDT_data->Draw("COLZ0");
   
-  c3->SaveAs("figs_UncorrBDT/correctedBDTvsM_2D_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+".pdf");
+  c3->SaveAs("figs_UncorrBDT/correctedBDTvsM_2D_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+(TString)(secondStep?"_2ndStep":"")+".pdf");
 
 
   //********************************************************
@@ -366,7 +366,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1, int centBin=0){
   gPad->SetRightMargin(0.05);
   avcorrBDTvsM_data->Draw();
 
-  c4->SaveAs("figs_UncorrBDT/correctedBDTvsM_profile_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+".pdf");
+  c4->SaveAs("figs_UncorrBDT/correctedBDTvsM_profile_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+(TString)(secondStep?"_2ndStep":"")+".pdf");
 
   //********************************************************
   //DRAW corrected BDT
@@ -392,7 +392,7 @@ void Uncorrelate(bool ispp=true, int kinBin=1, int centBin=0){
   gPad->SetRightMargin(0.05);
   corrBDT_data->Draw();
 
-  c5->SaveAs("figs_UncorrBDT/correctedBDT_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+".pdf");
+  c5->SaveAs("figs_UncorrBDT/correctedBDT_"+(TString)(ispp?"pp":"PbPb")+"_KinBin"+(TString)to_string(kinBin)+(TString)(secondStep?"_2ndStep":"")+".pdf");
 
   // cout<<"poportion of signal MC with corrBDT<-0.1 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(-0.1)) / nsig <<endl;
   // cout<<"poportion of signal MC with corrBDT<-0.07 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(-0.07)) / nsig <<endl;
@@ -418,14 +418,14 @@ void Uncorrelate(bool ispp=true, int kinBin=1, int centBin=0){
   // cout<<"poportion of signal MC with corrBDT<0.85 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.85)) / nsig <<endl;
   // cout<<"poportion of signal MC with corrBDT<0.9 = "<<corrBDT_sig->Integral(0,corrBDT_sig->FindBin(0.9)) / nsig <<endl;
 
-  TFile *outf = new TFile("BDTuncorrFromM_"+(TString)(ispp?"pp":"PbPb")+".root",(kinBin==1)?"RECREATE":"UPDATE"); 
-  avBDTvsM_bkg->Write();
+  TFile *outf = new TFile("BDTuncorrFromM_"+(TString)(ispp?"pp":"PbPb")+".root",(kinBin==1 && !secondStep)?"RECREATE":"UPDATE"); 
+  avBDTvsM_bkg->Write("avBDTvsM_bkg_KinBin"+(TString)to_string(kinBin)+(TString)(secondStep?"_2ndStep":""));
   outf->Close();
 }
 
-void UncorrelateBDTfromM(){
-  Uncorrelate(true,1);
-  Uncorrelate(true,2);
-  Uncorrelate(false,1);
-  Uncorrelate(false,2);
+void UncorrelateBDTfromM(bool secondStep=false){
+  Uncorrelate(true,1,0,secondStep);
+  Uncorrelate(true,2,0,secondStep);
+  Uncorrelate(false,1,0,secondStep);
+  Uncorrelate(false,2,0,secondStep);
 }

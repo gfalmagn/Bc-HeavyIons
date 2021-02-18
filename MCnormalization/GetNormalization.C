@@ -47,7 +47,7 @@ void GetNormalization(bool ispp = true, bool isPrompt = false){
 			      "/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/PromptJpsi/Oniatree_MC_trimuons_PromptJpsi_ptHatMinCombined_05082019.root"
 				    :"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/NonPromptJpsi/MConiatree/crab_BJPsiMM_TuneCUETP8M1_5p02TeV_pythia8_05082019_wLambdabFor10_ptHatMinCombined_ONIATREE.root"):
 			      (isPrompt?"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/PromptJpsi/Jpsi_pThat-2_TuneCP5_HydjetDrumMB_HINPbPbAutumn18DR_trimuons_oniatree_25012021.root" //Jpsi_pThat-2_TuneCP5-EvtGen_HydjetDrumMB_trimuons_oniatree_09012020.root
-			       :"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/NonPromptJpsi/BToJpsi_pThat-2_TuneCP5-EvtGen_HydjetDrumMB_trimuons_oniatree_09012020.root"),"READ");
+			       :"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/NonPromptJpsi/BToJpsi_pThat-2_TuneCP5-EvtGen_HydjetDrumMB_HINPbPbAutumn18DR_trimuons_oniatree_14022021.root"),"READ");
   TTree *TMC = (TTree*)fileMC->Get("hionia/myTree");
   int neventsMC = (int)TMC->GetEntries();
   std::cout<<"nevents MC = "<<neventsMC<<"\n";

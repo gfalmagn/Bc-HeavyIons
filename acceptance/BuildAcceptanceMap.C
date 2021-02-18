@@ -15,17 +15,29 @@
 #include "SgMuonAcceptanceCuts.h"
 #include "../helpers/AccEff2DBinning.h"
 
-void BuildAcceptanceMap(bool runAEtoys=true, bool withTM = false){
+void BuildAcceptanceMap(bool runAEtoys=true, bool secondStep=false, bool withTM = false){
+
+  if(runAEtoys && !secondStep) cout<<"!!!!! WARNING, you should set runAEtoys=true only with secondStep !"<<endl;
+
+  auto h_test = new TH1F();
+  h_test->SetDefaultSumw2(true);
 
   //**************************************************************  
   //Grab the variations of the pT bias of MC, from first step r1 and r2
   vector<vector<TH1F*> > bias = vector<vector<TH1F*> >(2);
-  if(runAEtoys){
-    TFile *BiasFile = TFile::Open("../twoSteps/pTBiases.root","READ");
+  vector<vector<TH1F*> > bias_2ndStep = vector<vector<TH1F*> >(2);
+  TFile *BiasFile = TFile::Open("../twoSteps/pTBiases.root","READ");
+  if(secondStep || runAEtoys){
     for(int col=0;col<2;col++){
       for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
 	bias[col].push_back((TH1F*)BiasFile->Get("pTbias_"+(TString)((col==0)?"pp":"PbPb")+"_var"+(TString)to_string(v)));
-	//cout<<"col variation value_at_11 = "<<col<<" "<<v<<" "<<bias[col][v]->Eval(11)<<endl;
+      }
+    }
+    if(secondStep && runAEtoys){
+      for(int col=0;col<2;col++){
+	for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
+	  bias_2ndStep[col].push_back((TH1F*)BiasFile->Get("pTbias_"+(TString)((col==0)?"pp":"PbPb")+"_var"+(TString)to_string(v)+(TString)(secondStep?"_2ndStep":"")));
+	}
       }
     }
   }
@@ -77,27 +89,36 @@ void BuildAcceptanceMap(bool runAEtoys=true, bool withTM = false){
   for(int i=0;i<=13;i++) absYBins[i] = i*0.15;
   absYBins[14] = 2.05; absYBins[15] = 2.2; absYBins[16] = 2.3; absYBins[17] = 2.4;
 
-  TH2F* h_all = new TH2F("h_all","h_all",nYBin,absYBins,nPtBin,PtBins);
-  TH2F* h_fid = new TH2F("h_fid","h_fid",nYBin,absYBins,nPtBin,PtBins); //Bc's in the fiducial cuts
-  TH2F* h_acc = new TH2F("h_acc","h_acc",nYBin,absYBins,nPtBin,PtBins); //Bc's passing fiducial cuts and single muon acceptances
-  TH1F* hPt_all = new TH1F("hPt_all","hPt_all",50,0,50);
-  TH1F* hPt_fid = new TH1F("hPt_fid","hPt_fid",50,0,50);
-  TH1F* hPt_acc = new TH1F("hPt_acc","hPt_acc",50,0,50);
-  TH1F* hY_all = new TH1F("hY_all","hY_all",30,0,2.4);
-  TH1F* hY_fid = new TH1F("hY_fid","hY_fid",30,0,2.4);
-  TH1F* hY_acc = new TH1F("hY_acc","hY_acc",30,0,2.4);
+  vector<TH2F*> h_all,h_fid,h_acc;
+  vector<TH1F*> hPt_all,hPt_fid,hPt_acc,hY_all,hY_fid,hY_acc;
+  for(int col=0;col<2;col++){
+    h_all.push_back(new TH2F("h_all"+(TString)to_string(col),"h_all",nYBin,absYBins,nPtBin,PtBins));
+    h_fid.push_back(new TH2F("h_fid"+(TString)to_string(col),"h_fid",nYBin,absYBins,nPtBin,PtBins)); //Bc's in the fiducial cuts
+    h_acc.push_back(new TH2F("h_acc"+(TString)to_string(col),"h_acc",nYBin,absYBins,nPtBin,PtBins)); //Bc's passing fiducial cuts and single muon acceptances
+    hPt_all.push_back(new TH1F("hPt_all"+(TString)to_string(col),"hPt_all",50,0,50));
+    hPt_fid.push_back(new TH1F("hPt_fid"+(TString)to_string(col),"hPt_fid",50,0,50));
+    hPt_acc.push_back(new TH1F("hPt_acc"+(TString)to_string(col),"hPt_acc",50,0,50));
+    hY_all.push_back(new TH1F("hY_all"+(TString)to_string(col),"hY_all",30,0,2.4));
+    hY_fid.push_back(new TH1F("hY_fid"+(TString)to_string(col),"hY_fid",30,0,2.4));
+    hY_acc.push_back(new TH1F("hY_acc"+(TString)to_string(col),"hY_acc",30,0,2.4));
+  }
   
-  TH2Poly *hp =_hp();
-  TH2Poly *hp_all = (TH2Poly*) hp->Clone("hp_all");
-  TH2Poly *hp_acc = (TH2Poly*) hp->Clone("hp_acc");
-  vector<float> gen_oneBinned(_NanaBins+1,0);
-  vector<float> accepted_oneBinned(_NanaBins+1,0);
-  vector<float> acc_oneBinned(_NanaBins+1,1);
+  TH2Poly* hp = _hp();
+  vector<TH2Poly*> hp_all, hp_acc;
+  for(int col=0;col<2;col++){
+    hp_all.push_back((TH2Poly*) hp->Clone("hp_all"+(TString)to_string(col)));
+    hp_acc.push_back((TH2Poly*) hp->Clone("hp_acc"+(TString)to_string(col)));
+  }
+  vector<vector<float> > gen_oneBinned(2, vector<float>(_NanaBins+1,0));
+  vector<vector<float> > accepted_oneBinned(2, vector<float>(_NanaBins+1,0));
+  vector<vector<float> > acc_oneBinned(2, vector<float>(_NanaBins+1,1));
   vector<vector<vector<float> > > gen_oneB_biased(2, vector<vector<float> >(_NanaBins+1, vector<float>(_biasNmeth*(_biasNtoys+1), 0) ));
   vector<vector<vector<float> > > accepted_oneB_biased(2, vector<vector<float> >(_NanaBins+1, vector<float>(_biasNmeth*(_biasNtoys+1), 0) ));
   vector<vector<vector<float> > > acc_oneB_biased(2, vector<vector<float> >(_NanaBins+1, vector<float>(_biasNmeth*(_biasNtoys+1), 1) ));
 
-  float nall=0;
+  float baseW[] = {_scaleMCsigAcc[true] , _scaleMCsigAcc[false]};
+
+  vector<float> nall(2,0);
   //**************************************************************
   //event loop
   for(int j=0; j<nentries; j++){
@@ -119,183 +140,201 @@ void BuildAcceptanceMap(bool runAEtoys=true, bool withTM = false){
       TLorentzVector *genBc_muW = (TLorentzVector*) Gen_mu_4mom->At(Gen_Bc_muW_idx[iBc]);
       TLorentzVector *genBc_mumi = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mumi_idx[QQidx]);
       TLorentzVector *genBc_mupl = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mupl_idx[QQidx]);
+      
+      for(int col=0;col<2;col++){
+	//if(col>0 && !secondStep && !runAEtoys) continue;
+	float w = baseW[col];
+	w *= (secondStep?( getBias(bias[col][_nomMethVar],gen3mu->Pt()) ):1);
+	float wadd = (secondStep && runAEtoys)?( getBias(bias_2ndStep[col][_nomMethVar],gen3mu->Pt()) ):1;
+	w *= wadd;
 
-      h_all->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt());
-      hp_all->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt());
-      hPt_all->Fill(gen3mu->Pt());
-      hY_all->Fill(fabs(gen3mu->Rapidity()));
-      nall +=1;
+	if(col==0 || secondStep){
+	  h_all[col]->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt() , w);
+	  hp_all[col]->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt() , w);
+	  hPt_all[col]->Fill(gen3mu->Pt() , w);
+	  hY_all[col]->Fill(fabs(gen3mu->Rapidity()) , w);
+	  nall[col] +=1;
 
-      if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM)){ 
-	h_acc->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt());
-	hp_acc->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt());
-      }
-
-      if(fabs(gen3mu->Rapidity())<_BcYmax[0] ){ //Y cut for pt distro
-	hPt_fid->Fill(gen3mu->Pt());
-	if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM))
-	  hPt_acc->Fill(gen3mu->Pt());
-      }
-      if(gen3mu->Pt()>_BcPtmin[0]){ //pt cut for Y distro
-	hY_fid->Fill(fabs(gen3mu->Rapidity()));	
-	if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM))
-	  hY_acc->Fill(fabs(gen3mu->Rapidity()));
-      }
-
-      for(int b=1;b<=_NanaBins;b++){
-	if(fabs(gen3mu->Rapidity())>_BcYmin[b] && fabs(gen3mu->Rapidity())<_BcYmax[b] && gen3mu->Pt()>_BcPtmin[b] && gen3mu->Pt()<_BcPtmax[b] ){
-	  h_fid->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt());
-	  gen_oneBinned[0] += 1;
-	  gen_oneBinned[b] += 1;
-
-	  //biased MC
-	  if(runAEtoys){
-	    for(int col=0;col<2;col++){
-	      for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
-		gen_oneB_biased[col][0][v] += getBias( bias[col][v] , gen3mu->Pt());
-		gen_oneB_biased[col][b][v] += getBias( bias[col][v] , gen3mu->Pt());
-	      }
-	    }
+	  if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM)){ 
+	    h_acc[col]->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt() , w);
+	    hp_acc[col]->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt() , w);
 	  }
 
-	  if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM)){
-	    accepted_oneBinned[0] += 1;
-	    accepted_oneBinned[b] += 1;	  
+	  if(fabs(gen3mu->Rapidity())<_BcYmax[0] ){ //Y cut for pt distro
+	    hPt_fid[col]->Fill(gen3mu->Pt() , w);
+	    if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM))
+	      hPt_acc[col]->Fill(gen3mu->Pt() , w);
+	  }
+	  if(gen3mu->Pt()>_BcPtmin[0]){ //pt cut for Y distro
+	    hY_fid[col]->Fill(fabs(gen3mu->Rapidity()) , w);
+	    if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM))
+	      hY_acc[col]->Fill(fabs(gen3mu->Rapidity()) , w);
+	  }
+	}
+
+	for(int b=1;b<=_NanaBins;b++){
+	  if(inFidCuts(b,gen3mu->Pt(),gen3mu->Rapidity())){
+
+	    h_fid[col]->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt() , w);
+	    gen_oneBinned[col][0] += w;
+	    gen_oneBinned[col][b] += w;
 
 	    //biased MC
 	    if(runAEtoys){
-	      for(int col=0;col<2;col++){
-		for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
-		  accepted_oneB_biased[col][0][v] += getBias( bias[col][v] , gen3mu->Pt());
-		  accepted_oneB_biased[col][b][v] += getBias( bias[col][v] , gen3mu->Pt());
-		}
+	      for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
+		gen_oneB_biased[col][0][v] += w * getBias( (secondStep?bias_2ndStep:bias)[col][v] , gen3mu->Pt()) / wadd;
+		gen_oneB_biased[col][b][v] += w * getBias( (secondStep?bias_2ndStep:bias)[col][v] , gen3mu->Pt()) / wadd;
 	      }
 	    }
-	  }//end is accepted
 
-	}
-      }//end loop on bins
+	    if(InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,withTM)){
+	      accepted_oneBinned[col][0] += w;
+	      accepted_oneBinned[col][b] += w;	  
+
+	      //biased MC
+	      if(runAEtoys){
+		for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
+		  accepted_oneB_biased[col][0][v] += w * getBias( (secondStep?bias_2ndStep:bias)[col][v] , gen3mu->Pt()) / wadd;
+		  accepted_oneB_biased[col][b][v] += w * getBias( (secondStep?bias_2ndStep:bias)[col][v] , gen3mu->Pt()) / wadd;
+		}
+	      }
+	    }//end is accepted
+
+	  }
+	}//end loop on bins
+      }
 
     }//end Bc loop
   } //end event loop
 
-  for(int b=0;b<=_NanaBins;b++){
-    acc_oneBinned[b] = accepted_oneBinned[b]/gen_oneBinned[b];
-    if(runAEtoys){
-      for(int col=0;col<2;col++){
+  for(int col=0;col<2;col++){
+    for(int b=0;b<=_NanaBins;b++){
+      acc_oneBinned[col][b] = accepted_oneBinned[col][b]/gen_oneBinned[col][b];
+      if(runAEtoys){
 	for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
 	  acc_oneB_biased[col][b][v] = accepted_oneB_biased[col][b][v]/gen_oneB_biased[col][b][v];	
 	}
       }
+      //if(!secondStep) acc_oneBinned[1][b] = acc_oneBinned[0][b];
     }
   }
 
-  //**************************************************************
-  //Lines for fiducial cuts
-  TLine *line1 = new TLine(0,11,1.3,11);
-  TLine *line2 = new TLine(1.3,6,1.3,11);
-  TLine *line3 = new TLine(1.3,6,2.3,6);
-  TLine *line4 = new TLine(2.3,6,2.3,50);
-  line1->SetLineWidth(4);  line1->SetLineColor(kBlack);
-  line2->SetLineWidth(4);  line2->SetLineColor(kBlack);
-  line3->SetLineWidth(4);  line3->SetLineColor(kBlack);
-  line4->SetLineWidth(4);  line4->SetLineColor(kBlack);
+  vector<TH1F*> h_acceptance;
+  vector<TH2Poly*> hp_acceptance;
+  for(int col=0;col<2;col++){
+    //if(col>0 && !secondStep) continue;
 
-  //**************************************************************
-  //Draw histos
-  gStyle->SetPalette(kLightTemperature);
-  gStyle->SetOptStat(0);
-  gStyle->SetNumberContours(50);
+    //**************************************************************
+    //Lines for fiducial cuts
+    TLine *line1 = new TLine(0,11,1.3,11);
+    TLine *line2 = new TLine(1.3,6,1.3,11);
+    TLine *line3 = new TLine(1.3,6,2.3,6);
+    TLine *line4 = new TLine(2.3,6,2.3,50);
+    line1->SetLineWidth(4);  line1->SetLineColor(kBlack);
+    line2->SetLineWidth(4);  line2->SetLineColor(kBlack);
+    line3->SetLineWidth(4);  line3->SetLineColor(kBlack);
+    line4->SetLineWidth(4);  line4->SetLineColor(kBlack);
 
-  TCanvas *c1 = new TCanvas("c1","c1",3900,1300);
-  c1->Divide(3,1);
+    //**************************************************************
+    //Draw histos
+    gStyle->SetPalette(kLightTemperature);
+    gStyle->SetOptStat(0);
+    gStyle->SetNumberContours(50);
 
-  TH1F* h_acceptance = (TH1F*)h_acc->Clone("h_acceptance"); 
-  c1->cd(1);
-  gPad->SetLogz();
-  h_acc->GetZaxis()->SetRangeUser(1,100);
-  h_acc->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
-  h_acc->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
-  h_acc->SetTitle("Accepted B_{c}'s");
-  h_acc->Draw("COLZ");
-  line1->Draw("same");
-  line2->Draw("same");
-  line3->Draw("same");
-  line4->Draw("same");
+    TCanvas *c1 = new TCanvas("c1","c1",3900,1300);
+    c1->Divide(3,1);
 
-  // c1->cd(2);
-  // h_acceptance->Divide(h_all); //h_fid
-  // h_acceptance->GetZaxis()->SetRangeUser(0,1);
-  // h_acceptance->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
-  // h_acceptance->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
-  // h_acceptance->SetTitle("Acceptance");
-  // h_acceptance->Draw("COLZ");
-  // line1->Draw("same");
-  // line2->Draw("same");
-  // line3->Draw("same");
-  // line4->Draw("same");
+    h_acceptance.push_back( (TH1F*)h_acc[col]->Clone("h_acceptance"+(TString)to_string(col)) ); 
+    c1->cd(1);
+    gPad->SetLogz();
+    h_acc[col]->GetZaxis()->SetRangeUser(1,100);
+    h_acc[col]->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
+    h_acc[col]->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
+    h_acc[col]->SetTitle("Accepted B_{c}'s");
+    h_acc[col]->Draw("COLZ");
+    line1->Draw("same");
+    line2->Draw("same");
+    line3->Draw("same");
+    line4->Draw("same");
 
-  c1->cd(2);
-  hPt_acc->Divide(hPt_fid);
-  hPt_acc->GetXaxis()->SetTitle("p_{T}^{vis}(B_{c})");
-  hPt_acc->SetTitle("Acceptance (|Y^{vis}(B_{c})|<2.3)");
-  hPt_acc->SetLineWidth(2);
-  hPt_acc->Draw();
+    // c1->cd(2);
+    // h_acceptance->Divide(h_all); //h_fid
+    // h_acceptance->GetZaxis()->SetRangeUser(0,1);
+    // h_acceptance->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
+    // h_acceptance->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
+    // h_acceptance->SetTitle("Acceptance");
+    // h_acceptance->Draw("COLZ");
+    // line1->Draw("same");
+    // line2->Draw("same");
+    // line3->Draw("same");
+    // line4->Draw("same");
 
-  c1->cd(3);
-  hY_acc->Divide(hY_fid);
-  hY_acc->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
-  hY_acc->SetTitle("Acceptance (p_{T}^{vis}(B_{c})>4GeV)");
-  hY_acc->SetLineWidth(2);
-  hY_acc->Draw();
+    c1->cd(2);
+    hPt_acc[col]->Divide(hPt_fid[col]);
+    hPt_acc[col]->GetXaxis()->SetTitle("p_{T}^{vis}(B_{c})");
+    hPt_acc[col]->SetTitle("Acceptance (|Y^{vis}(B_{c})|<2.3)");
+    hPt_acc[col]->SetLineWidth(2);
+    hPt_acc[col]->Draw();
 
-  c1->SaveAs("figs/AcceptanceMap_regularBins"+(TString)(withTM?"_withTrackerMu":"")+".pdf");
-  c1->SaveAs("figs/AcceptanceMap_regularBins"+(TString)(withTM?"_withTrackerMu":"")+".png");
+    c1->cd(3);
+    hY_acc[col]->Divide(hY_fid[col]);
+    hY_acc[col]->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
+    hY_acc[col]->SetTitle("Acceptance (p_{T}^{vis}(B_{c})>4GeV)");
+    hY_acc[col]->SetLineWidth(2);
+    hY_acc[col]->Draw();
 
-  //**************************************************************
-  //Draw TH2Poly
+    c1->SaveAs("figs/AcceptanceMap_regularBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep_":"_2ndStep_")+(TString)((col==0)?"pp":"PbPb")):"")+".pdf");
+    c1->SaveAs("figs/AcceptanceMap_regularBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep_":"_2ndStep_")+(TString)((col==0)?"pp":"PbPb")):"")+".png");
 
-  TCanvas *c2 = new TCanvas("c2","c2",3000,1500);
-  c2->Divide(2,1);
+    //**************************************************************
+    //Draw TH2Poly
 
-  TH2Poly* hp_acceptance = (TH2Poly*)hp_acc->Clone("hp_acceptance"); 
-  c2->cd(1);
-  gPad->SetLogz();
-  hp_acc->GetZaxis()->SetRangeUser(1,220);
-  hp_acc->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
-  hp_acc->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
-  hp_acc->SetTitle("Accepted B_{c}'s");
-  hp_acc->Draw("COLZ0");
-  line1->Draw("same");
-  line2->Draw("same");
-  line3->Draw("same");
-  line4->Draw("same");
+    TCanvas *c2 = new TCanvas("c2","c2",3000,1500);
+    c2->Divide(2,1);
 
-  c2->cd(2);
-  gPad->SetLogz();
-  hp_acceptance->Divide(hp_all);
-  hp_acceptance->GetZaxis()->SetRangeUser(1e-4,1);
-  hp_acceptance->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
-  hp_acceptance->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
-  hp_acceptance->SetTitle("Acceptance");
-  hp_acceptance->Draw("COLZ0");
-  line1->Draw("same");
-  line2->Draw("same");
-  line3->Draw("same");
-  line4->Draw("same");
+    hp_acceptance.push_back( (TH2Poly*)hp_acc[col]->Clone("hp_acceptance"+(TString)to_string(col)) ); 
+    c2->cd(1);
+    gPad->SetLogz();
+    hp_acc[col]->GetZaxis()->SetRangeUser(1,220);
+    hp_acc[col]->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
+    hp_acc[col]->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
+    hp_acc[col]->SetTitle("Accepted B_{c}'s");
+    hp_acc[col]->Draw("COLZ0");
+    line1->Draw("same");
+    line2->Draw("same");
+    line3->Draw("same");
+    line4->Draw("same");
 
-  c2->SaveAs("figs/AcceptanceMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+".pdf");
-  c2->SaveAs("figs/AcceptanceMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+".png");
+    c2->cd(2);
+    gPad->SetLogz();
+    hp_acceptance[col]->Divide(hp_all[col]);
+    hp_acceptance[col]->GetZaxis()->SetRangeUser(1e-4,1);
+    hp_acceptance[col]->GetXaxis()->SetTitle("|Y^{vis}(B_{c})|");
+    hp_acceptance[col]->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
+    hp_acceptance[col]->SetTitle("Acceptance");
+    hp_acceptance[col]->Draw("COLZ0");
+    line1->Draw("same");
+    line2->Draw("same");
+    line3->Draw("same");
+    line4->Draw("same");
+
+    c2->SaveAs("figs/AcceptanceMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep_":"_2ndStep_")+(TString)((col==0)?"pp":"PbPb")):"")+".pdf");
+    c2->SaveAs("figs/AcceptanceMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep_":"_2ndStep_")+(TString)((col==0)?"pp":"PbPb")):"")+".png");
+
+    cout<<"pp/PbPb, bin, nall, n_fiducial, n_accepted, acceptance = "<<col<<" all "<<nall[col]<<" "<<gen_oneBinned[col][0]<<" "<<accepted_oneBinned[col][0]<<" "<<accepted_oneBinned[col][0]/gen_oneBinned[col][0]<<endl;
+    cout<<"pp/PbPb, bin, nall, n_fiducial, n_accepted, acceptance = "<<col<<" 1 "<<nall[col]<<" "<<gen_oneBinned[col][1]<<" "<<accepted_oneBinned[col][1]<<" "<<accepted_oneBinned[col][1]/gen_oneBinned[col][1]<<endl;
+    cout<<"pp/PbPb, bin, nall, n_fiducial, n_accepted, acceptance = "<<col<<" 2 "<<nall[col]<<" "<<gen_oneBinned[col][2]<<" "<<accepted_oneBinned[col][2]<<" "<<accepted_oneBinned[col][2]/gen_oneBinned[col][2]<<endl;
+  }
+  if(!secondStep) hp_acceptance.push_back(hp_acceptance[0]);
 
   //**************************************************************
   //output file
-  TFile out_file("acceptanceMap.root","RECREATE");
-  hp_acceptance->Write();
-  out_file.WriteObject(&acc_oneBinned,"acceptance_oneBinned");
-  if(runAEtoys) out_file.WriteObject(&acc_oneB_biased,"acceptance_oneBinned_biased");
-
+  TFile out_file("acceptanceMap.root","UPDATE");
+  hp_acceptance[0]->Write("hp_acceptance_pp"+(TString)(secondStep?(TString)(runAEtoys?"_3rdStep":"_2ndStep"):""));
+  hp_acceptance[1]->Write("hp_acceptance_PbPb"+(TString)(secondStep?(TString)(runAEtoys?"_3rdStep":"_2ndStep"):""));
+  out_file.WriteObject(&acc_oneBinned,"acceptance_oneBinned"+(TString)(secondStep?(TString)(runAEtoys?"_3rdStep":"_2ndStep"):""));
+  if(runAEtoys) out_file.WriteObject(&acc_oneB_biased,"acceptance_oneBinned_biased"+(TString)(secondStep?"_2ndStep":""));
   out_file.Close();
   
-  cout<<"nall, n_fiducial, n_accepted, acceptance = "<<nall<<" "<<gen_oneBinned[0]<<" "<<accepted_oneBinned[0]<<" "<<accepted_oneBinned[0]/gen_oneBinned[0]<<endl;
 
 }

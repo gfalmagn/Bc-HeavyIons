@@ -13,9 +13,8 @@
 #include "TGaxis.h"
 #include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
-#include "../helpers/Definitions.h"
 
-void drawFlipJpsi(bool ispp=true, bool highMass = false){
+void drawFlipJpsi(bool ispp=true, bool secondStep=true, bool highMass = false){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -28,14 +27,14 @@ void drawFlipJpsi(bool ispp=true, bool highMass = false){
   TTree* Tnp = (TTree*)fullFile->Get("bToJpsi_MC");
   //TTree* Td = (TTree*)fullFile->Get("sigRegion");
 
-  TH1F* h_yields = new TH1F("h_yields",(TString)(ispp?"pp":"PbPb")+" yields;J/#psi rotation angle;counts", 15,0,15);
-  TH1F* h_oppEta = new TH1F("h_oppEta",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,_mMax);
-  TH1F* h_samEta = new TH1F("h_samEta",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,_mMax);
-  TH1F* h_oppPhi = new TH1F("h_oppPhi",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,_mMax);
-  TH1F* h_otherPhi = new TH1F("h_otherPhi",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,_mMax);
-  TH1F* h_MCtrueJ = new TH1F("h_MCtrueJ",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,_mMax);
-  TH1F* h_fliptrueJ = new TH1F("h_fliptrueJ",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,_mMax);
-  TH1F* h_pBcM = new TH1F("h_pBcM",";trimuon mass [GeV];normalised to 1", ispp?20:16,3,_mMax);
+  TH1F* h_yields = new TH1F("h_yields",(TString)(ispp?"pp":"PbPb")+" yields;J/#psi rotation angle;counts", 13,0,13);
+  TH1F* h_oppEta = new TH1F("h_oppEta",";trimuon mass [GeV];normalised to 1", ispp?20:16,3.2,_mMax);
+  TH1F* h_samEta = new TH1F("h_samEta",";trimuon mass [GeV];normalised to 1", ispp?20:16,3.2,_mMax);
+  TH1F* h_oppPhi = new TH1F("h_oppPhi",";trimuon mass [GeV];normalised to 1", ispp?20:16,3.2,_mMax);
+  TH1F* h_otherPhi = new TH1F("h_otherPhi",";trimuon mass [GeV];normalised to 1", ispp?20:16,3.2,_mMax);
+  TH1F* h_MCtrueJ = new TH1F("h_MCtrueJ",";trimuon mass [GeV];normalised to 1", ispp?20:16,3.2,_mMax);
+  TH1F* h_fliptrueJ = new TH1F("h_fliptrueJ",";trimuon mass [GeV];normalised to 1", ispp?20:16,3.2,_mMax);
+  TH1F* h_pBcM = new TH1F("h_pBcM",";trimuon mass [GeV];normalised to 1", ispp?20:16,3.2,_mMax);
   TH1F* h_BDT = new TH1F("h_BDT",";BDT;normalised to 1", ispp?20:16,-0.6,0.6);
   TH1F* h_dBDT = new TH1F("h_dBDT",";BDT;normalised to 1", ispp?20:16,-0.6,0.6);
 
@@ -48,7 +47,7 @@ void drawFlipJpsi(bool ispp=true, bool highMass = false){
   T->SetBranchAddress("Bc_M", &Bc_M);
   T->SetBranchAddress("Bc_Pt", &Bc_Pt);
   T->SetBranchAddress("Bc_Y", &Bc_Y);
-  T->SetBranchAddress("BDT", &BDT);
+  T->SetBranchAddress(secondStep?"BDT2":"BDT", &BDT);
   T->SetBranchAddress("weight", &weight);
   T->SetBranchAddress("flipJpsi", &flipJpsi);
 
@@ -72,7 +71,7 @@ void drawFlipJpsi(bool ispp=true, bool highMass = false){
   Tnp->SetBranchAddress("Bc_M", &npBc_M);
   Tnp->SetBranchAddress("Bc_Pt", &npBc_Pt);
   Tnp->SetBranchAddress("Bc_Y", &npBc_Y);
-  Tnp->SetBranchAddress("BDT", &npBDT);
+  Tnp->SetBranchAddress(secondStep?"BDT2":"BDT", &npBDT);
   Tnp->SetBranchAddress("weight", &npweight);
   Tnp->SetBranchAddress("muW_isJpsiBro", &muW_isJpsiBro);
 
@@ -84,7 +83,7 @@ void drawFlipJpsi(bool ispp=true, bool highMass = false){
   Tp->SetBranchAddress("Bc_M", &pBc_M);
   Tp->SetBranchAddress("Bc_Pt", &pBc_Pt);
   Tp->SetBranchAddress("Bc_Y", &pBc_Y);
-  Tp->SetBranchAddress("BDT", &pBDT);
+  Tp->SetBranchAddress(secondStep?"BDT2":"BDT", &pBDT);
   Tp->SetBranchAddress("weight", &pweight);
 
   bool wFidCuts = false;
@@ -96,9 +95,9 @@ void drawFlipJpsi(bool ispp=true, bool highMass = false){
     if(wFidCuts) 
       if(!inFidCuts(0, Bc_Pt, Bc_Y)) continue; //fiducial cuts
     if(highMass)
-      if(Bc_M<6.2) continue;
+      if(Bc_M<_mBcMax) continue;
     
-    h_yields->Fill(flipJpsi+1e-3,weight*13);
+    h_yields->Fill(flipJpsi-1e-3,weight*13);
     h_fliptrueJ->Fill(Bc_M,weight);
 
     if(flipJpsi<9) h_oppEta->Fill(Bc_M,weight*13);
@@ -116,7 +115,7 @@ void drawFlipJpsi(bool ispp=true, bool highMass = false){
     if(wFidCuts) 
       if(!inFidCuts(0, npBc_Pt, npBc_Y)) continue; //fiducial cuts
     if(highMass)
-      if(npBc_M<6.2) continue;
+      if(npBc_M<_mBcMax) continue;
 
     if(!muW_isJpsiBro)
 	h_MCtrueJ->Fill(npBc_M,npweight);
@@ -130,7 +129,7 @@ void drawFlipJpsi(bool ispp=true, bool highMass = false){
     if(wFidCuts) 
       if(!inFidCuts(0, pBc_Pt, pBc_Y)) continue; //fiducial cuts
     if(highMass)
-      if(pBc_M<6.2) continue;
+      if(pBc_M<_mBcMax) continue;
 
     h_MCtrueJ->Fill(pBc_M,pweight);
   }
@@ -142,7 +141,7 @@ void drawFlipJpsi(bool ispp=true, bool highMass = false){
   //   if(wFidCuts) 
   //     if(!( dBc_Pt>_BcPtmin[0] && dBc_Pt<_BcPtmax[0] && fabs(dBc_Y)<_BcYmax[0] && (dBc_Pt>_BcPtmin[1] || fabs(dBc_Y)>_BcYmin[2]) )) continue; //fiducial cuts
   //   if(highMass)
-  //     if(dBc_M<6.2) continue;
+  //     if(dBc_M<_mBcMax) continue;
     
   //   h_dBDT->Fill(dBDT,dweight);
   // }
@@ -151,31 +150,42 @@ void drawFlipJpsi(bool ispp=true, bool highMass = false){
 
   h_yields->SetTitleOffset(0.2);
   h_yields->SetLineWidth(4);
-  h_yields->GetXaxis()->SetBinLabel(1,"");
-  h_yields->GetXaxis()->SetBinLabel(2,"#eta #rightarrow #minus#eta, #Delta#phi = 0");
-  h_yields->GetXaxis()->SetBinLabel(3,"#eta #rightarrow #minus#eta, #Delta#phi = #frac{#pi}{4}");
-  h_yields->GetXaxis()->SetBinLabel(4,"#eta #rightarrow #minus#eta, #Delta#phi = #minus #frac{#pi}{4}");
-  h_yields->GetXaxis()->SetBinLabel(5,"#eta #rightarrow #minus#eta, #Delta#phi = #frac{#pi}{2}");
-  h_yields->GetXaxis()->SetBinLabel(6,"#eta #rightarrow #minus#eta, #Delta#phi = #minus #frac{#pi}{2}");
-  h_yields->GetXaxis()->SetBinLabel(7,"#eta #rightarrow #minus#eta, #Delta#phi = #frac{3#pi}{4}");
-  h_yields->GetXaxis()->SetBinLabel(8,"#eta #rightarrow #minus#eta, #Delta#phi = #minus #frac{3#pi}{4}");
-  h_yields->GetXaxis()->SetBinLabel(9,"#eta #rightarrow #minus#eta, #Delta#phi = #pi");
-  h_yields->GetXaxis()->SetBinLabel(10,"#Delta#eta = 0, #Delta#phi = #frac{#pi}{2}");
-  h_yields->GetXaxis()->SetBinLabel(11,"#Delta#eta = 0, #Delta#phi = #minus #frac{#pi}{2}");
-  h_yields->GetXaxis()->SetBinLabel(12,"#Delta#eta = 0, #Delta#phi = #frac{3#pi}{4}");
-  h_yields->GetXaxis()->SetBinLabel(13,"#Delta#eta = 0, #Delta#phi = #minus #frac{3#pi}{4}");
-  h_yields->GetXaxis()->SetBinLabel(14,"#Delta#eta = 0, #Delta#phi = #pi");
-  h_yields->GetXaxis()->SetBinLabel(15,"");
+  h_yields->SetMinimum(0);
+  h_yields->GetXaxis()->SetBinLabel(1,"#Delta#phi = 0"); //#eta #rightarrow #minus#eta, 
+  h_yields->GetXaxis()->SetBinLabel(2,"#Delta#phi = #frac{#pi}{4}");
+  h_yields->GetXaxis()->SetBinLabel(3,"#Delta#phi = #minus #frac{#pi}{4}");
+  h_yields->GetXaxis()->SetBinLabel(4,"#Delta#phi = #frac{#pi}{2}");
+  h_yields->GetXaxis()->SetBinLabel(5,"#Delta#phi = #minus #frac{#pi}{2}");
+  h_yields->GetXaxis()->SetBinLabel(6,"#Delta#phi = #frac{3#pi}{4}");
+  h_yields->GetXaxis()->SetBinLabel(7,"#Delta#phi = #minus #frac{3#pi}{4}");
+  h_yields->GetXaxis()->SetBinLabel(8,"#Delta#phi = #pi");
+  h_yields->GetXaxis()->SetBinLabel(9,"#Delta#phi = #frac{#pi}{2}"); //#Delta#eta = 0, 
+  h_yields->GetXaxis()->SetBinLabel(10,"#Delta#phi = #minus #frac{#pi}{2}");
+  h_yields->GetXaxis()->SetBinLabel(11,"#Delta#phi = #frac{3#pi}{4}");
+  h_yields->GetXaxis()->SetBinLabel(12,"#Delta#phi = #minus #frac{3#pi}{4}");
+  h_yields->GetXaxis()->SetBinLabel(13,"#Delta#phi = #pi");
   h_yields->GetXaxis()->SetTitleOffset(-0.7);
   h_yields->GetXaxis()->SetTitleSize(0.046);
-  h_yields->GetXaxis()->SetLabelSize(0.06);
+  h_yields->GetXaxis()->SetLabelSize(0.045);
   h_yields->LabelsOption("v");//vertical bin labels
 
   TCanvas *c1 = new TCanvas("c1","c1",1500,1500);
-  gPad->SetBottomMargin(0.28);
+  gPad->SetBottomMargin(0.19);
   gPad->SetTopMargin(0.06);
   gPad->SetLeftMargin(0.125);
   h_yields->Draw("E");
+
+  TLine *etasep = new TLine(8,-10000,8,1.07*h_yields->GetMaximum());
+  etasep->SetLineWidth(2);
+  etasep->SetLineStyle(2);
+  etasep->Draw("same");
+
+  TLatex t_sameoppEta;
+  t_sameoppEta.SetNDC();
+  t_sameoppEta.SetTextFont(42);
+  t_sameoppEta.SetTextSize(0.042);
+  t_sameoppEta.DrawLatex(0.25,0.02,"opposite #eta");
+  t_sameoppEta.DrawLatex(0.68,0.02,"same #eta");
 
   c1->SaveAs("flipJpsiYields_"+(TString)(highMass?"highMassRegion_":"")+(TString)(ispp?"pp":"PbPb")+".pdf");
 

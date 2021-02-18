@@ -56,7 +56,7 @@ double getBias(TH1F* h, double pt){
 double MaxVec(vector<float> v, float lastitem, int maxsize  = 1e9){
   float res = -1e20;
   if (lastitem>res) res = lastitem;
-  for(int i=0;i<v.size()-1;i++){
+  for(int i=0;i<(int)v.size()-1;i++){
     if(i>=maxsize) break;
     if(v[i]>res) res = v[i];
   }
@@ -66,7 +66,7 @@ double MaxVec(vector<float> v, float lastitem, int maxsize  = 1e9){
 double MinVec(vector<float> v, float lastitem, int maxsize = 1e9){
   float res = 1e20;
   if (lastitem<res) res = lastitem;
-  for(int i=0;i<v.size()-1;i++){
+  for(int i=0;i<(int)v.size()-1;i++){
     if(i>=maxsize) break;
     if(v[i]<res) res = v[i];
   }

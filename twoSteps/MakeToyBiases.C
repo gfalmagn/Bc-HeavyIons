@@ -15,6 +15,7 @@
 #include "Math/PdfFuncMathMore.h"
 #include "../helpers/Definitions.h"
 #include "../helpers/Cuts.h"
+#include "../helpers/Tools.h"
 
 TF1* f1, f2;
 
@@ -130,9 +131,10 @@ int FindParamsPower(double *pars, double *y, vector<double> xbins, double *parLo
   //Parameters [0]-[4]: 3 bin limits , then 2 y values
   //y=n and x=K(constant) are the function variables
   //Max functions are to implement parameter limits in the search. 1e3 penalty is a bit arbitrary
-  TF2 * f1 = new TF2("f1",TString::Format("([0]**(y+1) - [1]**(y+1) - [2]*(y+1)/x) * TMath::Max(1., (x- %.3e )*1e3/abs(%.3e) ) * TMath::Max(1., (-x+ %.3e )*1e3/abs(%.3e) ) * TMath::Max(1., (x- %.3e )*1e3/abs(%.3e) ) * TMath::Max(1., (-x+ %.3e )*1e3/abs(%.3e) )",
+  //Min function is to avoid the singularity n=1 (y=-1)
+  TF2 * f1 = new TF2("f1",TString::Format("( (abs(y+1)<1e-4)*TMath::Log([0]/[1]) + (abs(y+1)>=1e-4)*( [0]**(y+1) - [1]**(y+1) )/(y+1) - [2]/x ) * TMath::Max(1., (x- %.3e )*1e3/abs(%.3e) ) * TMath::Max(1., (-x+ %.3e )*1e3/abs(%.3e) ) * TMath::Max(1., (x- %.3e )*1e3/abs(%.3e) ) * TMath::Max(1., (-x+ %.3e )*1e3/abs(%.3e) )",
 					  parHiLim[0], parHiLim[0], parLoLim[0], parLoLim[0], parHiLim[1], parHiLim[1], parLoLim[1], parLoLim[1]));
-  TF2 * f2 = new TF2("f2",TString::Format("([0]**(y+1) - [1]**(y+1) - [2]*(y+1)/x) * TMath::Max(1., (x- %.3e )*1e3/abs(%.3e) ) * TMath::Max(1., (-x+ %.3e )*1e3/abs(%.3e) ) * TMath::Max(1., (x- %.3e )*1e3/abs(%.3e) ) * TMath::Max(1., (-x+ %.3e )*1e3/abs(%.3e) )",
+  TF2 * f2 = new TF2("f2",TString::Format("( (abs(y+1)<1e-4)*TMath::Log([0]/[1]) + (abs(y+1)>=1e-4)*( [0]**(y+1) - [1]**(y+1) )/(y+1) - [2]/x ) * TMath::Max(1., (x- %.3e )*1e3/abs(%.3e) ) * TMath::Max(1., (-x+ %.3e )*1e3/abs(%.3e) ) * TMath::Max(1., (x- %.3e )*1e3/abs(%.3e) ) * TMath::Max(1., (-x+ %.3e )*1e3/abs(%.3e) )",
 					  parHiLim[0], parHiLim[0], parLoLim[0], parLoLim[0], parHiLim[1], parHiLim[1], parLoLim[1], parLoLim[1]));
   f1->SetParameters(xbins[1], xbins[0], y[0]);
   f2->SetParameters(xbins[2], xbins[1], y[1]);
@@ -205,7 +207,7 @@ int FindParamsPowerToLog(double *pars, double *y, vector<double> xbins, double f
   return r.Status();
 }
 
-void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
+void MakeToyBiases(bool secondStep=false, bool plotOnly=false){
 
   gStyle->SetOptStat(0);
   auto h_test = new TH1F();
@@ -213,9 +215,23 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
   TVirtualFitter::SetMaxIterations( 10000 );//default is 5000
   gRandom = new TRandom3(234); //some seed give one or two doubly-failed fits, this one does not
 
-  if(plotOnly) _biasNtoys = 40;
   bool preAEmeanPt = true; // use the mean pT in acceptance uncut sample rather than of observed events
   bool useLWabciss = true; //Use Lafferty and Wyatt prescription for position of the bin centers
+  bool nominalOnly = !secondStep;
+  if(plotOnly) _biasNtoys = 40;
+  if(nominalOnly) _biasNtoys = 0;
+
+  //************************************************************** 
+  //Grab the variations of the pT bias of MC, from first step r1 and r2
+  vector<vector<TH1F*> > biasOld = vector<vector<TH1F*> >(2);
+  if(secondStep){
+    TFile *BiasFile = TFile::Open("../twoSteps/pTBiases.root","READ");
+    for(int col=0;col<2;col++){
+      for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
+        biasOld[col].push_back((TH1F*)BiasFile->Get("pTbias_"+(TString)((col==0)?"pp":"PbPb")+"_var"+(TString)to_string(v)));
+      }
+    }
+  }
 
   //pT distribution of gen signal MC (acceptance sample), before any cuts = original pT spectrum
   cout<<"Getting pT distribution from original MC..."<<endl;
@@ -233,14 +249,18 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
   T->SetBranchStatus("Gen_3mu_4mom",1);
 
   int nbins = 150;
-  auto h_pTMC_cont = new TH1F("h_pTMC_cont","h_pTMC_cont;p_{T} [GeV];#frac{dN_{MC}}{dp_{T} dy}",nbins,_BcPtmin[0],_BcPtmax[0]);
+  vector<TH1F*> h_pTMC_cont;
+  h_pTMC_cont.push_back(new TH1F("h_pTMC_cont_pp","h_pTMC_cont;p_{T} [GeV];#frac{dN_{MC}}{dp_{T} dy}",nbins,_BcPtmin[0],_BcPtmax[0]));
+  h_pTMC_cont.push_back(new TH1F("h_pTMC_cont_PbPb","h_pTMC_cont;p_{T} [GeV];#frac{dN_{MC}}{dp_{T} dy}",nbins,_BcPtmin[0],_BcPtmax[0]));
   float bwpt_cont = (_BcPtmax[0]-_BcPtmin[0])/nbins;
   float anabins[] = {_BcPtmin[1], _BcPtmin[2],_BcPtmax[2]};
-  auto h_pTMC = new TH1F("h_pTMC","h_pTMC",_NanaBins,anabins);
+  vector<TH1F*> h_pTMC;
+  h_pTMC.push_back(new TH1F("h_pTMC_pp","h_pTMC",_NanaBins,anabins));
+  h_pTMC.push_back(new TH1F("h_pTMC_PbPb","h_pTMC",_NanaBins,anabins));
 
-  float ntot=0;
-  vector<float> nbin = vector<float>(_NanaBins, 0);
-  vector<float> ptSum = vector<float>(_NanaBins, 0);
+  vector<float> ntot=vector<float>(secondStep?2:1 , 0);
+  vector<vector<float> > nbin = vector<vector<float> >(secondStep?2:1,vector<float>(_NanaBins, 0));
+  vector<vector<float> > ptSum = vector<vector<float> >(secondStep?2:1,vector<float>(_NanaBins, 0));
 
   for(int j=0; j<nentries; j++){
     Gen_3mu_4mom->Clear();
@@ -251,84 +271,116 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
       float rap = gen3mu->Rapidity();
       float mass = gen3mu->M();
       if(mass<_mBcMin || mass>_mBcMax) continue; //exclude the events excluded in the template fit
-      
-      //correct by pt and Y bin width
-      float bwpt_2, bwY;
-      bool infid=false;
-      ntot+=1;
-      for(int b=0;b<_NanaBins;b++){
-	if(inFidCuts(b+1, pt, rap)){
-	  bwpt_2 = _BcPtmax[b+1]-_BcPtmin[b+1];
-	  bwY = _BcYmax[b+1]-_BcYmin[b+1];
-	  ptSum[b] += pt;
-	  nbin[b] += 1;
-	  infid=true;
-	}
-      }
-      if(!infid) continue;
 
-      h_pTMC_cont->Fill(pt, 1/(bwpt_cont*bwY));
-      h_pTMC->Fill(pt, 1/(bwpt_2*bwY));
+      vector<float> w;
+      w.push_back((secondStep?( getBias(biasOld[0][_nomMethVar],pt) ):1));
+      if(secondStep) w.push_back( getBias(biasOld[1][_nomMethVar],pt) );
+
+            //correct by pt and Y bin width
+      float bwpt_2, bwY;
+      
+      for(int col=0;col<(int)(secondStep?2:1);col++){
+	ntot[col]+=w[col];
+	bool infid=false;
+	for(int b=0;b<_NanaBins;b++){
+	  if(inFidCuts(b+1, pt, rap)){
+	    bwpt_2 = _BcPtmax[b+1]-_BcPtmin[b+1];
+	    bwY = _BcYmax[b+1]-_BcYmin[b+1];
+	    ptSum[col][b] += w[col]*pt;
+	    nbin[col][b] += w[col];
+	    infid=true;
+	  }
+	}
+	if(!infid) continue;
+
+	h_pTMC_cont[col]->Fill(pt, w[col] / (bwpt_cont*bwY));
+	h_pTMC[col]->Fill(pt, w[col] / (bwpt_2*bwY));
+      }
+
     }
   }
 
-  float avPt_preAE[] = {ptSum[0]/nbin[0], ptSum[1]/nbin[1]};
-  vector<double> x_LW = GetLWabciss(h_pTMC_cont,h_pTMC);
+  if(!secondStep){
+    h_pTMC[1] = (TH1F*)h_pTMC[0]->Clone("h_pTMC_PbPb");
+    h_pTMC_cont[1] = (TH1F*)h_pTMC_cont[0]->Clone("h_pTMC_PbPb");
+  }
 
-  cout<<"in acc sample, ntot, nbin1, nbin2, fraction passing bin1 or bin2 = "<<ntot<<" "<<nbin[0]<<" "<<nbin[1]<<" "<<nbin[0]/ntot<<" "<<nbin[1]/ntot<<" "<<endl;
-  cout<<"average pT in acceptance MC sample, bin1 and bin2 = "<<avPt_preAE[0]<<" "<<avPt_preAE[1]<<endl;
-  cout<<"LW abcisses from MC spectrum, common to pp and PbPb, bin1 and 2 = "<<x_LW[0]<<" "<<x_LW[1]<<endl;
+  vector<vector<float> > avPt_preAE = vector<vector<float> >{{ptSum[0][0]/nbin[0][0], ptSum[0][1]/nbin[0][1]} , {ptSum[secondStep?1:0][0]/nbin[secondStep?1:0][0], ptSum[secondStep?1:0][1]/nbin[secondStep?1:0][1]}};
+  vector<vector<double> > x_LW = vector<vector<double> >{GetLWabciss(h_pTMC_cont[0],h_pTMC[0]) ,
+							 GetLWabciss(h_pTMC_cont[1],h_pTMC[1])};
 
+  for(int col=0;col<(int)(secondStep?2:1);col++){
+    cout<<(TString)((col==0)?"pp":"PbPb")<<endl;
+    cout<<"in acc sample, ntot, nbin1, nbin2, fraction passing bin1 or bin2 = "<<ntot[col]<<" "<<nbin[col][0]<<" "<<nbin[col][1]<<" "<<nbin[col][0]/ntot[col]<<" "<<nbin[col][1]/ntot[col]<<" "<<endl;
+    cout<<"average pT in acceptance MC sample, bin1 and bin2 = "<<avPt_preAE[col][0]<<" "<<avPt_preAE[col][1]<<endl;
+    cout<<"LW abcisses from MC spectrum, common to pp and PbPb, bin1 and 2 = "<<x_LW[col][0]<<" "<<x_LW[col][1]<<endl;
+  }
+
+  //Plot original MC
   TCanvas *c2 = new TCanvas("c2","c2",1000,1000);
   c2->SetLogy();
   c2->SetLogx();
-  h_pTMC_cont->SetLineWidth(2);
-  h_pTMC->SetLineWidth(2);
-  h_pTMC->SetLineColor(kBlack);
-  h_pTMC_cont->GetXaxis()->SetMoreLogLabels();
-  h_pTMC_cont->Draw("hist");
-  h_pTMC->Draw("histsame");
-  c2->SaveAs("figs/pT_originalMC.pdf");  
+  TLegend *leg7 = new TLegend(0.55,0.7,0.9,0.9);
+  leg7->SetTextSize(0.033);
+  leg7->SetBorderSize(0);
+
+  for(int col=0;col<(int)(secondStep?2:1);col++){
+    h_pTMC_cont[col]->SetLineWidth(2);
+    h_pTMC[col]->SetLineWidth(2);
+    h_pTMC[col]->SetLineColor((col==0)?kBlack:(kRed+2));
+    h_pTMC_cont[col]->SetLineColor((col==0)?kBlue:kRed);
+    h_pTMC_cont[col]->GetXaxis()->SetMoreLogLabels();
+    h_pTMC_cont[col]->Draw((col==0)?"hist":"histsame");
+    h_pTMC[col]->Draw("histsame");
+    leg7->AddEntry(h_pTMC_cont[col], (TString)(secondStep?"2nd step":"original")+" MC, "+(TString)((col==0)?"pp":"PbPb"));
+    leg7->AddEntry(h_pTMC[col], "integrated MC, "+(TString)((col==0)?"pp":"PbPb"));
+  }
+  if(secondStep) leg7->Draw("same");
+  
+  c2->SaveAs("figs/pT_originalMC"+(TString)(secondStep?"_2ndStep":"")+".pdf");  
+  h_pTMC[1]->SetLineColor(kBlack);
+  h_pTMC_cont[1]->SetLineColor(kBlue);
 
   //scaling to expected corrected yield in data (prefit)
-  float tmp_scale = 1.17; //norm of MC seems a bit too low, temporary fix
-  TH1F *h_pTMC_cont_pp = (TH1F*)h_pTMC_cont->Clone("h_pTMC_cont_pp");
-  TH1F *h_pTMC_pp = (TH1F*)h_pTMC->Clone("h_pTMC_pp");
-  h_pTMC_cont_pp->Scale(tmp_scale*_scaleMCsig[true] * 3000000 / nentries);
-  h_pTMC_pp->Scale(tmp_scale*_scaleMCsig[true] * 3000000 / nentries);
-  TH1F *h_pTMC_cont_PbPb = (TH1F*)h_pTMC_cont->Clone("h_pTMC_cont_PbPb");
-  TH1F *h_pTMC_PbPb = (TH1F*)h_pTMC->Clone("h_pTMC_PbPb");
-  h_pTMC_cont_PbPb->Scale(tmp_scale*_scaleMCsig[false] * Ncoll_MB * 4200000 / nentries);
-  h_pTMC_PbPb->Scale(tmp_scale*_scaleMCsig[false] * Ncoll_MB * 4200000 / nentries);
+  float tmp_scale = 1.;//secondStep?1.:1.15; //norm of MC seems a bit too low, temporary fix
+  h_pTMC_cont[0]->Scale(tmp_scale*_scaleMCsig[true] * 3000000 / nentries);
+  h_pTMC[0]->Scale(tmp_scale*_scaleMCsig[true] * 3000000 / nentries);
+  h_pTMC_cont[1]->Scale(tmp_scale*_scaleMCsig[false] * Ncoll_MB * 4200000 / nentries);
+  h_pTMC[1]->Scale(tmp_scale*_scaleMCsig[false] * Ncoll_MB * 4200000 / nentries);
 
-  //Grab nominal acc and eff, without second-step pT biasing of MC, and postfit uncorrected yields
-  cout<<"Grabbing info of all acc, eff, yields, ..."<<endl;
-  //acc
-  TFile *facc = new TFile("../acceptance/acceptanceMap.root","READ");
-  vector<float> *acc_oneBinned;
-  facc->GetObject("acceptance_oneBinned", acc_oneBinned);
-  TFile *feff = new TFile("../efficiency/AcceptanceEfficiencyMap.root","READ");
-  //eff
-  vector<vector<float> > *eff_oneBinned_pp;
-  feff->GetObject("efficiency_oneBinned_pp", eff_oneBinned_pp);
-  vector<vector<float> > *eff_oneBinned_PbPb;
-  feff->GetObject("efficiency_oneBinned_PbPb", eff_oneBinned_PbPb);
-
-  //postfit (and prefit) yields
-  TFile *infile = new TFile("../AccEffCorr/corrected_yields.root","READ");
-  vector<vector<vector<float> > > *Yields_postfit_pp;
-  infile->GetObject("Yields_postfit_pp", Yields_postfit_pp);
-  vector<vector<vector<float> > > *Yields_postfit_PbPb;
-  infile->GetObject("Yields_postfit_PbPb", Yields_postfit_PbPb);
-  vector<vector<vector<float> > > *Yields_prefit_pp;
-  infile->GetObject("Yields_prefit_pp", Yields_prefit_pp);
-  vector<vector<vector<float> > > *Yields_prefit_PbPb;
-  infile->GetObject("Yields_prefit_PbPb", Yields_prefit_PbPb);
-  //nominal corrected yield
+  // //postfit (and prefit) yields
+  TFile *infile = new TFile("../AccEffCorr/corrected_yields"+(TString)(secondStep?"_2ndStep":"")+".root","READ");
   vector<float> *y_nom_pp;
-  infile->GetObject("FinalCorrectedYield"+(TString)(firstStep?"_1stStep":"_2ndStep")+"_pp", y_nom_pp);
   vector<float> *y_nom_PbPb;
-  infile->GetObject("FinalCorrectedYield"+(TString)(firstStep?"_1stStep":"_2ndStep")+"_PbPb", y_nom_PbPb);
+
+  // if(nominalOnly && !secondStep){
+  // vector<vector<float> > *acc_oneBinned;
+  // vector<vector<float> > *eff_oneBinned_pp;
+  // vector<vector<float> > *eff_oneBinned_PbPb;
+  // TFile *infile3, *infile2;
+  // infile3 = new TFile("../acceptance/acceptanceMap.root","READ");
+  // infile3->GetObject("acceptance_oneBinned", acc_oneBinned);
+  
+  // infile2 = new TFile("../efficiency/AcceptanceEfficiencyMap.root","READ");
+  // infile2->GetObject("efficiency_oneBinned_pp", eff_oneBinned_pp);
+  // infile2->GetObject("efficiency_oneBinned_PbPb", eff_oneBinned_PbPb);
+
+  //   vector<vector<vector<float> > > *Yields_postfit_pp;
+  //   infile->GetObject("Yields_postfit_pp", Yields_postfit_pp);
+  //   vector<vector<vector<float> > > *Yields_postfit_PbPb;
+  //   infile->GetObject("Yields_postfit_PbPb", Yields_postfit_PbPb);
+
+  //   y_nom_pp = new vector<float>;
+  //   y_nom_PbPb = new vector<float>;
+  //   for(int b=0;b<_NanaBins;b++){
+  //     (*y_nom_pp).push_back((*Yields_postfit_pp)[0][b+1][0] / ((*acc_oneBinned)[b+1] * (*eff_oneBinned_pp)[b+1][0]));
+  //     (*y_nom_PbPb).push_back((*Yields_postfit_PbPb)[0][b+1][0] / ((*acc_oneBinned)[b+1] * (*eff_oneBinned_PbPb)[b+1][0]));
+  //   }
+  // }
+  // else{
+  infile->GetObject("FinalCorrectedYield_pp", y_nom_pp);
+  infile->GetObject("FinalCorrectedYield_PbPb", y_nom_PbPb);
+  //  }
 
   //pp and PbPb corrected yields
   //  vector<vector<double> > yield = vector<vector<double> >(2, vector<double>(_NanaBins,0));
@@ -346,37 +398,41 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
 
   //Grab signal normalisations
   vector<float> *rsig_pp;//[pt bin+1]
-  infile->GetObject("rsig_pp",rsig_pp);
   vector<vector<float> > *rrelerr_pp; //[pt bin+1][sym err, lo err, hi err]
+  vector<float> *metafitErrCorr_pp;
+  vector<float> *r1r2Corr_pp;
+  vector<float> * rsig_PbPb;
+  vector<vector<float> > * rrelerr_PbPb; //[pt bin+1][sym err, lo err, hi err]
+  vector<float> *metafitErrCorr_PbPb;
+  vector<float> *r1r2Corr_PbPb;
+  //  if(!nominalOnly){
+  infile->GetObject("rsig_pp",rsig_pp);
   infile->GetObject("rsig_relerr_pp",rrelerr_pp);
   cout<<"rrelerr_pp low bin1 bin2 = "<< (*rrelerr_pp)[1][1]<<" "<<(*rrelerr_pp)[2][1]<<endl;
-  vector<float> *metafitErrCorr_pp;
   infile->GetObject("CorrectedYields_MetafitSyst_LinearizedCorrelationMatrixpp", metafitErrCorr_pp);
-  vector<float> *r1r2Corr_pp;
   infile->GetObject("r1r2Correlation_pp", r1r2Corr_pp);
 
-  vector<float> * rsig_PbPb;
   infile->GetObject("rsig_PbPb",rsig_PbPb);
-  vector<vector<float> > * rrelerr_PbPb; //[pt bin+1][sym err, lo err, hi err]
   infile->GetObject("rsig_relerr_PbPb",rrelerr_PbPb);
   cout<<"rrelerr_PbPb low bin1 bin2 = "<< (*rrelerr_PbPb)[1][1]<<" "<<(*rrelerr_PbPb)[2][1]<<endl;
-  vector<float> *metafitErrCorr_PbPb;
   infile->GetObject("CorrectedYields_MetafitSyst_LinearizedCorrelationMatrixPbPb", metafitErrCorr_PbPb);
-  vector<float> *r1r2Corr_PbPb;
   infile->GetObject("r1r2Correlation_PbPb", r1r2Corr_PbPb);
+  //  }
 
   vector<float> *y_metafitRelErrLo_pp;
   vector<float> *y_metafitRelErrHi_pp;
-  infile->GetObject("CorrectedYields_MetafitRelSystErrorLo_pp", y_metafitRelErrLo_pp);
-  infile->GetObject("CorrectedYields_MetafitRelSystErrorHi_pp", y_metafitRelErrHi_pp); 
   vector<float> *y_metafitRelErrLo_PbPb;
   vector<float> *y_metafitRelErrHi_PbPb;
+  //  if(!nominalOnly){
+  infile->GetObject("CorrectedYields_MetafitRelSystErrorLo_pp", y_metafitRelErrLo_pp);
+  infile->GetObject("CorrectedYields_MetafitRelSystErrorHi_pp", y_metafitRelErrHi_pp); 
   infile->GetObject("CorrectedYields_MetafitRelSystErrorLo_PbPb", y_metafitRelErrLo_PbPb);
   infile->GetObject("CorrectedYields_MetafitRelSystErrorHi_PbPb", y_metafitRelErrHi_PbPb); 
 
   cout<<"Metafit relerr_pp low bin1 bin2 = "<< (*y_metafitRelErrLo_pp)[0]<<" "<<(*y_metafitRelErrLo_pp)[1]<<endl;
   cout<<"Metafit relerr_PbPb low bin1 bin2 = "<< (*y_metafitRelErrLo_PbPb)[0]<<" "<<(*y_metafitRelErrLo_PbPb)[1]<<endl;
- 
+  //  }
+
   vector<vector<float> > rSig(2, vector<float>(_NanaBins,0) );//[pp or PbPb][pt bins from 0]
   vector<vector<float> > rErrHi(2, vector<float>(_NanaBins,0));//[pp or PbPb][pt bins from 0]
   vector<vector<float> > rErrLo(2, vector<float>(_NanaBins,0));
@@ -389,6 +445,7 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
   //ptAverage[col][trueb]
   for(int b=0;b<_NanaBins;b++){
     cout<<"bin = "<<b+1<<endl;
+    //if(!nominalOnly){
     rSig[0][b] = (*rsig_pp)[b+1];
     cout<<"rSig[0][b] = "<<rSig[0][b]<<endl;
     rErrLo[0][b] = rSig[0][b] * sqrt(pow((*rrelerr_pp)[b+1][1],2) + pow((*y_metafitRelErrLo_pp)[b],2));
@@ -398,9 +455,13 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
     cout<<"yErrLo[0][b] = "<<yErrLo[0][b]<<endl;
     cout<<"relerrlo = "<<sqrt(pow((*rrelerr_pp)[b+1][1],2) + pow((*y_metafitRelErrLo_pp)[b],2))<<endl;
     yErrHi[0][b] = ycorr[0][b] * sqrt(pow((*rrelerr_pp)[b+1][2],2) + pow((*y_metafitRelErrHi_pp)[b],2));
+    //}
     cout<<"corrected yield pp   bin "<<b+1<<" = "<<ycorr[0][b]<<endl;
-    cout<<"corrected yield pp (MC)   bin "<<b+1<<" = "<<h_pTMC_pp->GetBinContent(b+1)<<endl;
-    
+    //cout<<"equivalent true number of accepted events (pp) bin "<<b+1<<" = "<<(*y_nom_pp)[b]* (*acc_oneBinned)[0][b+1] <<endl;
+    cout<<"corrected yield pp (MC)   bin "<<b+1<<" = "<<h_pTMC[0]->GetBinContent(b+1)<<endl;
+    cout<<"corrected yield pp (MC, true number)   bin "<<b+1<<" = "<<h_pTMC[0]->GetBinContent(b+1) * ( ptwidth[b] * Ywidth[b]) <<endl;
+    //cout<<"accepted yield pp (MC, true number)   bin "<<b+1<<" = "<<h_pTMC[0]->GetBinContent(b+1) * ( ptwidth[b] * Ywidth[b]) * (*acc_oneBinned)[0][b+1] <<endl;
+    //    if(!nominalOnly){
     rSig[1][b] = (*rsig_PbPb)[b+1];
     cout<<"rSig[1][b] = "<<rSig[1][b]<<endl;
     rErrLo[1][b] = rSig[1][b] * sqrt(pow((*rrelerr_PbPb)[b+1][1],2) + pow((*y_metafitRelErrLo_PbPb)[b],2));
@@ -410,16 +471,22 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
     cout<<"yErrLo[1][b] = "<<yErrLo[1][b]<<endl;
     cout<<"relerrlo = "<<sqrt(pow((*rrelerr_PbPb)[b+1][1],2) + pow((*y_metafitRelErrLo_PbPb)[b],2))<<endl;
     yErrHi[1][b] = ycorr[1][b] * sqrt(pow((*rrelerr_PbPb)[b+1][2],2) + pow((*y_metafitRelErrHi_PbPb)[b],2));
+    //  }
     cout<<"corrected yield PbPb bin "<<b+1<<" = "<<ycorr[1][b]<<endl;
-    cout<<"corrected yield PbPb (MC) bin "<<b+1<<" = "<<h_pTMC_PbPb->GetBinContent(b+1)<<endl;
+    //cout<<"equivalent true number of accepted events (PbPb) bin "<<b+1<<" = "<<(*y_nom_PbPb)[b]* (*acc_oneBinned)[1][b+1]  <<endl;
+    cout<<"corrected yield PbPb (MC) bin "<<b+1<<" = "<<h_pTMC[1]->GetBinContent(b+1)<<endl;
+    cout<<"corrected yield PbPb (MC, true number)   bin "<<b+1<<" = "<<h_pTMC[1]->GetBinContent(b+1) * ( ptwidth[b] * Ywidth[b]) <<endl;
+    //cout<<"accepted yield PbPb (MC, true number)   bin "<<b+1<<" = "<<h_pTMC[1]->GetBinContent(b+1) * ( ptwidth[b] * Ywidth[b]) * (*acc_oneBinned)[1][b+1] <<endl;
   }
 
-  corr[0][0] = ( (*r1r2Corr_pp)[0] * (*rrelerr_pp)[1][0] * (*rrelerr_pp)[2][0] //symmetric errors for correlations
-		 +(*metafitErrCorr_pp)[0] * (((*y_metafitRelErrLo_pp)[0]+(*y_metafitRelErrHi_pp)[0])/2) * (((*y_metafitRelErrLo_pp)[1]+(*y_metafitRelErrHi_pp)[1])/2) 
-		 )/ sqrt( (pow((*rrelerr_pp)[1][0],2) + pow(((*y_metafitRelErrLo_pp)[0]+(*y_metafitRelErrHi_pp)[0])/2,2)) * (pow((*rrelerr_pp)[2][0],2) + pow(((*y_metafitRelErrLo_pp)[1]+(*y_metafitRelErrHi_pp)[1])/2,2)) ); //(Cov(1,2)+Cov'(1,2)) / (sigma_tot(1)*sigma_tot(2))
-  corr[1][0] = ( (*r1r2Corr_PbPb)[0] * (*rrelerr_PbPb)[1][0] * (*rrelerr_PbPb)[2][0] //symmetric errors for correlations
-		 +(*metafitErrCorr_PbPb)[0] * (((*y_metafitRelErrLo_PbPb)[0]+(*y_metafitRelErrHi_PbPb)[0])/2) * (((*y_metafitRelErrLo_PbPb)[1]+(*y_metafitRelErrHi_PbPb)[1])/2)
-		 )/ sqrt( (pow((*rrelerr_PbPb)[1][0],2) + pow(((*y_metafitRelErrLo_PbPb)[0]+(*y_metafitRelErrHi_PbPb)[0])/2,2)) * (pow((*rrelerr_PbPb)[2][0],2) + pow(((*y_metafitRelErrLo_PbPb)[1]+(*y_metafitRelErrHi_PbPb)[1])/2,2)) ); //(Cov(1,2)+Cov'(1,2)) / (sigma_tot(1)*sigma_tot(2))
+  if(!nominalOnly){
+    corr[0][0] = ( (*r1r2Corr_pp)[0] * (*rrelerr_pp)[1][0] * (*rrelerr_pp)[2][0] //symmetric errors for correlations
+		   +(*metafitErrCorr_pp)[0] * (((*y_metafitRelErrLo_pp)[0]+(*y_metafitRelErrHi_pp)[0])/2) * (((*y_metafitRelErrLo_pp)[1]+(*y_metafitRelErrHi_pp)[1])/2) 
+		   )/ sqrt( (pow((*rrelerr_pp)[1][0],2) + pow(((*y_metafitRelErrLo_pp)[0]+(*y_metafitRelErrHi_pp)[0])/2,2)) * (pow((*rrelerr_pp)[2][0],2) + pow(((*y_metafitRelErrLo_pp)[1]+(*y_metafitRelErrHi_pp)[1])/2,2)) ); //(Cov(1,2)+Cov'(1,2)) / (sigma_tot(1)*sigma_tot(2))
+    corr[1][0] = ( (*r1r2Corr_PbPb)[0] * (*rrelerr_PbPb)[1][0] * (*rrelerr_PbPb)[2][0] //symmetric errors for correlations
+		   +(*metafitErrCorr_PbPb)[0] * (((*y_metafitRelErrLo_PbPb)[0]+(*y_metafitRelErrHi_PbPb)[0])/2) * (((*y_metafitRelErrLo_PbPb)[1]+(*y_metafitRelErrHi_PbPb)[1])/2)
+		   )/ sqrt( (pow((*rrelerr_PbPb)[1][0],2) + pow(((*y_metafitRelErrLo_PbPb)[0]+(*y_metafitRelErrHi_PbPb)[0])/2,2)) * (pow((*rrelerr_PbPb)[2][0],2) + pow(((*y_metafitRelErrLo_PbPb)[1]+(*y_metafitRelErrHi_PbPb)[1])/2,2)) ); //(Cov(1,2)+Cov'(1,2)) / (sigma_tot(1)*sigma_tot(2))
+  }
 
   vector<vector<vector<double> > > dipoints = vector<vector<vector<double> > >(2, vector<vector<double> >(_biasNmeth*(_biasNtoys+1), vector<double>(4,0))); //[{x1,x2,r1,r2}] 
   vector<vector<vector<TF1*> > > mcfit = vector<vector<vector<TF1*> > >(2,vector<vector<TF1*> >(_biasNmeth, vector<TF1*>(2)));
@@ -428,7 +495,7 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
   vector<vector<TGraph*> > toysDipts = vector<vector<TGraph*> >(2 , vector<TGraph*>(_biasNmeth*(_biasNtoys+1)));
   vector<vector<TGraph*> > toysDipts_r = vector<vector<TGraph*> >(2 , vector<TGraph*>(_biasNmeth*(_biasNtoys+1)));
   vector<Color_t> color = vector<Color_t>(_biasNmeth*(_biasNtoys+1));
-  vector<double> x_LW_MC;
+  vector<vector<double> > x_LW_MC = vector<vector<double> >(2);
   vector<vector<vector<double> > > x_LW_2ndstep = vector<vector<vector<double> > >(2, vector<vector<double> >(_biasNmeth));
 
   vector<double> xbins; xbins.push_back(_BcPtmin[1]);
@@ -437,27 +504,27 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
   cout<<"Running "<<_biasNtoys<<" toy biases for each of the "<<_biasNmeth<<" methods"<<endl;
   for(int col=0;col<2;col++){//pp or PbPb
 
-    double yMC[] = {((col==0)?h_pTMC_pp:h_pTMC_PbPb)->GetBinContent(1) * ptwidth[0],
-		    ((col==0)?h_pTMC_pp:h_pTMC_PbPb)->GetBinContent(2) * ptwidth[1]};
+    double yMC[] = {h_pTMC[col]->GetBinContent(1) * ptwidth[0],
+		    h_pTMC[col]->GetBinContent(2) * ptwidth[1]};
 
     for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
-      //cout<<"variation v="<<v<<endl;
     failedVar:
+      cout<<"variation v="<<v<<endl;
 
       //make toys for dipoints
       double z1 = gRandom->Gaus(),z2 = gRandom->Gaus();
       if(v<3) {z1=0; z2=0;}
-      double z22 = ( corr[col][0]*z1+sqrt(1-pow(corr[col][0],2))*z2 );
+      double z22 = (v<3)?0:( corr[col][0]*z1+sqrt(1-pow(corr[col][0],2))*z2 );
       double r1 = ycorr[col][0] + z1 * ((z1>0)?yErrHi:yErrLo)[col][0];
       double r2 = ycorr[col][1] + z22 * ((z22>0)?yErrHi:yErrLo)[col][1];
       if(r1<0.1*ycorr[col][0]) {r1=0.1*ycorr[col][0]; cout<<"using minimal r1"<<endl;}
       if(r2<0.1*ycorr[col][1]) {r2=0.1*ycorr[col][1]; cout<<"using minimal r2"<<endl;}
       if(v<_biasNmeth){
-	x_LW_MC.push_back( useLWabciss?x_LW[0]:(preAEmeanPt?avPt_preAE[0]:ptAverage[col][0]) );
-	x_LW_MC.push_back( useLWabciss?x_LW[1]:(preAEmeanPt?avPt_preAE[1]:ptAverage[col][1]) );
+	x_LW_MC[col].push_back( useLWabciss?x_LW[col][0]:(preAEmeanPt?avPt_preAE[col][0]:ptAverage[col][0]) );
+	x_LW_MC[col].push_back( useLWabciss?x_LW[col][1]:(preAEmeanPt?avPt_preAE[col][1]:ptAverage[col][1]) );
       }
 
-      double xt[] = {x_LW_MC[0], x_LW_MC[1]};
+      double xt[] = {x_LW_MC[col][0], x_LW_MC[col][1]};
       dipoints[col][v] = vector<double>{xt[0],xt[1],r1,r2};
 
       double yt[] = {r1, r2};
@@ -498,13 +565,13 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
 	      mcfit[col][m][0] = new TF1("MC_fit_meth"+(TString)(to_string(m)), "[0]*(x**[1])",_BcPtmin[0],_BcPtmax[0]);//(TF1*) bias[col][v]->Clone("MC_fit_meth"+(TString)(to_string(m)));
 	      mcfit[col][m][0]->SetParameter(1, -4);//TMath::Log(r2/r1)/TMath::Log(x2/x1) );
 	      mcfit[col][m][0]->SetParameter(0, 1e7);//r1*pow(x1, -bias[col][v]->GetParameter(1)));
-	      ((col==0)?h_pTMC_cont_pp:h_pTMC_cont_PbPb)->Fit("MC_fit_meth"+(TString)(to_string(m)));
+	      h_pTMC_cont[col]->Fit("MC_fit_meth"+(TString)(to_string(m)));
 
 	      //"fit" the MC from the values of the integral on each bin range
 	      cout<<"MC integral fit"<<endl;
 	      mcfit[col][m][1] = (TF1*)mcfit[col][m][0]->Clone("MC_fitWithBinIntegral_meth"+(TString)(to_string(m)));
 	      double parsMC[] = {mcfit[col][m][1]->GetParameter(0), mcfit[col][m][1]->GetParameter(1)};
-	      double parLowLimsMC[] = {5e3, -8};
+	      double parLowLimsMC[] = {1e4, -8};
 	      double parHiLimsMC[] = {1e9, -1.5};
 	      int status = FindParamsPower(parsMC, yMC, xbins, parLowLimsMC, parHiLimsMC, 1);
 	      if (status!=0) cout<<"ROOT FINDING FAILED!! status "<<status<<" (power)"<<endl;
@@ -513,21 +580,21 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
 	    else if(v==_biasNmeth+m*_biasNtoys) cout<<"Toys for method "<<m<<endl;
 
 	    //basic function for biasing in a given variation
-	    bias[col][v] = (TF1*)mcfit[col][m][0]->Clone("bias_var"+(TString)(to_string(v)));
+	    bias[col][v] = (TF1*)((v==m)?mcfit[col][m][0]:bias[col][m])->Clone("bias_var"+(TString)(to_string(v)));
 	    color[v] = (v==m)?(kGreen+3):kGreen;
 
 	    //"fit" the central value, from the integral on each bin range
 	    double pars[] = {bias[col][v]->GetParameter(0), bias[col][v]->GetParameter(1)};
-	    double parLowLims[] = {1e3, -8};
-	    double parHiLims[] = {1e10, -1};
+            double parLowLims[] = {pars[0]*1e-2, pars[1]-2};
+            double parHiLims[] = {pars[0]*1e2, pars[1]+2};
 	    double y[] = {r1*ptwidth[0], r2*ptwidth[1]};
 	    int status = FindParamsPower(pars, y, xbins, parLowLims, parHiLims, 0);
 	    if (status!=0) {
 	      cout<<"ROOT FINDING FAILED !! (power). RETRYING now (SUCCESS IF NO NEWS). y1, y2 = "<<r1<<" "<<r2<<endl;
-	      pars[0] = 2*bias[col][v]->GetParameter(0); pars[1] = 0.5*bias[col][v]->GetParameter(1);
-	      parLowLims[0] = 1e2; parLowLims[1] = -10;
-	      parHiLims[0] = 1e12; parHiLims[1] = -0.2;
-	      int status2 = FindParamsPower(pars, y, xbins, parLowLims, parHiLims, 0);
+	      pars[0] = 2.*bias[col][v]->GetParameter(0); pars[1] = 0.3*bias[col][v]->GetParameter(1);
+	      parLowLims[0] = pars[0]*1e-4; parLowLims[1] = pars[1]-4;
+	      parHiLims[0] = pars[0]*1e4; parHiLims[1] = pars[1]+4;
+	      int status2 = FindParamsPower(pars, y, xbins, parLowLims, parHiLims, 1);
 	      if(status2!=0){
 		cout<<"FAILED AGAIN !! Giving up, resetting the variation"<<endl;
 		if(v<_biasNmeth) {
@@ -552,7 +619,7 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
 		mcfit[col][m][0]->SetParameter(1, 2);//TMath::Log(r2/r1)/TMath::Log(x2/x1) );
 		mcfit[col][m][0]->SetParameter(0, 1e4);//r1*pow(x1, -bias[col][v]->GetParameter(1)));
 		mcfit[col][m][0]->SetParameter(2, -1);
-		((col==0)?h_pTMC_cont_pp:h_pTMC_cont_PbPb)->Fit("MC_fit_meth"+(TString)(to_string(m)));
+		h_pTMC_cont[col]->Fit("MC_fit_meth"+(TString)(to_string(m)));
 	      } 
 	      else mcfit[col][m][0] = (TF1*)mcfit[col][1][0]->Clone("MC_fit_meth"+(TString)(to_string(m)));
 	      
@@ -564,7 +631,7 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
 	      double parLowLimsMC[] = {1e1, (m==1)?(-0.6):(-5)};
 	      double parHiLimsMC[] = {1e8, (m==1)?4.:(-0.01)};
 	      int status = FindParamsPowerToLog(parsMC, yMC, xbins, fix, fixedPar, parLowLimsMC, parHiLimsMC, 1);
-	      if(status!=0) cout<<"ROOT FINDING FAILED !! status "<<status<<" (power to log). y1, y2 = "<<r1<<" "<<r2<<endl;
+	      if(status!=0) cout<<"ROOT FINDING FAILED in nominal MC !! status "<<status<<" (power to log). y1, y2 = "<<r1<<" "<<r2<<endl;
 	      mcfit[col][m][1]->SetParameters(parsMC[0],(m==1)?parsMC[1]:fixedPar,(m==2)?parsMC[1]:fixedPar);
 	    }
 	    else if(v==_biasNmeth+m*_biasNtoys) {
@@ -573,22 +640,22 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
 	    }
 
 	    //basic function for biasing in a given variation
-	    bias[col][v] = (TF1*) mcfit[col][m][0]->Clone("bias_var"+(TString)(to_string(v)));
+	    bias[col][v] = (TF1*) ((v==m)?mcfit[col][m][0]:bias[col][m])->Clone("bias_var"+(TString)(to_string(v)));
 	    color[v] = (v==m)?(kViolet+1):(kViolet-4);
 	    if(m==2) color[v] = (v==m)?(kRed+2):(kOrange+6);
 	    
 	    //"fit" the central value, from the integral on each bin range
 	    double pars[] = {bias[col][v]->GetParameter(0), bias[col][v]->GetParameter(m)}; //parameter number m is varied
 	    double y[] = {r1*ptwidth[0], r2*ptwidth[1]};
-	    double parLowLims[] = {1e1, (m==1)?(-0.9):(-5)};
-	    double parHiLims[] = {1e8, (m==1)?4.5:(-0.01)};
+	    double parLowLims[] = {pars[0]*1e-2, pars[1]-2};
+	    double parHiLims[] = {pars[0]*1e2, pars[1]+2};
 	    int status = FindParamsPowerToLog(pars, y, xbins, fix, fixedPar, parLowLims, parHiLims, 0);
 	    if (status!=0) {
 	      cout<<"ROOT FINDING FAILED !! (power to log). RETRYING now (SUCCESS IF NO NEWS). y1, y2 = "<<r1<<" "<<r2<<endl;
-	      pars[0] = 1.9*bias[col][v]->GetParameter(0); pars[1] = 0.5*bias[col][v]->GetParameter(1);
-	      parLowLims[0] = 1e0; parLowLims[1] = (m==1)?(-3):(-8);
-	      parHiLims[0] = 1e10; parHiLims[1] = (m==1)?7.:(0.5);
-	      int status2 = FindParamsPowerToLog(pars, y, xbins, fix, fixedPar, parLowLims, parHiLims, 0);
+	      pars[0] = ((m==1)?0.2:0.5)*bias[col][v]->GetParameter(0); pars[1] = ((m==1)?3.5:2.)*bias[col][v]->GetParameter(1);
+	      parLowLims[0] = pars[0]*1e-5; parLowLims[1] = pars[1] - ((m==1)?6.:4.);
+	      parHiLims[0] = pars[0]*1e5; parHiLims[1] = pars[1] + ((m==1)?6.:4.);
+	      int status2 = FindParamsPowerToLog(pars, y, xbins, fix, fixedPar, parLowLims, parHiLims, 1);
 	      if(status2!=0){
 		cout<<"FAILED AGAIN !! Giving up, resetting the variation"<<endl;
 		if(v<_biasNmeth) {
@@ -660,8 +727,8 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
     nomi->GetHistogram()->GetXaxis()->SetRangeUser(_BcPtmin[0],_BcPtmax[0]);
 
     //graph: ratio of nominal to MC, 2 points
-    TH1F* h_pTMC_sc = (col==0)?h_pTMC_pp:h_pTMC_PbPb;
-    TH1F* h_pTMC_cont_sc = (col==0)?h_pTMC_cont_pp:h_pTMC_cont_PbPb;
+    TH1F* h_pTMC_sc = h_pTMC[col];
+    TH1F* h_pTMC_cont_sc = h_pTMC_cont[col];
     TGraphAsymmErrors* nomi_r = CloneAndDivide(nomi, h_pTMC_sc, "nominal_ratio_"+(TString)((col==0)?"pp":"PbPb") ); 
     //    TGraph* 
 
@@ -707,13 +774,8 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
     colTx.DrawLatex(0.75,0.905,(TString)((col==0)?"pp":"PbPb"));
 
     //Draw MC
-    if(col==0){
-      h_pTMC_cont_pp->Draw("hist][same");
-      h_pTMC_pp->Draw("hist][same");
-    } else{
-      h_pTMC_cont_PbPb->Draw("hist][same");
-      h_pTMC_PbPb->Draw("hist][same");
-    }
+    h_pTMC_cont[col]->Draw("hist][same");
+    h_pTMC[col]->Draw("hist][same");
     for(int m=0;m<_biasNmeth;m++){
       if(m!=1) mcfit[col][m][0]->Draw("same");
       mcfit[col][m][1]->Draw("same");
@@ -735,9 +797,9 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
 
     TLegend *leg = new TLegend(0.64,0.74,0.95,0.88);
     leg->SetTextSize(0.047);
-    leg->AddEntry(nomi, "1st step measurement");
-    leg->AddEntry(((col==0)?h_pTMC_cont_pp:h_pTMC_cont_PbPb), "original MC");
-    leg->AddEntry(((col==0)?h_pTMC_pp:h_pTMC_PbPb), "MC, integrated");
+    leg->AddEntry(nomi, (TString)(secondStep?"2nd":"1st")+" step measurement");
+    leg->AddEntry(h_pTMC_cont[col], (TString)(secondStep?"2nd step":"original")+" MC");
+    leg->AddEntry(h_pTMC[col], "MC, integrated");
     leg->SetBorderSize(0);
     leg->Draw("same");
 
@@ -745,7 +807,7 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
     leg2->SetTextSize(0.045);
     leg2->AddEntry(mcfit[col][0][1], "MC fit");
     leg2->AddEntry(bias[col][0], "nominal");
-    leg2->AddEntry(bias[col][_biasNmeth], "variations");
+    if(!nominalOnly) leg2->AddEntry(bias[col][_biasNmeth], "variations");
     leg2->SetBorderSize(0);
     leg2->Draw("same");
     fctname.DrawLatex(0.7,0.67, _biasMethName[0]);
@@ -754,7 +816,7 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
     leg3->SetTextSize(0.045);
     //leg3->AddEntry(mcfit[col][1][1], "MC fit");
     leg3->AddEntry(bias[col][1], "nominal");
-    leg3->AddEntry(bias[col][_biasNmeth+_biasNtoys], "variations");
+    if(!nominalOnly) leg3->AddEntry(bias[col][_biasNmeth+_biasNtoys], "variations");
     leg3->SetBorderSize(0);
     leg3->Draw("same");
     fctname.DrawLatex(0.63,0.53, _biasMethName[1]);
@@ -763,14 +825,14 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
     leg4->SetTextSize(0.045);
     leg4->AddEntry(mcfit[col][2][1], "MC fit (free par.)");
     leg4->AddEntry(bias[col][2], "nominal");
-    leg4->AddEntry(bias[col][_biasNmeth+2*_biasNtoys], "variations");
+    if(!nominalOnly) leg4->AddEntry(bias[col][_biasNmeth+2*_biasNtoys], "variations");
     leg4->SetBorderSize(0);
     leg4->Draw("same");
     fctname.DrawLatex(0.63,0.39, _biasMethName[2]);
 
     //Draw ratio pad
     c1->cd(2);
-    nomi_r->GetYaxis()->SetRangeUser((col==0)?0.31:0.18,(col==0)?3.9:5.5);
+    nomi_r->GetYaxis()->SetRangeUser((col==0)?0.41:0.18,(col==0)?2.5:5.5);
     nomi_r->Draw("A2");
     nomi_r->Draw("Psame");
 
@@ -795,20 +857,20 @@ void MakeToyBiases(bool firstStep=true, bool plotOnly=false){
     one.SetLineStyle(7);
     one.DrawLine(_BcPtmin[0],1,_BcPtmax[0],1);
 
-    c1->SaveAs("figs/ToyBiases_"+(TString)to_string(_biasNtoys)+"toysPerMethod_"+(TString)((col==0)?"pp":"PbPb")+".pdf");
+    c1->SaveAs("figs/ToyBiases_"+(TString)to_string(_biasNtoys)+"toysPerMethod_"+(TString)((col==0)?"pp":"PbPb")+(TString)(secondStep?"_2ndStep":"")+".pdf");
   }
 
   //Store bias histograms
   if(!plotOnly){
-    TFile *outfile = new TFile("pTBiases.root","recreate");
-    outfile->WriteObject(&x_LW_MC,"x_LW_signalMC_pTspectrum");
-    outfile->WriteObject(&x_LW_2ndstep,"x_LW_correctedpTspectrum");
+    TFile *outfile = new TFile("pTBiases.root",(TString)(secondStep?"update":"recreate") );
+    outfile->WriteObject(&x_LW_MC,"x_LW_signalMC_pTspectrum"+(TString)(secondStep?"_2ndStep":""));
+    outfile->WriteObject(&x_LW_2ndstep,"x_LW_correctedpTspectrum"+(TString)(secondStep?"_2ndStep":""));
     for(int col=0;col<2;col++){//pp or PbPb
       for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){  
-	bias_r[col][v]->Write("pTbias_"+(TString)((col==0)?"pp":"PbPb")+"_var"+(TString)to_string(v));
+	bias_r[col][v]->Write("pTbias_"+(TString)((col==0)?"pp":"PbPb")+"_var"+(TString)to_string(v)+(TString)(secondStep?"_2ndStep":""));
       }
     }
-    outfile->Close();      
+    outfile->Close();
   }
   infile->Close();      
 

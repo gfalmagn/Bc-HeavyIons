@@ -20,7 +20,7 @@
 #include "../helpers/Definitions.h"
 #include "../helpers/Cuts.h"
 
-void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0){ //kinBin==-1 gathers the two half samples and adds mass variable, to plot correlation matrix
+void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0, bool secondStep=false){ //kinBin==-1 gathers the two half samples and adds mass variable, to plot correlation matrix
   bool useVar_CorrWMass = true;
 
   //Declare Factory
@@ -97,8 +97,8 @@ void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0){ //kinBin==
   loader.AddTree(tbkgBCM, "Background", 1.,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting);  //background weight = 1 
   // loader.AddTree(tbkgTRUEJ, "Background", 1.,(TCut)(cutBkg+cutHalf1), TMVA::Types::kTraining);//this sample is somewhat redundant, but keep it for more complete description of bkg
   // loader.AddTree(tbkgTRUEJ, "Background", 1.,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting);
-  loader.AddTree(tbkgFLIPJ, "Background", ispp?0.77:0.7,(TCut)(cutBkg+cutHalf1), TMVA::Types::kTraining);
-  loader.AddTree(tbkgFLIPJ, "Background", ispp?0.77:0.7,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting);
+  loader.AddTree(tbkgFLIPJ, "Background", ispp?0.7:0.7,(TCut)(cutBkg+cutHalf1), TMVA::Types::kTraining);
+  loader.AddTree(tbkgFLIPJ, "Background", ispp?0.7:0.7,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting);
   if(addMCjpsi){
     loader.AddTree(tbkgBTOJPSI, "Background", ispp?1.75:2.6,(TCut)(cutBkg+(TString)" && muW_isJpsiBro"+cutHalf1), TMVA::Types::kTraining);
     loader.AddTree(tbkgBTOJPSI, "Background", ispp?1.75:2.6,(TCut)(cutBkg+(TString)" && muW_isJpsiBro"+cutHalf2), TMVA::Types::kTesting); 
@@ -107,7 +107,13 @@ void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0){ //kinBin==
     loader.AddTree(tbkgPROMPTJPSI, "Background", 0.6,(TCut)(cutBkg+cutHalf1), TMVA::Types::kTraining);
     loader.AddTree(tbkgPROMPTJPSI, "Background", 0.6,(TCut)(cutBkg+cutHalf2), TMVA::Types::kTesting); 
   }
-  loader.SetWeightExpression( "w_simple2" );
+  
+  if(!secondStep)
+    loader.SetWeightExpression( "w_simple2" );
+  else{
+    loader.SetSignalWeightExpression( "weight2" );
+    loader.SetBackgroundWeightExpression( "weight" );
+  }
 
   loader.PrepareTrainingAndTestTree("","", "SplitMode=Random:SplitSeed=101:NormMode=None:!V" ); //nTrain_Signal=0 is the default (split in half for training and testing) //SplitSeed=100 ensures to have the same splitting each time tmva is ran. Use SplitSeed=0 for a seed changing every time. //SplitMode is actually dummy because the train and test samples are defined before
   
@@ -138,7 +144,7 @@ void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0){ //kinBin==
     // factory.BookMethod(&loader,TMVA::Types::kBDT, "BDT"+(TString)(ispp?"":"_PbPb") +(TString)(addMCjpsi?"_withJpsiMC":"") +(TString)(useVar_CorrWMass?"":"_dropVarCorrWMass")+(TString)(firstHalf?"_1stHalf":"_2ndHalf"),
     // 		     "!V:NTrees=200:MinNodeSize=2.5%:MaxDepth=2:BoostType=AdaBoost:AdaBoostBeta=0.5:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=20:CreateMVAPdfs" );
     factory.BookMethod(&loader,TMVA::Types::kBDT, 
-		       "BDTfiner"+(TString)(ispp?"":"_PbPb") +(TString)(addMCjpsi?"_withJpsiMC":"")+(TString)(useVar_CorrWMass?"":"_dropVarCorrWMass")+"_withTM"+"_kinBin"+(TString)to_string(kinBin)+(TString)(firstHalf?"_1stHalf":"_2ndHalf"),
+		       "BDTfiner"+(TString)(ispp?"":"_PbPb") +(TString)(addMCjpsi?"_withJpsiMC":"")+(TString)(useVar_CorrWMass?"":"_dropVarCorrWMass")+"_withTM"+(TString)(secondStep?"_2ndStep":"")+"_kinBin"+(TString)to_string(kinBin)+(TString)(firstHalf?"_1stHalf":"_2ndHalf"),
 		       (ispp?"!V:NTrees=700:MinNodeSize=3.5%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=40:CreateMVAPdfs":
 			"!V:NTrees=500:MinNodeSize=4.%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=40:CreateMVAPdfs"));
     // auto method = factory.BookMethod(&loader,TMVA::Types::kBDT, "BDTfinerShallow"+(TString)(ispp?"":"_PbPb") +(TString)(addMCjpsi?"_withJpsiMC":"")+(TString)(useVar_CorrWMass?"":"_dropVarCorrWMass")+(TString)(firstHalf?"_1stHalf":"_2ndHalf"),
@@ -148,13 +154,13 @@ void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0){ //kinBin==
    
   else{
     factory.BookMethod(&loader,TMVA::Types::kBDT, 
-		       "BDT"+(TString)(ispp?"":"_PbPb") +(TString)(addMCjpsi?"_withJpsiMC":"") +(TString)(useVar_CorrWMass?"":"_dropVarCorrWMass")+"_kinBin"+(TString)to_string(kinBin)+(TString)(firstHalf?"_1stHalf":"_2ndHalf"),
+		       "BDT"+(TString)(ispp?"":"_PbPb") +(TString)(addMCjpsi?"_withJpsiMC":"") +(TString)(useVar_CorrWMass?"":"_dropVarCorrWMass")+(TString)(secondStep?"_2ndStep":"")+"_kinBin"+(TString)to_string(kinBin)+(TString)(firstHalf?"_1stHalf":"_2ndHalf"),
 		       (TString)(ispp?"!V:NTrees=120:MinNodeSize=10%:MaxDepth=2:BoostType=AdaBoost:AdaBoostBeta=0.2:UseBaggedBoost:BaggedSampleFraction=0.6:SeparationType=GiniIndex:nCuts=15:CreateMVAPdfs":"!V:NTrees=120:MinNodeSize=10%:MaxDepth=2:BoostType=AdaBoost:AdaBoostBeta=0.2:UseBaggedBoost:BaggedSampleFraction=0.6:SeparationType=GiniIndex:nCuts=20:CreateMVAPdfs") );
     factory.BookMethod(&loader,TMVA::Types::kBDT, 
-		       "BDTfiner"+(TString)(ispp?"":"_PbPb") +(TString)(addMCjpsi?"_withJpsiMC":"")+(TString)(useVar_CorrWMass?"":"_dropVarCorrWMass")+"_kinBin"+(TString)to_string(kinBin)+(TString)(firstHalf?"_1stHalf":"_2ndHalf"),
+		       "BDTfiner"+(TString)(ispp?"":"_PbPb") +(TString)(addMCjpsi?"_withJpsiMC":"")+(TString)(useVar_CorrWMass?"":"_dropVarCorrWMass")+(TString)(secondStep?"_2ndStep":"")+"_kinBin"+(TString)to_string(kinBin)+(TString)(firstHalf?"_1stHalf":"_2ndHalf"),
 		       (TString)(ispp?"!V:NTrees=350:MinNodeSize=10%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=10:CreateMVAPdfs":"!V:NTrees=350:MinNodeSize=10%:MaxDepth=3:BoostType=AdaBoost:AdaBoostBeta=0.5:UseBaggedBoost:BaggedSampleFraction=0.6:SeparationType=GiniIndex:nCuts=20:CreateMVAPdfs"));
     auto method = factory.BookMethod(&loader,TMVA::Types::kBDT, 
-				     "BDTfinerShallow"+(TString)(ispp?"":"_PbPb") +(TString)(addMCjpsi?"_withJpsiMC":"")+(TString)(useVar_CorrWMass?"":"_dropVarCorrWMass")+"_kinBin"+(TString)to_string(kinBin)+(TString)(firstHalf?"_1stHalf":"_2ndHalf"),
+				     "BDTfinerShallow"+(TString)(ispp?"":"_PbPb") +(TString)(addMCjpsi?"_withJpsiMC":"")+(TString)(useVar_CorrWMass?"":"_dropVarCorrWMass")+(TString)(secondStep?"_2ndStep":"")+"_kinBin"+(TString)to_string(kinBin)+(TString)(firstHalf?"_1stHalf":"_2ndHalf"),
 				     (TString)(ispp?"!V:NTrees=600:MinNodeSize=7%:MaxDepth=2:BoostType=AdaBoost:AdaBoostBeta=0.2:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=40:CreateMVAPdfs":"!V:NTrees=600:MinNodeSize=7%:MaxDepth=2:BoostType=AdaBoost:AdaBoostBeta=0.2:UseBaggedBoost:BaggedSampleFraction=0.5:SeparationType=GiniIndex:nCuts=15:CreateMVAPdfs"));
 				     }
   
@@ -200,17 +206,17 @@ void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0){ //kinBin==
 
 
 
-void ClassifierSigBkg(bool ispp=true, bool forCorrMatrix=false){
+void ClassifierSigBkg(bool ispp=true, bool secondStep=false, bool forCorrMatrix=false){
   if(forCorrMatrix){
     Classifier(ispp,true,-1); //first half is 9/10th in this case
   }
   else{
-    Classifier(ispp,true,1);
+    Classifier(ispp,true,1,secondStep);
     cout<<endl<<endl;
-    Classifier(ispp,false,1);
+    Classifier(ispp,false,1,secondStep);
     cout<<endl<<endl;
-    Classifier(ispp,true,2);
+    Classifier(ispp,true,2,secondStep);
     cout<<endl<<endl;
-    Classifier(ispp,false,2);
+    Classifier(ispp,false,2,secondStep);
   }
 }

@@ -16,7 +16,7 @@
 #include "../helpers/Definitions.h"
 #include "../helpers/Cuts.h"
 
-vector<float> DetermineCuts(bool ispp=true, bool BDTuncorrFromM=false, int kinBin=0, int centBin=0, bool withTM=false, int varyBDTbin = 0, bool firstTime=false){
+vector<float> DetermineCuts(bool ispp=true, bool BDTuncorrFromM=false, int kinBin=0, int centBin=0, bool withTM=false, int varyBDTbin = 0, bool secondStep=false, bool firstTime=false){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -35,16 +35,16 @@ vector<float> DetermineCuts(bool ispp=true, bool BDTuncorrFromM=false, int kinBi
   T->SetBranchAddress("Bc_M", &Bc_M);
   T->SetBranchAddress("Bc_Pt", &Bc_Pt);
   T->SetBranchAddress("Bc_Y", &Bc_Y);
-  T->SetBranchAddress("BDT", &BDT);
+  T->SetBranchAddress(secondStep?"BDT2":"BDT", &BDT);
   if(firstTime)
     T->SetBranchAddress("w_simple2", &w_simple2);
   else
-    T->SetBranchAddress("weight", &weight);
+    T->SetBranchAddress(secondStep?"weight2":"weight", &weight);
   if(!ispp) T->SetBranchAddress("Centrality", &hiBin);
 
   //*******************************************
   //Fetch BDT correction = f(M) to be subtracted from BDT, to uncorrelate it from mass
-  TFile* f_BDTuncorrel = new TFile("../templateFit/BDTuncorrFromM_"+(TString)(ispp?"pp":"PbPb")+".root","READ");
+  TFile* f_BDTuncorrel = new TFile("../BDT/BDTuncorrFromM_"+(TString)(ispp?"pp":"PbPb")+".root","READ");
   TH1F* h_correctBDT = BDTuncorrFromM?( (TH1F*) f_BDTuncorrel->Get("avBDTvsM_bkg_KinBin"+(TString)to_string((kinBin==0)?1:kinBin)) ):NULL; //make the BDT of the expected background (postfit) uncorrelated with mass
   if(kinBin==0 && BDTuncorrFromM) {
     for(int b=2;b<=_NanaBins;b++)
@@ -88,38 +88,45 @@ vector<float> DetermineCuts(bool ispp=true, bool BDTuncorrFromM=false, int kinBi
   return res;
 }
 
-void DetermineBDTcuts(bool firstTime=false){
+void DetermineBDTcuts(bool secondStep=false, bool firstTime=false){
+
+  int centBin=0;
 
   ofstream outfile;
   outfile.open("../helpers/Cuts_BDT_preliminary.h");
   outfile<<"#include \"Definitions.h\"\n\n";
-  outfile<< "std::vector<float> _BDTcuts(bool ispp, int kinBin=0, bool BDTuncorrFromM=false, int varyBDTbin=0){\n";
-  for(bool type : { true, false }){
-    outfile<< "  "<<(type?"if(ispp){":"else{") <<"\n";
-    for(bool withtm : { true, false }){
-      outfile<< "    "<<(withtm?"if(_withTM){":"else{") <<"\n";
-      for(bool BDTuncorr : { true, false }){
-	outfile<< "      "<<(BDTuncorr?"if(BDTuncorrFromM){":"else{") <<"\n";
-	for(int kinb=0;kinb<=_NanaBins;kinb++){
-	  outfile<< "        if(kinBin=="<<kinb<<"){\n";
-	  for(int varyBinning=-1;varyBinning<=1;varyBinning++){
-	    if(withtm && varyBinning!=0) continue; //vary BDT binning only for !_withtm
-	    vector<float> res = DetermineCuts(type, BDTuncorr, kinb, withtm, varyBinning, firstTime);
-	    if(!withtm) outfile<< "          if(varyBDTbin=="<<varyBinning<<"){\n";
-	    outfile<< "            return std::vector<float>{";
-	    for(int ix=0;ix<res.size();ix++){
-	      outfile<< Form("%.2f",res[ix]);
-	      outfile<< ((ix==res.size()-1)?"};":",");
+  outfile<< "std::vector<float> _BDTcuts(bool ispp, int kinBin=0, bool secondStep=false, bool BDTuncorrFromM=false, int varyBDTbin=0){\n";
+  for(bool secStep : { true, false }){
+    if(!secondStep && secStep) continue;
+    if(secondStep) outfile<< "  "<<(secStep?"if(secondStep){":"else{") <<"\n";
+    for(bool type : { true, false }){
+      outfile<< "  "<<(type?"if(ispp){":"else{") <<"\n";
+      for(bool withtm : { true, false }){
+	outfile<< "    "<<(withtm?"if(_withTM){":"else{") <<"\n";
+	for(bool BDTuncorr : { true, false }){
+	  outfile<< "      "<<(BDTuncorr?"if(BDTuncorrFromM){":"else{") <<"\n";
+	  for(int kinb=0;kinb<=_NanaBins;kinb++){
+	    outfile<< "        if(kinBin=="<<kinb<<"){\n";
+	    for(int varyBinning=-1;varyBinning<=1;varyBinning++){
+	      if(withtm && varyBinning!=0) continue; //vary BDT binning only for !_withtm
+	      vector<float> res = DetermineCuts(type, BDTuncorr, kinb, centBin, withtm, varyBinning, secStep, firstTime);
+	      if(!withtm) outfile<< "          if(varyBDTbin=="<<varyBinning<<"){\n";
+	      outfile<< "            return std::vector<float>{";
+	      for(int ix=0;ix<res.size();ix++){
+		outfile<< Form("%.2f",res[ix]);
+		outfile<< ((ix==res.size()-1)?"};":",");
+	      }
+	      if(!withtm) outfile<< "}\n";
 	    }
-	    if(!withtm) outfile<< "}\n";
+	    if(withtm) {outfile<< "}\n";} else {outfile<< "        }\n";}
 	  }
-	  if(withtm) {outfile<< "}\n";} else {outfile<< "        }\n";}
+	  outfile<< "      }\n";
 	}
-	outfile<< "      }\n";
+	outfile<< "    }\n";
       }
-      outfile<< "    }\n";
+      outfile<< "  }\n";
     }
-    outfile<< "  }\n";
+    if(secondStep) outfile<< "  }\n";
   }
 
   outfile<< "  return std::vector<float>{};\n}\n";

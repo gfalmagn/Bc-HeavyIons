@@ -91,15 +91,21 @@ void drawEffMap(TH2Poly* hpEff, TH2Poly* hpSel, TH2Poly* hpAcc, TLine* l1, TLine
 
 }
 
-void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=false, bool integratePtBins=false){
+void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool secondStep=false, bool BDTuncorrFromM=false, bool integratePtBins=false){
+
+  auto h_test = new TH1F();
+  h_test->SetDefaultSumw2(true);
 
   //**************************************************************  
   //Grab the variations of the pT bias of MC, from first step r1 and r2
-  vector<TH1F*> bias;
-  if(runAEtoys){
+  vector<TH1F*> bias,bias_2ndStep;
+  if(secondStep || runAEtoys){
     TFile *BiasFile = TFile::Open("../twoSteps/pTBiases.root","READ");
-    for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
+    for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++)
       bias.push_back((TH1F*)BiasFile->Get("pTbias_"+(TString)(ispp?"pp":"PbPb")+"_var"+(TString)to_string(v)));
+    if(secondStep && runAEtoys){
+      for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++)
+	bias_2ndStep.push_back((TH1F*)BiasFile->Get("pTbias_"+(TString)(ispp?"pp":"PbPb")+"_var"+(TString)to_string(v)+(TString)(secondStep?"_2ndStep":"")));
     }
   }
   
@@ -369,15 +375,9 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
   TBranch *b_Reco_3mu_whichGen = T->GetBranch("Reco_3mu_whichGen");
   b_Reco_3mu_whichGen->SetAddress(&Reco_3mu_whichGen);
 
-  //**************************************************************
-  //Some variables and XS corrections
-  std::map<bool, float> scaleMCsig = {{ true,  304800 * 2.54e0 * 0.668 / 3000000}, // Lumi_pp[nb-1] (from https://twiki.cern.ch/twiki/bin/viewauth/CMS/TWikiLUM) * (XS_Bc_pp * BF((J/psi -> mu mu) mu nu))[nb] * (XS(5.02 TeV) / XS(7 TeV)) / nevents(uncut MC sample)
-				      { false, 1.0 * 1.71641 * 2.54e0 * 0.668 * (7461 / 67.6) / 1960000} }; //Lumi_PbPb[nb-1] (from https://hypernews.cern.ch/HyperNews/CMS/get/luminosity/948.html) * (XS_Bc_pp * BF((J/psi -> mu mu) mu nu))[nb] * (XS(5.02 TeV) / XS(7 TeV)) * ( XS^geom_PbPb / XS_Nucleon-Nucleon ) / nevents(uncut MC sample)
-                        //weighted by Ncoll(centrality of given event) later, with an average Ncoll_MB = 392. The value of XS^geom was set to A^2 * XS_NN / Ncoll_MB, where XS_NN is taken from Glauber MC d'Enterria PRC 97.054910
-                        //Assuming R_AA(Bc)=1
-
   //counters, histos
-  float ntot = 0, nacc = 0, nsel = 0, nsel2 = 0, nBDT23 = 0, nBDT3 = 0;
+  vector<float> ntot(_NanaBins+1, 0);
+  float nacc = 0, nsel = 0, nsel2 = 0, nBDT23 = 0, nBDT3 = 0;
   TH2Poly *hp = _hp();
   TH2Poly *hp_coarser = _hp_coarser();
   TH2Poly *hp_all = (TH2Poly*) hp->Clone("hp_all");
@@ -414,7 +414,7 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
     JpsiM_tight[k] = (TH1F*)f_JpsiM->Get("JpsiMassCentralEta_data_"+(TString)((k==0)?"allBDTbins":("BDTbin"+(TString)to_string(k)))+(TString)(ispp?"_pp":"_PbPb"));
   }
   
-
+  float npass=0,npass2=0;
   //**************************************************************
   //loop on events
   for(int j=0; j<nentries; j++){//nentries
@@ -428,15 +428,19 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
     Gen_QQ_4mom->Clear();
     
     T->GetEntry(j);
-    
+
     for(int igen=0;igen<Gen_Bc_size;igen++){
 
-      float weight = scaleMCsig[ispp];
+      TLorentzVector *gen3mu = (TLorentzVector*) Gen_3mu_4mom->At(igen);
+
+      float weight = _scaleMCsig[ispp];
       if(!ispp) {float weightNcoll = (float)findNcoll(Centrality); //for PbPb MC
 	weight *= weightNcoll;}
-      
-      ntot += weight;      
-      TLorentzVector *gen3mu = (TLorentzVector*) Gen_3mu_4mom->At(igen);
+      weight *= (secondStep?( getBias( bias[_nomMethVar] , gen3mu->Pt()) ):1);
+      float wadd = (secondStep && runAEtoys)?( getBias(bias_2ndStep[_nomMethVar],gen3mu->Pt()) ):1;
+      weight *= wadd;
+
+      ntot[0] += weight;
       hp_all->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight);
       
       int genQQidx = Gen_Bc_QQ_idx[igen];
@@ -445,17 +449,23 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
       TLorentzVector *genBc_mumi = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mumi_idx[genQQidx]);
       TLorentzVector *genBc_mupl = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mupl_idx[genQQidx]);
       
+      for(int b=1;b<=_NanaBins;b++){
+	if(inFidCuts(b,gen3mu->Pt(),gen3mu->Rapidity())){
+	  ntot[b] += weight;
+	}
+      }
+      
       if(!InAcc(*genBc_muW,*genBc_mumi,*genBc_mupl,_withTM)) continue;
       for(int b=1;b<=_NanaBins;b++){
-	if(fabs(gen3mu->Rapidity())>_BcYmin[b] && fabs(gen3mu->Rapidity())<_BcYmax[b] && gen3mu->Pt()>_BcPtmin[b] && gen3mu->Pt()<_BcPtmax[b] ){
+	if(inFidCuts(b,gen3mu->Pt(),gen3mu->Rapidity())){
 	  accepted_oneBinned[b] += weight;
 	  accepted_oneBinned[0] += weight;
 
 	  //biased MC
 	  if(runAEtoys){
 	    for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
-	      accepted_oneB_biased[0][v] += getBias( bias[v] , gen3mu->Pt()) * weight;
-	      accepted_oneB_biased[b][v] += getBias( bias[v] , gen3mu->Pt()) * weight;
+	      accepted_oneB_biased[0][v] += getBias( (secondStep?bias_2ndStep:bias)[v] , gen3mu->Pt()) * weight / wadd;
+	      accepted_oneB_biased[b][v] += getBias( (secondStep?bias_2ndStep:bias)[v] , gen3mu->Pt()) * weight / wadd;
 	    }
 	  }
 
@@ -473,6 +483,8 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
       int muplidx_2[2] = { Reco_3mu_mupl_idx[irec], Reco_QQ_mupl_idx[QQidx_2[1]] };
       
       for(int k=0; k<2; k++){
+	float wei = weight;
+
 	int QQidx = QQidx_2[k];
 	int QQ2idx = QQidx_2[(k==0)?1:0];
 	int muWidx = muWidx_2[k];
@@ -504,13 +516,12 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
 	    && (BcCandM < _mBcMax) && (BcCandM > _mBcMin) // in Bc mass region
 	    && Reco_3mu_whichGen[irec]>-1
 	    && Reco_QQ_whichGen[QQidx]>-1;
-	  if(inJpsiMassSB(QQM, maxEta<1.5)) {weight *= -1;}
-	  else if(!(inJpsiMassRange(QQM, maxEta<1.5))){ weight = 0;}
-	    
-	  if(!goodTree || weight == 0) continue;
+	  if(inJpsiMassSB(QQM, maxEta<1.5)) {wei *= -1;}
+	  else if(!(inJpsiMassRange(QQM, maxEta<1.5))){ wei = 0;}
+
+	  if(!goodTree || wei == 0) continue;
 	  
 	  //**************************************************************
-	  //Write the wanted variables into the chosen (goodTree=true) output tree
 	  float Bc_ctauSignif = Reco_3mu_ctau[irec] / Reco_3mu_ctauErr[irec] ;
 	  float Bc_ctauSignif3D = Reco_3mu_ctau3D[irec] / Reco_3mu_ctauErr3D[irec] ;
 	  float Bc_alpha = TMath::ACos(Reco_3mu_cosAlpha[irec]);
@@ -552,7 +563,7 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
 	  float mumi_dz = ispp?(Reco_3mu_mumi_dz_muonlessVtx[irec]):(Reco_mu_dz[mumiidx]);
 	  float mupl_dz = ispp?(Reco_3mu_mupl_dz_muonlessVtx[irec]):(Reco_mu_dz[muplidx]);
 
-	  //cout<<(Bc_ctauSignif>1.5)<<" "<<(Bc_alpha<0.8)<<" "<<(Bc_alpha3D<0.8)<<" "<<(Bc_VtxProb>0.01)<<" "<<(QQ_dca<0.3)<<" "<<(muW_isSoft)<<" "<<( mumi_isSoft)<<" "<<(mupl_isSoft)<<" "<<( (muW_isGlb && muW_inLooseAcc && mupl_isGlb && mupl_inLooseAcc) || (muW_isGlb && muW_inLooseAcc && mumi_isGlb && mumi_inLooseAcc) || (mumi_isGlb && mumi_inLooseAcc && mupl_isGlb && mupl_inLooseAcc) )<<" "<<((muW_trig && mupl_trig && muW_inTightAcc && mupl_inTightAcc ) ||(muW_trig && mumi_trig && muW_inTightAcc && mumi_inTightAcc ) || (mumi_trig && mupl_trig && mumi_inTightAcc && mupl_inTightAcc ))<<" "<<(fabs(muW_dz)<(ispp?0.6:0.8) && fabs(mumi_dz)<(ispp?0.6:0.8) && fabs(mupl_dz)<(ispp?0.6:0.8))<<" "<<((HLTriggers&((ispp || i>=4)?8:4096))>0)<<endl;
+	  // cout<<(Bc_ctauSignif>1.5)<<" "<<(Bc_alpha<0.8)<<" "<<(Bc_alpha3D<0.8)<<" "<<(Bc_VtxProb>0.01)<<" "<<(QQ_dca<0.3)<<" "<<(muW_isSoft)<<" "<<( mumi_isSoft)<<" "<<(mupl_isSoft)<<" "<<( (muW_isGlb && muW_inLooseAcc && mupl_isGlb && mupl_inLooseAcc) || (muW_isGlb && muW_inLooseAcc && mumi_isGlb && mumi_inLooseAcc) || (mumi_isGlb && mumi_inLooseAcc && mupl_isGlb && mupl_inLooseAcc) )<<" "<<((muW_trig && mupl_trig && muW_inTightAcc && mupl_inTightAcc ) ||(muW_trig && mumi_trig && muW_inTightAcc && mumi_inTightAcc ) || (mumi_trig && mupl_trig && mumi_inTightAcc && mupl_inTightAcc ))<<" "<<(fabs(muW_dz)<(ispp?0.6:0.8) && fabs(mumi_dz)<(ispp?0.6:0.8) && fabs(mupl_dz)<(ispp?0.6:0.8))<<" "<<((HLTriggers&((ispp)?8:4096))>0)<<endl;
 	  if(
 	     //**************************************************************
 	     // Pre-selections
@@ -603,8 +614,8 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
 	      float binc_QQ1 = ( (maxEta<1.5)?JpsiM_tight:JpsiM )[0]->GetBinContent(( (maxEta<1.5)?JpsiM_tight:JpsiM )[0]->FindBin(QQM));
 	      float binc_QQ2 = ( (maxEta<1.5)?JpsiM_tight:JpsiM )[0]->GetBinContent(( (maxEta<1.5)?JpsiM_tight:JpsiM )[0]->FindBin(QQ2_M));
 
-	      if (binc_QQ1==0) weight = 0;
-	      else weight *= binc_QQ1 / (binc_QQ1+binc_QQ2);
+	      if (binc_QQ1==0) wei = 0;
+	      else wei *= binc_QQ1 / (binc_QQ1+binc_QQ2);
 	    }
 
 
@@ -613,8 +624,8 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
 	    //2 muons have to respect H, 1 has to respect L
 	    //In PbPb, at least 1 triggering muon must pass L3
 	    //muon 1 is mumi, muon 2 is mupl, muon3 is muW
-	    double effcorr; //effcorr is the correction to be applied
-	    double effcorr_simpleAverage, effcorr_selectiveSFapplication; 
+	    double effcorr=1; //effcorr is the correction to be applied
+	    double effcorr_simpleAverage=1, effcorr_selectiveSFapplication=1; 
 	    vector<int> erIdx = {2,1,-2,-1,0}; //statlo, stathi, systlo, systhi, nominal
 	    
 	    for(int sftype=0; sftype<3; sftype++){ //nominal result is run in sftype==2
@@ -736,14 +747,14 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
 
 		//**** Actually fill the 2D histogram
 		for(int b=1;b<=_NanaBins;b++){
-		  if(fabs(gen3mu->Rapidity())>_BcYmin[b] && fabs(gen3mu->Rapidity())<_BcYmax[b] && gen3mu->Pt()>_BcPtmin[b] && gen3mu->Pt()<_BcPtmax[b] ){
-		    passing_oneB[b][sftype][id] += weight * effcorr;
-		    passing_oneB[0][sftype][id] += weight * effcorr;
+		  if(inFidCuts(b,gen3mu->Pt(),gen3mu->Rapidity())){
+		    passing_oneB[b][sftype][id] += wei * effcorr;
+		    passing_oneB[0][sftype][id] += wei * effcorr;
 
 		    if(er==0 && sftype==2 && runAEtoys){//nominal concerning SF variation
 		      for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){
-			passing_oneB_biased[0][v] += getBias( bias[v] , gen3mu->Pt()) * weight * effcorr;
-			passing_oneB_biased[b][v] += getBias( bias[v] , gen3mu->Pt()) * weight * effcorr;
+			passing_oneB_biased[0][v] += getBias( (secondStep?bias_2ndStep:bias)[v] , gen3mu->Pt()) * wei * effcorr / wadd;
+			passing_oneB_biased[b][v] += getBias( (secondStep?bias_2ndStep:bias)[v] , gen3mu->Pt()) * wei * effcorr / wadd;
 		      }
 		    }
 
@@ -754,14 +765,14 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
 	    }//end loop on sf error type
 
 	    //last ran variation is the nominal (er=0), so effcorr has the nominal value
-	    hp_sel_noSF->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight);
-	    hp_sel->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight * effcorr);
-	    hp_sel_simpleAverage->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight * effcorr_simpleAverage);
-	    hp_sel_selectiveSFapplication->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), weight * effcorr_selectiveSFapplication);
+	    hp_sel_noSF->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), wei);
+	    hp_sel->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), wei * effcorr);
+	    hp_sel_simpleAverage->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), wei * effcorr_simpleAverage);
+	    hp_sel_selectiveSFapplication->Fill(fabs(gen3mu->Rapidity()),gen3mu->Pt(), wei * effcorr_selectiveSFapplication);
 
-	    SFs->Fill(effcorr, weight);
-	    SFs_simpleAverage->Fill(effcorr_simpleAverage, weight);
-	    SFs_selectiveSFapplication->Fill(effcorr_selectiveSFapplication, weight);
+	    SFs->Fill(effcorr, wei);
+	    SFs_simpleAverage->Fill(effcorr_simpleAverage, wei);
+	    SFs_selectiveSFapplication->Fill(effcorr_selectiveSFapplication, wei);
 
 	  } //end if passes full selection
 	      
@@ -769,6 +780,8 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
       } //end loop on 2/3 possible Jpsi dimuon choice
     } //end loop on Bc candidates
   } //end loop on entries
+
+
 
   //Calculate errors and systematics
   for(int b=0;b<=_NanaBins;b++){
@@ -810,12 +823,12 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
       // cout<<"id stat syst = "<<idStatErr<<" "<<idSystErr<<endl;
       // cout<<"trk stat syst = "<<trkStatErr<<" "<<trkSystErr<<endl;
       // cout<<"trg stat syst = "<<trgStatErr<<" "<<trgSystErr<<endl;
-      cout<<"accepted_oneBinned, passing_oneBinned, efficiency = " <<ntot<<" "<<accepted_oneBinned[b]<<" "<<passing_oneBinned[b][0]<<" "<<eff_oneBinned[b][0]<<" "<<endl;
+      cout<<"ngen, accepted_oneBinned, passing_oneBinned, efficiency = " <<ntot[b]<<" "<<accepted_oneBinned[b]<<" "<<passing_oneBinned[b][0]<<" "<<eff_oneBinned[b][0]<<" "<<endl;
       cout<<"err passing_oneBinned, relerr efficiency = " <<passing_oneBinned[b][3]<<" "<<eff_oneBinned[b][3]/eff_oneBinned[b][0]<<" "<<endl;
     }
   }
 
-  cout<<"ntot, accepted_oneBinned[0], passing_oneBinned[0], efficiency[0] = " <<ntot<<" "<<accepted_oneBinned[0]<<" "<<passing_oneBinned[0][0]<<" "<<eff_oneBinned[0][0]<<" "<<endl;
+  cout<<"ngen, accepted_oneBinned[0], passing_oneBinned[0], efficiency[0] = "<<ntot[0]<<" "<<accepted_oneBinned[0]<<" "<<passing_oneBinned[0][0]<<" "<<eff_oneBinned[0][0]<<" "<<endl;
   cout<<"err passing_oneBinned[0], relerr efficiency[0] = " <<passing_oneBinned[0][3]<<" "<<eff_oneBinned[0][3]/eff_oneBinned[0][0]<<" "<<endl;
 
 
@@ -828,9 +841,9 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
   b_Bc_Pt->SetAddress(&Bc_Pt);
   float Bc_Y; TBranch *b_Bc_Y = T_presel->GetBranch("Bc_Y");
   b_Bc_Y->SetAddress(&Bc_Y);
-  float weight; TBranch *b_weight = T_presel->GetBranch("weight");
+  float weight; TBranch *b_weight = T_presel->GetBranch(secondStep?"weight2":"weight");
   b_weight->SetAddress(&weight);
-  float BDT; TBranch *b_BDT = T_presel->GetBranch("BDT");
+  float BDT; TBranch *b_BDT = T_presel->GetBranch(secondStep?"BDT2":"BDT");
   b_BDT->SetAddress(&BDT);
 
   for(int j=0; j<T_presel->GetEntries(); j++){//T_presel->GetEntries()
@@ -840,11 +853,11 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
     nsel2 += weight;
     int kinb = 0;
     if(!integratePtBins) kinb = (Bc_Pt<_BcPtmax[1])?1:2;
-    if(BDT>_BDTcuts(ispp,kinb,BDTuncorrFromM)[1]){ //should be adapted, when changing to centrality binning
+    if(BDT>_BDTcuts(ispp,kinb,secondStep,BDTuncorrFromM)[1]){ //should be adapted, when changing to centrality binning
       nBDT23 += weight;
       BDT23effVsPt->Fill(Bc_Pt, weight);
       hpcoarse_inBDT23->Fill(fabs(Bc_Y),Bc_Pt, weight);}
-    if(BDT>_BDTcuts(ispp,kinb,BDTuncorrFromM)[2]){
+    if(BDT>_BDTcuts(ispp,kinb,secondStep,BDTuncorrFromM)[2]){
       nBDT3 += weight;
       BDT3effVsPt->Fill(Bc_Pt, weight);
       hpcoarse_inBDT3->Fill(fabs(Bc_Y),Bc_Pt, weight);}
@@ -879,22 +892,22 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
 
   TH2Poly* hp_efficiency = (TH2Poly*)hp_sel->Clone("hp_efficiency");
   if(!integratePtBins && !BDTuncorrFromM) 
-    drawEffMap(hp_efficiency, hp_sel, hp_acc, line1, line2, line3, line4, line5, ispp, "", true,0,0.45);
+    drawEffMap(hp_efficiency, hp_sel, hp_acc, line1, line2, line3, line4, line5, ispp, ""+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""), true,0,0.45);
 
   TH2Poly* hp_efficiency_noSF = (TH2Poly*)hp_efficiency->Clone("hp_efficiency_noSF");
   hp_efficiency_noSF->Divide(hp_sel_noSF);
  if(!integratePtBins && !BDTuncorrFromM) 
-   drawEffMap(hp_efficiency_noSF, hp_sel_noSF, hp_acc, line1, line2, line3, line4, line5, ispp, "_noSF_DivideNominal", false,ispp?0.84:0.83,ispp?1.16:1.17);
+   drawEffMap(hp_efficiency_noSF, hp_sel_noSF, hp_acc, line1, line2, line3, line4, line5, ispp, "_noSF_DivideNominal"+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""), false,ispp?0.84:0.83,ispp?1.16:1.17);
 
   TH2Poly* hp_efficiency_selectiveSFapplication = (TH2Poly*)hp_efficiency->Clone("hp_efficiency_selectiveSFapplication");
   hp_efficiency_selectiveSFapplication->Divide(hp_sel_selectiveSFapplication);
   if(!integratePtBins && !BDTuncorrFromM) 
-    drawEffMap(hp_efficiency_selectiveSFapplication, hp_sel_selectiveSFapplication, hp_acc, line1, line2, line3, line4, line5, ispp, "_selectiveSFapplication_DivideNominal", false,ispp?0.92:0.89,ispp?1.08:1.11);
+    drawEffMap(hp_efficiency_selectiveSFapplication, hp_sel_selectiveSFapplication, hp_acc, line1, line2, line3, line4, line5, ispp, "_selectiveSFapplication_DivideNominal"+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""), false,ispp?0.92:0.89,ispp?1.08:1.11);
 
   TH2Poly* hp_efficiency_simpleAverage = (TH2Poly*)hp_efficiency->Clone("hp_efficiency_simpleAverage");
   hp_efficiency_simpleAverage->Divide(hp_sel_simpleAverage);
   if(!integratePtBins && !BDTuncorrFromM) 
-    drawEffMap(hp_efficiency_simpleAverage, hp_sel_simpleAverage, hp_acc, line1, line2, line3, line4, line5, ispp, "_simpleAverage_DivideNominal", false,ispp?0.9:0.84,ispp?1.1:1.16);
+    drawEffMap(hp_efficiency_simpleAverage, hp_sel_simpleAverage, hp_acc, line1, line2, line3, line4, line5, ispp, "_simpleAverage_DivideNominal"+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""), false,ispp?0.9:0.84,ispp?1.1:1.16);
 
   //**************************************************************
   //Draw scale factors
@@ -928,13 +941,13 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
     leg->AddEntry(SFs_simpleAverage,"Simple average of single-mu SF");
     leg->Draw("same");
 
-    c6->SaveAs("figs/ScaleFactorsComparison"+(TString)(ispp?"_pp":"_PbPb")+".pdf");
+    c6->SaveAs("figs/ScaleFactorsComparison"+(TString)(ispp?"_pp":"_PbPb")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):"")+".pdf");
   }
   
   //**************************************************************
   //Grab acceptance map
   TFile acc_file("../acceptance/acceptanceMap.root","READ");
-  TH2Poly* hp_acceptance = (TH2Poly*)acc_file.Get("hp_acceptance");
+  TH2Poly* hp_acceptance = (TH2Poly*)acc_file.Get("hp_acceptance_"+(TString)(ispp?"pp":"PbPb")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""));
   hp_acceptance->SetDirectory(0);
   TH2Poly* hp_acceff = (TH2Poly*)hp_acceptance->Clone("hp_acceff");
   hp_acceff->SetDirectory(0);
@@ -986,8 +999,8 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
     gPad->Modified();
     gPad->Update();
 
-    c3->SaveAs("figs/AcceptanceEfficiencyMap_tunedBins"+(TString)(_withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
-    c3->SaveAs("figs/AcceptanceEfficiencyMap_tunedBins"+(TString)(_withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".png");
+    c3->SaveAs("figs/AcceptanceEfficiencyMap_tunedBins"+(TString)(_withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):"")+".pdf");
+    c3->SaveAs("figs/AcceptanceEfficiencyMap_tunedBins"+(TString)(_withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):"")+".png");
 
     //**************************************************************
     //Draw TH2Poly for BDT efficiency
@@ -1014,21 +1027,21 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool BDTuncorrFromM=fals
     BDT3effVsPt->SetTitle("Efficiency for BDT bin 3;p_{T} [GeV]");
     BDT3effVsPt->Draw("E");
 
-    c4->SaveAs("figs/BDTefficiencyMap"+(TString)(_withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
+    c4->SaveAs("figs/BDTefficiencyMap"+(TString)(_withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):"")+".pdf");
   }
 
   //**************************************************************
   //Store maps
   TFile* fout = TFile::Open("AcceptanceEfficiencyMap.root","UPDATE");
-  hp_efficiency->Write("hp_efficiency_"+(TString)(ispp?"pp":"PbPb"));
-  hp_efficiency_noSF->Write("hp_efficiency_noSF_"+(TString)(ispp?"pp":"PbPb"));
-  hp_efficiency_simpleAverage->Write("hp_efficiency_simpleAverage_"+(TString)(ispp?"pp":"PbPb"));
-  hp_efficiency_selectiveSFapplication->Write("hp_efficiency_selectiveSFapplication_"+(TString)(ispp?"pp":"PbPb"));
+  hp_efficiency->Write("hp_efficiency_"+(TString)(ispp?"pp":"PbPb")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""));
+  hp_efficiency_noSF->Write("hp_efficiency_noSF_"+(TString)(ispp?"pp":"PbPb")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""));
+  hp_efficiency_simpleAverage->Write("hp_efficiency_simpleAverage_"+(TString)(ispp?"pp":"PbPb")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""));
+  hp_efficiency_selectiveSFapplication->Write("hp_efficiency_selectiveSFapplication_"+(TString)(ispp?"pp":"PbPb")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""));
 
-  hp_acceff->Write("hp_acceff_"+(TString)(ispp?"pp":"PbPb"));
-  hpcoarse_inBDT23->Write("hpcoarse_inBDT23_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(integratePtBins?"_integratePtBins":""));
-  hpcoarse_inBDT3->Write("hpcoarse_inBDT3_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(integratePtBins?"_integratePtBins":""));
-  fout->WriteObject(&eff_oneBinned,"efficiency_oneBinned"+(TString)(ispp?"_pp":"_PbPb"));
-  if(runAEtoys) fout->WriteObject(&eff_oneB_biased,"efficiency_oneBinned_biased"+(TString)(ispp?"_pp":"_PbPb"));
+  hp_acceff->Write("hp_acceff_"+(TString)(ispp?"pp":"PbPb")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""));
+  hpcoarse_inBDT23->Write("hpcoarse_inBDT23_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(integratePtBins?"_integratePtBins":"")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""));
+  hpcoarse_inBDT3->Write("hpcoarse_inBDT3_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(integratePtBins?"_integratePtBins":"")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""));
+  fout->WriteObject(&eff_oneBinned,"efficiency_oneBinned"+(TString)(ispp?"_pp":"_PbPb")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""));
+  if(runAEtoys) fout->WriteObject(&eff_oneB_biased,"efficiency_oneBinned_biased"+(TString)(ispp?"_pp":"_PbPb")+(TString)(secondStep?"_2ndStep":""));
   fout->Close();
 }

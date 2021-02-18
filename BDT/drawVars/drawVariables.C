@@ -25,7 +25,7 @@
 
 
 //Draw all samples for a given variable
-void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lowerCut, bool leftLeg, bool noROC=false){
+void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lowerCut, bool leftLeg, bool noROC=false, bool step2=true){
   cout<<"Draw variable "<<varName<<endl;
   gStyle->SetOptStat(0);
 
@@ -71,7 +71,7 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
     c->SetRightMargin(0.022);
     c->SetBottomMargin(0.12);
 
-    c->SaveAs(varName+(TString)(ispp?"_pp":"_PbPb")+".pdf");    
+    c->SaveAs(varName+(TString)(step2?"_2ndStep":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");    
   } else{
     c->cd(1)->SetLeftMargin(0.12);
     c->cd(1)->SetRightMargin(0.022);
@@ -144,7 +144,7 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
   line->SetLineColor(kGray);
   line->Draw("same");
 
-  c->SaveAs(varName+(TString)(lowerCut?"_lowerCut":"_upperCut")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
+  c->SaveAs(varName+(TString)(lowerCut?"_lowerCut":"_upperCut")+(TString)(step2?"_2ndStep":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
 
 }
 
@@ -152,12 +152,12 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
 
 
 
-void drawVariables(bool ispp=true){
+void drawVariables(bool ispp=true, bool secondStep=true){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
 
-  auto fullFile = TFile::Open("../BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root","UPDATE");
+  auto fullFile = TFile::Open("../BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root","READ");
 
   int ntrees = 9;
   //Initialization of variables
@@ -244,8 +244,8 @@ void drawVariables(bool ispp=true){
     h_dRJpsiOverMuW.push_back(new TH1F("h_"+varName[11]+"_"+(TString)to_string(iT),"Ratio of J/#psi #DeltaR to other #DeltaR's;#DeltaR(J/#psi)/(#DeltaR_{2} + #DeltaR_{3});norm to 1",nbins,0.1,1));
     h_SumDxyMu.push_back(new TH1F("h_"+varName[12]+"_"+(TString)to_string(iT),"Sum of significances of muon 2D displacement to PV;sum(d_{xy}(#mu)/#sigma);norm to 1",nbins,0,40));
     h_SumDzMu.push_back(new TH1F("h_"+varName[13]+"_"+(TString)to_string(iT),"Sum of significances of muon z displacement to PV;sum(d_{z}(#mu)/#sigma);norm to 1",nbins,0,40));
-    h_BDT.push_back(new TH1F("h_"+varName[14]+"_"+(TString)to_string(iT),"BDT;BDT;norm to 1",nbins,_BDTcuts(ispp)[0]-0.2,_BDTcuts(ispp)[_BDTcuts(ispp).size()-1]+0.02));
-    h_AllDimuDeltaR.push_back(new TH1F("h_"+varName[10]+"_"+(TString)to_string(iT),"#DeltaR of all dimuon pairs of trimuon;#DeltaR(#mu_{i}#mu_{j});norm to 1",nbins,0,3.25));
+    h_BDT.push_back(new TH1F("h_"+varName[14]+"_"+(TString)to_string(iT),"BDT;BDT;norm to 1",nbins,_BDTcuts(ispp,0,secondStep)[0]-0.2,_BDTcuts(ispp,0,secondStep)[_BDTcuts(ispp,0,secondStep).size()-1]+0.02));
+    h_AllDimuDeltaR.push_back(new TH1F("h_"+varName[15]+"_"+(TString)to_string(iT),"#DeltaR of all dimuon pairs of trimuon;#DeltaR(#mu_{i}#mu_{j});norm to 1",nbins,0,3.25));
   }
   int nSpeHist = 1;
 
@@ -287,9 +287,9 @@ void drawVariables(bool ispp=true){
     T[iT]->SetBranchAddress("muW_isJpsiBro", &muW_isJpsiBro[iT]);
     T[iT]->SetBranchAddress("muW_trueId", &muW_trueId[iT]);
     T[iT]->SetBranchAddress("bkgType", &bkgType[iT]);
-    T[iT]->SetBranchAddress("weight", &weight[iT]);
+    T[iT]->SetBranchAddress((secondStep && iT==4)?"weight2":"weight", &weight[iT]);
     T[iT]->SetBranchAddress("eventNb", &eventNb[iT]);
-    T[iT]->SetBranchAddress("BDT", &BDT[iT]);
+    T[iT]->SetBranchAddress(secondStep?"BDT2":"BDT", &BDT[iT]);
 
     //BEGIN event loop on the analyzed tree
     for(int j=0; j<T[iT]->GetEntries(); j++){//T[iT]->GetEntries()
@@ -346,9 +346,9 @@ void drawVariables(bool ispp=true){
   //END loop on trees
 
   for(int ih=0;ih<hist.size()-nSpeHist;ih++){
-    DrawVar(hist[ih],ntrees,varName[ih],ispp,lowercut[ih],leftLeg[ih]);
+    DrawVar(hist[ih],ntrees,varName[ih],ispp,lowercut[ih],leftLeg[ih],false,secondStep);
   }
-  DrawVar(hist[hist.size()-1],ntrees,varName[hist.size()-1],ispp,0,leftLeg[hist.size()-1],true);
+  DrawVar(hist[hist.size()-1],ntrees,varName[hist.size()-1],ispp,0,leftLeg[hist.size()-1],true,secondStep);
 
   delete fullFile;
   

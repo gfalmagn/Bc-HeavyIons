@@ -22,36 +22,31 @@ void Nmin1efficiencies(bool ispp = true){
   //**************************************************************  
   //Create Tree and branches
   vector<TTree*> Trees; vector<int> nentries;
-  
-  TFile *fileData = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/DoubleMu_Run2017G_AOD_Run_306546_306826_OniaTree_TripleMuBc_07082019.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/data/HIDoubleMuon_HIDoubleMuonPsiPeri_Run2018A_AOD_OniaTree_Run_326381_327564_BcTrimuon_16122019.root","READ");
+
+  TFile *fileData = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/DoubleMu_Run2017G-09Aug2019_UL2017_AOD_Run_306546_306826_OniaTree_TripleMuBc_25012021.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/data/HIDoubleMuon_HIDoubleMuonPsiPeri_Run2018A_AOD_OniaTree_Run_326381_327564_BcTrimuon_25012021.root","READ");
   Trees.push_back( (TTree*)fileData->Get("hionia/myTree") );
   nentries.push_back( (int)Trees[0]->GetEntries() );
   std::cout<<"nevents data = "<<nentries[0]<<"\n";
-  //  Trees[0]->Print();
 
   TFile *fileMC = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/Oniatree_MC_Bc_trimuons_21112019.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/BcToJpsiMuNu_BCVEGPY_PYTHIA8_2018PbPb5TeV_HINPbPbAutumn18DR-00196_08092020_4200k_ONIATREE.root","READ");
   Trees.push_back( (TTree*)fileMC->Get("hionia/myTree") );
   nentries.push_back( (int)Trees[1]->GetEntries() );
   std::cout<<"nevents MC = "<<nentries[1]<<"\n";
-  //Trees[1]->Print();
 
-  TFile *fileMCb = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/NonPromptJpsi/MConiatree/crab_BJPsiMM_TuneCUETP8M1_5p02TeV_pythia8_05082019_wLambdabFor10_ptHatMinCombined_ONIATREE.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/NonPromptJpsi/BToJpsi_pThat-2_TuneCP5-EvtGen_HydjetDrumMB_trimuons_oniatree_09012020.root","READ");
+  TFile *fileMCb = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/NonPromptJpsi/MConiatree/crab_BJPsiMM_TuneCUETP8M1_5p02TeV_pythia8_05082019_wLambdabFor10_ptHatMinCombined_ONIATREE.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/NonPromptJpsi/BToJpsi_pThat-2_TuneCP5-EvtGen_HydjetDrumMB_HINPbPbAutumn18DR_trimuons_oniatree_14022021.root","READ");
   Trees.push_back( (TTree*)fileMCb->Get("hionia/myTree") );
   nentries.push_back( (int)Trees[2]->GetEntries() );
   std::cout<<"nevents B->J/psi MC = "<<nentries[2]<<"\n";
-  //Trees[2]->Print();
 
-  TFile *fileMCpromptJ = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/PromptJpsi/Oniatree_MC_trimuons_PromptJpsi_ptHatMinCombined_05082019.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/PromptJpsi/Jpsi_pThat-2_TuneCP5-EvtGen_HydjetDrumMB_trimuons_oniatree_09012020.root","READ");
+  TFile *fileMCpromptJ = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/PromptJpsi/Oniatree_MC_trimuons_PromptJpsi_ptHatMinCombined_05082019.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/PromptJpsi/Jpsi_pThat-2_TuneCP5_HydjetDrumMB_HINPbPbAutumn18DR_trimuons_oniatree_25012021.root","READ");
   Trees.push_back( (TTree*)fileMCpromptJ->Get("hionia/myTree") );
   nentries.push_back( (int)Trees[3]->GetEntries() );
   std::cout<<"nevents Prompt J/psi MC = "<<nentries[3]<<"\n";
-  //Trees[3]->Print();
 
-  TFile *fileFlipJpsi = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/flipJpsi/DoubleMu_Run2017G_AOD_Run_306546_306826_OniaTree_TripleMuBc_flippedJpsi_13112019.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/flippedJpsi/HIDoubleMuon_HIDoubleMuonPsiPeri_Run2018A_AOD_OniaTree_Run_326381_327564_flippedJpsi_BcTrimuon_27122019.root","READ");
+  TFile *fileFlipJpsi = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/flipJpsi/DoubleMu_Run2017G-09Aug2019_UL2017_AOD_Run_306546_306826_OniaTree_flippedJpsi_25012021.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/flippedJpsi/HIDoubleMuon_HIDoubleMuonPsiPeri_Run2018A_AOD_OniaTree_Run_326381_327564_flippedJpsi_BcTrimuon_25012021.root","READ");
   Trees.push_back( (TTree*)fileFlipJpsi->Get("hionia/myTree") );
   nentries.push_back( (int)Trees[4]->GetEntries() );
   std::cout<<"nevents flipped-Jpsi data = "<<nentries[4]<<"\n";
-  //  Trees[4]->Print();
 
   const int nInputT = Trees.size();
 
@@ -237,12 +232,6 @@ void Nmin1efficiencies(bool ispp = true){
     b_Reco_mu_dzErr[i] = Trees[i]->GetBranch("Reco_mu_dzErr");
     b_Reco_mu_dzErr[i]->SetAddress(&Reco_mu_dzErr[i]);
 
-    // b_Reco_mu_normChi2_global[i] = Trees[i]->GetBranch("Reco_mu_normChi2_global");
-    // b_Reco_mu_normChi2_global[i]->SetAddress(&Reco_mu_normChi2_global[i]);
-
-    // b_Reco_mu_normChi2_inner[i] = Trees[i]->GetBranch("Reco_mu_normChi2_inner");
-    // b_Reco_mu_normChi2_inner[i]->SetAddress(&Reco_mu_normChi2_inner[i]);
-
     b_Reco_mu_SelType[i] = Trees[i]->GetBranch("Reco_mu_SelectionType");
     b_Reco_mu_SelType[i]->SetAddress(&Reco_mu_SelType[i]);
 
@@ -336,24 +325,19 @@ void Nmin1efficiencies(bool ispp = true){
 
   //**************************************************************
   //Some variables and XS corrections
-  std::map<bool, float> scaleMCsig = {{ true,  304800 * 2.54e0 * 0.668 / 3000000}, // Lumi_pp[nb-1] (from https://twiki.cern.ch/twiki/bin/viewauth/CMS/TWikiLUM) * (XS_Bc_pp * BF((J/psi -> mu mu) mu nu))[nb] * (XS(5.02 TeV) / XS(7 TeV)) / nevents(uncut MC sample)
-				      { false, 1.0 * 1.6054 * 2.54e0 * 0.668 * (7461 / 67.6) / 4200000} }; //Lumi_PbPb[nb-1] (from https://hypernews.cern.ch/HyperNews/CMS/get/luminosity/948.html) * (XS_Bc_pp * BF((J/psi -> mu mu) mu nu))[nb] * (XS(5.02 TeV) / XS(7 TeV)) * ( XS^geom_PbPb / XS_Nucleon-Nucleon ) / nevents(uncut MC sample)
-                        //weighted by Ncoll(centrality of given event) later, with an average Ncoll_MB = 392. The value of XS^geom was set to A^2 * XS_NN / Ncoll_MB, where XS_NN is taken from Glauber MC d'Enterria PRC 97.054910
-                        //Assuming R_AA(Bc)=1
-
-  TFile* fXS = TFile::Open("/home/llr/cms/falmagne/Bc/MCnormalization/NonPromptJpsiXS_scalefactor.root","READ");
+  TFile* fXS = TFile::Open("/home/llr/cms/falmagne/Bc/MCnormalization/NonPromptJpsiXS_scalefactor.root");
   TF1* SFpp = (TF1*)fXS->Get("SFpp");
-  std::pair<TF1*,float> scalepp (SFpp, 304800 * 0.06/1000); // SF(data/MC)(Non prompt Jpsi XS) * Lumi_pp[nb-1] (preliminary, from https://hypernews.cern.ch/HyperNews/CMS/get/luminosity/794.html) * BF(Jpsi-> mu mu) / MC in pb->nb 
+  std::pair<TF1*,float> scalepp (SFpp, L_pp * 0.06); // SF(data/MC)(Non prompt Jpsi XS) * Lumi_pp[pb-1] (preliminary, from https://hypernews.cern.ch/HyperNews/CMS/get/luminosity/794.html) * BF(Jpsi-> mu mu)
   TF1* SFPbPb = (TF1*)fXS->Get("SFPbPb");
-  std::pair<TF1*,float> scalePbPb (SFPbPb, 208*208 * 1.6054 * 0.06/1000);// SF(data/MC)(Non prompt Jpsi XS PbPb) * A^2 * Lumi_PbPb[nb-1] * MC in pb->nb / BF(Jpsi-> mu mu)
+  std::pair<TF1*,float> scalePbPb (SFPbPb, Leq_PbPb* 0.06);// SF(data/MC)(Non prompt Jpsi XS PbPb) * A^2 * Lumi_PbPb[pb-1] / BF(Jpsi-> mu mu)
   std::map<bool, std::pair<TF1*,float> > scaleMCb = {{ true, scalepp }, 
 						     { false, scalePbPb } }; 
 
-  TFile* fXSprompt = TFile::Open("/home/llr/cms/falmagne/Bc/MCnormalization/PromptJpsiXS_scalefactor.root","READ");
+  TFile* fXSprompt = TFile::Open("/home/llr/cms/falmagne/Bc/MCnormalization/PromptJpsiXS_scalefactor.root");
   TF1* SFppPrompt = (TF1*)fXSprompt->Get("SFpp");
-  std::pair<TF1*,float> scaleppPrompt (SFppPrompt, 304800 * 0.06/1000); // SF(data/MC)(Non prompt Jpsi XS) * Lumi_pp[nb-1] (preliminary, from https://hypernews.cern.ch/HyperNews/CMS/get/luminosity/794.html) * BF(Jpsi-> mu mu) / MC in pb->nb 
+  std::pair<TF1*,float> scaleppPrompt (SFppPrompt, L_pp * 0.06); // SF(data/MC)(Non prompt Jpsi XS) * Lumi_pp[pb-1] (preliminary, from https://hypernews.cern.ch/HyperNews/CMS/get/luminosity/794.html) * BF(Jpsi-> mu mu)
   TF1* SFPbPbPrompt = (TF1*)fXSprompt->Get("SFPbPb");
-  std::pair<TF1*,float> scalePbPbPrompt (SFPbPbPrompt, 208*208 * 1.6054 * 0.06/1000);// SF(data/MC)(Non prompt Jpsi XS PbPb) * A^2 * Lumi_PbPb[nb-1] * MC in pb->nb / BF(Jpsi-> mu mu)
+  std::pair<TF1*,float> scalePbPbPrompt (SFPbPbPrompt, Leq_PbPb* 0.06);// SF(data/MC)(Non prompt Jpsi XS PbPb) * A^2 * Lumi_PbPb[pb-1] / BF(Jpsi-> mu mu)
   std::map<bool, std::pair<TF1*,float> > scaleMCprompt = {{ true, scaleppPrompt }, 
 							  { false, scalePbPbPrompt } }; 
   //For Jpsi choice weight
@@ -405,7 +389,7 @@ void Nmin1efficiencies(bool ispp = true){
 	Short_t muplidx_3[3] = { Reco_3mu_mupl_idx[iIpt][BcNb], Reco_QQ_mupl_idx[iIpt][QQidx_3[1]], Reco_QQ_mupl_idx[iIpt][QQidx_3[2]] };
 
 	int nCandidatePairs = 2;
-	if(iIpt>0) nCandidatePairs = 1;
+	if(iIpt>=4) nCandidatePairs = 1;
 
 	//**************************************************************
 	//Loop on the 2 or 3 possible Jpsi dimuon choices 
@@ -422,13 +406,10 @@ void Nmin1efficiencies(bool ispp = true){
 	    TLorentzVector *recQQ = (TLorentzVector*) Reco_QQ_4mom[iIpt]->At(QQidx);
 	    if(recQQ==NULL) continue;
 	    if(muWidx==-1 || mumiidx==-1 || muplidx==-1) {cout<<"!!!!!!! one muon has a -1 index !! Skip this candidate"<<endl; continue;}
+	    if((muWidx>=Reco_mu_size[iIpt] || mumiidx>=Reco_mu_size[iIpt] || muplidx>=Reco_mu_size[iIpt]) && iIpt!=4) {cout<<"!!!!!!! Muon index > muons vectro size ! Skip this candidate"<<endl; continue;}
 	    TLorentzVector *recBc_muW = (TLorentzVector*) Reco_mu_4mom[iIpt]->At(muWidx);
 	    TLorentzVector *recBc_mumi = (TLorentzVector*) ((iIpt!=4)?(Reco_mu_4mom[iIpt]->At(mumiidx)):(Reco_QQ_mumi_4mom[iIpt]->At(QQidx)));
 	    TLorentzVector *recBc_mupl = (TLorentzVector*) ((iIpt!=4)?(Reco_mu_4mom[iIpt]->At(muplidx)):(Reco_QQ_mupl_4mom[iIpt]->At(QQidx)));
-
-	    for(int p=0;p<Reco_QQ_size[iIpt];p++){
-	      //cout<<j<<" "<<p<<" "<<QQidx<<" "<<Reco_QQ_size[iIpt]<<" "<<Reco_QQ_4mom[iIpt]<<" "<<((TLorentzVector*) Reco_QQ_4mom[iIpt]->At(QQidx))->M()<<endl;
-	    }
 
 	    float BcCandE = sqrt(pow(recQQ->P(),2) + pow(m_Jpsi,2) ) + recBc_muW->E() ;
 	    float BcCandM = sqrt( pow( BcCandE ,2) - pow(recBc->P(),2) );
@@ -448,23 +429,23 @@ void Nmin1efficiencies(bool ispp = true){
 	      switch(i) {
 	      case 0: //MC SIGNAL
 		goodSam = Reco_QQ_sign[iIpt][QQidx]==0 && inLooseMassRange(QQCandM) // in Jpsi mass region
-		  && (BcCandM < 6.2) && (BcCandM > 3.5) // in Bc mass region
+		  && (BcCandM < _mBcMax) && (BcCandM > _mBcMin) // in Bc mass region
 		  && Reco_3mu_whichGen[iIpt][BcNb]>-1
 		  && Reco_QQ_whichGen[iIpt][QQidx]>-1;
-		weight = scaleMCsig[ispp];
+		weight = _scaleMCsig[ispp];
 		if(inJpsiMassSB(QQCandM, maxEta<1.5)) {weight *= -1;}
 		else if(!(inJpsiMassRange(QQCandM, maxEta<1.5))){ weight = 0;}
 		break;
 
 	      case 1: //Jpsi mass sidebands
 		goodSam = Reco_QQ_sign[iIpt][QQidx]==0 && inJpsiMassSB(QQCandM, maxEta<1.5) 
-		  && (BcCandM < 6.2) && (BcCandM > 3.5);
+		  && (BcCandM < _mBcMax) && (BcCandM > _mBcMin);
 		weight = 1;
 		break;
 
 	      case 2: //HighMassRegion in data
 		goodSam = Reco_QQ_sign[iIpt][QQidx]==0 && inLooseMassRange(QQCandM)//(inJpsiMassRange(QQCandM, maxEta<1.5) || inJpsiMassSB(QQCandM, maxEta<1.5))
-		  && (BcCandM > 6.3) && (BcCandM < 7.3);
+		  && (BcCandM > m_Bc) && (BcCandM < _mMax);
 		if(inJpsiMassRange(QQCandM, maxEta<1.5)){
 		  weight = 1;}
 		else if(inJpsiMassSB(QQCandM, maxEta<1.5)){
@@ -475,7 +456,7 @@ void Nmin1efficiencies(bool ispp = true){
 
 	      case 3: //MC NonPrompt J/psi
 		goodSam = Reco_QQ_sign[iIpt][QQidx]==0 && inLooseMassRange(QQCandM) // in Jpsi mass region
-		  && (BcCandM < 6.2) && (BcCandM > 3.5) // in Bc mass region
+		  && (BcCandM < _mBcMax) && (BcCandM > _mBcMin) // in Bc mass region
 		  && Reco_3mu_whichGen[iIpt][BcNb]==-1
 		  && Reco_QQ_whichGen[iIpt][QQidx]>-1;
 		if(goodSam){
@@ -488,7 +469,7 @@ void Nmin1efficiencies(bool ispp = true){
 
 	      case 4: //MC NonPrompt B->J/psi X only (correlated)
 		goodSam = Reco_QQ_sign[iIpt][QQidx]==0 && inLooseMassRange(QQCandM) // in Jpsi mass region
-		  && (BcCandM < 6.2) && (BcCandM > 3.5) // in Bc mass region
+		  && (BcCandM < _mBcMax) && (BcCandM > _mBcMin) // in Bc mass region
 		  && Reco_3mu_whichGen[iIpt][BcNb]==-1
 		  && Reco_QQ_whichGen[iIpt][QQidx]>-1
 		  && Reco_3mu_muW_isGenJpsiBro[iIpt][BcNb];
@@ -502,7 +483,7 @@ void Nmin1efficiencies(bool ispp = true){
 
 	      case 5: //MC Prompt J/psi
 		goodSam = Reco_QQ_sign[iIpt][QQidx]==0 && inLooseMassRange(QQCandM) // in Jpsi mass region
-		  && (BcCandM < 6.2) && (BcCandM > 3.5) // in Bc mass region
+		  && (BcCandM < _mBcMax) && (BcCandM > _mBcMin) // in Bc mass region
 		  && Reco_3mu_whichGen[iIpt][BcNb]==-1
 		  && Reco_QQ_whichGen[iIpt][QQidx]>-1;
 		if(goodSam){
@@ -515,11 +496,11 @@ void Nmin1efficiencies(bool ispp = true){
 
 	      case 6: //Jpsi flipping
 		goodSam = Reco_QQ_sign[iIpt][QQidx]==0 && inLooseMassRange(QQCandM)
-		  && (BcCandM < 6.2) && (BcCandM > 3.5);
+		  && (BcCandM < _mBcMax) && (BcCandM > _mBcMin);
 		if(inJpsiMassRange(QQCandM, maxEta<1.5)){
-		  weight = 1/7.;} //7 versions of Jpsi flipping are added
+		  weight = 1/13.;} //7 versions of Jpsi flipping are added
 		else if(inJpsiMassSB(QQCandM, maxEta<1.5)){
-		  weight = -1/7.;} // simple background subtraction (considering linear background) to keep only true J/psi's
+		  weight = -1/13.;} // simple background subtraction (considering linear background) to keep only true J/psi's
 		else{
 		  weight = 0; goodSam = false;}
 		break;

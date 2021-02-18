@@ -20,10 +20,10 @@ void RAAfitErrCorr(bool fromfit=true){
   vector<vector<double> > *InvAccEff_pp;
   vector<vector<double> > *InvAccEff_PbPb;
   TFile *infile2 = new TFile("../../twoSteps/AccEffFrom2ndStepToys.root","READ");
-  infile2->GetObject("InvAccEffFrom2ndStep_LinearisedCorrelationFactor_pp", AEcorr12_pp);
-  infile2->GetObject("InvAccEffFrom2ndStep_LinearisedCorrelationFactor_PbPb", AEcorr12_PbPb);
-  infile2->GetObject("InvAccEffFrom2ndStep_withSystErr_pp", InvAccEff_pp);
-  infile2->GetObject("InvAccEffFrom2ndStep_withSystErr_PbPb", InvAccEff_PbPb);
+  infile2->GetObject("InvAccEffFromCorrMC_LinearisedCorrelationFactor_pp_2ndStep", AEcorr12_pp);
+  infile2->GetObject("InvAccEffFromCorrMC_LinearisedCorrelationFactor_PbPb_2ndStep", AEcorr12_PbPb);
+  infile2->GetObject("InvAccEffFromCorrMC_withSystErr_pp_2ndStep", InvAccEff_pp);
+  infile2->GetObject("InvAccEffFromCorrMC_withSystErr_PbPb_2ndStep", InvAccEff_PbPb);
 
   vector<float> *y_nom_pp;
   vector<vector<float> > *y_fitErr_pp;
@@ -32,7 +32,7 @@ void RAAfitErrCorr(bool fromfit=true){
   vector<vector<float> > *y_fitErr_PbPb;
   vector<float> *r1r2Corr_PbPb;
 
-  TFile *infile = new TFile("../../AccEffCorr/corrected_yields.root","READ");
+  TFile *infile = new TFile("../../AccEffCorr/corrected_yields_3rdStep.root","READ");
   infile->GetObject("FinalCorrectedYield_pp", y_nom_pp);
   infile->GetObject("FinalCorrectedYield_fitError_pp", y_fitErr_pp);
   infile->GetObject("r1r2Correlation_pp", r1r2Corr_pp);
@@ -79,7 +79,7 @@ void RAAfitErrCorr(bool fromfit=true){
 
   TH2D* h_pp = new TH2D("h_pp","pp",300,(*y_nom_pp)[0]/normpp0 - 4*yErr_pp[0]/normpp0,(*y_nom_pp)[0]/normpp0 + 4*yErr_pp[0]/normpp0,300,(*y_nom_pp)[1]/normpp1 - 4*yErr_pp[1]/normpp1,(*y_nom_pp)[1]/normpp1 + 4*yErr_pp[1]/normpp1);
   TH2D* h_PbPb = new TH2D("h_PbPb","PbPb",300,max((float)0.,(*y_nom_PbPb)[0]/normPbPb0 - 4*yErr_PbPb[0]/normPbPb0),(*y_nom_PbPb)[0]/normPbPb0 + 4*yErr_PbPb[0]/normPbPb0,300,max((float)0.,(*y_nom_PbPb)[1]/normPbPb1 - 4*yErr_PbPb[1]/normPbPb1),(*y_nom_PbPb)[1]/normPbPb1 + 4*yErr_PbPb[1]/normPbPb1);
-  TH2D* h_RAA = new TH2D("h_RAA","RAA",300,0.,3,300,0.2,0.9);
+  TH2D* h_RAA = new TH2D("h_RAA","RAA",300,0.,2.8,300,0.2,0.75);
   
   for(int i=0;i<n;i++){
     //    rengine.Gaussian2D((*y_fitErr_pp)[0],(*y_fitErr_pp)[1],rho_pp,&(x1_pp[i]),&(x2_pp[i]));
@@ -129,7 +129,7 @@ void RAAfitErrCorr(bool fromfit=true){
 
   c1->SaveAs((TString)(fromfit?"Fit":"Acceff")+"ErrorCorrelation.pdf");
   
-  TFile * outf = new TFile("../../AccEffCorr/corrected_yields.root","UPDATE");
+  TFile * outf = new TFile("../../AccEffCorr/corrected_yields_3rdStep.root","UPDATE");
   outf->WriteObject(&ppcorr,(TString)(fromfit?"r1r2":"AcceffSyst_")+"Correlation_pp");
   outf->WriteObject(&PbPbcorr,(TString)(fromfit?"r1r2":"AcceffSyst_")+"Correlation_PbPb");
   outf->WriteObject(&RAAcorr,(TString)(fromfit?"r1r2":"AcceffSyst_")+"Correlation_RAA");

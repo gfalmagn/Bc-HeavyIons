@@ -18,16 +18,16 @@
 using namespace ROOT;
 
 //!!! THIS MACRO NEEDS ROOT6.14+, FOR RDATAFRAME, AND NO CMSSW ENVIRONMENT !
-void drawChecks(bool ispp, float GOFdataval, string seed);
+void drawChecks(bool ispp, bool secondStep, float GOFdataval, string seed);
 
-void drawFitChecks(){
+void drawFitChecks(bool secondStep=true){
   cout<<"\n______________ PP _______________________\n"<<endl;
-  drawChecks(true,138.4,"2235");
+  drawChecks(true,secondStep,110.1,"2235");
   cout<<"\n______________ PBPB _______________________\n"<<endl;
-  drawChecks(false,56.4,"2235");
+  drawChecks(false,secondStep,37.8,"2235");
 }
 
-void drawChecks(bool ispp=true, float GOFdataval=100, string seed="2235"){
+void drawChecks(bool ispp=true, bool secondStep=true, float GOFdataval=100, string seed="2235"){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -35,7 +35,7 @@ void drawChecks(bool ispp=true, float GOFdataval=100, string seed="2235"){
 
   //********************************
   //FIT RESULTS
-  auto filename3 = "/home/llr/cms/falmagne/Bc/templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+s_ispp+"_2bins.root";  
+  auto filename3 = "/home/llr/cms/falmagne/Bc/templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+s_ispp+"_2bins"+(TString)(secondStep?"_2ndStep":"")+".root";  
   auto fFitRes = new TFile((TString)filename3, "read");
   
   //postfit signal yields
@@ -76,14 +76,22 @@ void drawChecks(bool ispp=true, float GOFdataval=100, string seed="2235"){
   cout<<"NLL SCAN : read file "<<filename2<<endl;
   ROOT::RDataFrame d_toys("limit", filename2); //filename cannot handle TString pfffrr....
 
+  //Best fit graph
+  float xBF[] = {(*d_toys.Filter("quantileExpected == -1").Take<float>("r1"))[0]}; //dereference, then transform the vector<double> into array for TGraph
+  float yBF[] = {(*d_toys.Filter("quantileExpected == -1").Take<float>("r2"))[0]};
+  float one[] = {1.};
+  auto bestFit = new TGraph(1,one,one);//xBF,yBF);
+  bestFit->SetMarkerSize(5);
+  bestFit->SetMarkerStyle(34);
+
   //NLL scan
-  auto d2_toys = d_toys.Define("chi2", "2*deltaNLL");
-  auto NLL = d2_toys.Filter("chi2<25").Profile2D({"nll","",25,static_cast<double>(ispp?0.45:0.),static_cast<double>(ispp?1.25:2.8),
-	                                                   25,static_cast<double>(ispp?0.8:0.),static_cast<double>(ispp?1.6:1.1)},
-                                                  "r1","r2","chi2");
-  auto NLLv2 = d2_toys.Profile2D(      {"nll","",25,static_cast<double>(ispp?0.5:0.),static_cast<double>(ispp?1.3:2.7),
-	                         25,static_cast<double>(ispp?0.7:0.),static_cast<double>(ispp?1.5:1.2)},
-    "r1","r2","chi2");
+  auto d2_toys = d_toys.Define("chi2", "2*deltaNLL").Define("scaledr1",(const char*)TString::Format("r1/%.4f",xBF[0])).Define("scaledr2",(const char*)TString::Format("r2/%.4f",yBF[0]));
+  auto NLL = d2_toys.Filter("chi2<25").Profile2D({"nll","",30,static_cast<double>(ispp?0.6:0.)/xBF[0],static_cast<double>(ispp?1.7:3.)/xBF[0],
+	                                                   30,static_cast<double>(ispp?0.75:0.)/yBF[0],static_cast<double>(ispp?1.35:2.5)/yBF[0]},
+                                                  "scaledr1","scaledr2","chi2");
+  auto NLLv2 = d2_toys.Profile2D(                {"nll","",30,static_cast<double>(ispp?0.6:0.)/xBF[0],static_cast<double>(ispp?1.7:3.)/xBF[0],
+	                                                   30,static_cast<double>(ispp?0.75:0.)/yBF[0],static_cast<double>(ispp?1.35:2.5)/yBF[0]},
+                                                  "scaledr1","scaledr2","chi2");
 
   //Evaluate significance by extrapolating NLL to (r1=0,r2=0)
   double x1 = (NLLv2->GetXaxis())->GetBinCenter(1); double y1 = (NLLv2->GetYaxis())->GetBinCenter(1); double z1 = NLLv2->GetBinContent(1,1);
@@ -96,20 +104,13 @@ void drawChecks(bool ispp=true, float GOFdataval=100, string seed="2235"){
   cout<<"nll at (r1=0,r2=0) v1,v2,average = "<<nllAt0v1<<" "<<nllAt0v2<<" "<<nllAt0<<endl;
   cout<<"significance of non-zero signal (assuming gaussian likelihood) = "<<sqrt(nllAt0)<<endl;
 
-  //Best fit graph
-  float xBF[] = {(*d_toys.Filter("quantileExpected == -1").Take<float>("r1"))[0]}; //dereference, then transform the vector<double> into array for TGraph
-  float yBF[] = {(*d_toys.Filter("quantileExpected == -1").Take<float>("r2"))[0]};
-  auto bestFit = new TGraph(1,xBF,yBF);
-  bestFit->SetMarkerSize(5);
-  bestFit->SetMarkerStyle(34);
-
   //Draw NLL scan
   TCanvas *c2 = new TCanvas("c2","c2",1500,1500);
   c2->SetRightMargin(0.16);
   c2->SetTopMargin(0.03);
 
-  NLL->GetXaxis()->SetTitle("r1");
-  NLL->GetYaxis()->SetTitle("r2");
+  NLL->GetXaxis()->SetTitle("r1/r1_{best}");
+  NLL->GetYaxis()->SetTitle("r2/r2_{best}");
   NLL->GetZaxis()->SetTitle("2 #times #DeltaNLL");
   NLL->SetMaximum(25);
   NLL->SetContour(25);
@@ -127,7 +128,7 @@ void drawChecks(bool ispp=true, float GOFdataval=100, string seed="2235"){
   gPad->Modified();
   gPad->Update();
 
-  c2->SaveAs("figs/NLLscan_"+(TString)s_ispp+".pdf");
+  c2->SaveAs("figs/NLLscan_"+(TString)s_ispp+(TString)(secondStep?"_2ndStep":"")+".pdf");
 
   cout<<endl;
 
@@ -143,7 +144,7 @@ void drawChecks(bool ispp=true, float GOFdataval=100, string seed="2235"){
   auto filename = "/home/llr/cms/falmagne/Bc/templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/higgsCombine_"+s_ispp+".GoodnessOfFit.mH120."+seed+".root";  
   cout<<"GOODNESS OF FIT : read file "<<filename<<endl;
   ROOT::RDataFrame d_gfit("limit", filename); //filename cannot handle TString pfffrr....
-  auto testStat = d_gfit.Histo1D({"","",40,static_cast<double>(ispp?70:23),static_cast<double>(ispp?168:83)},"limit");
+  auto testStat = d_gfit.Histo1D({"","",40,static_cast<double>(ispp?70:24),static_cast<double>(ispp?168:89)},"limit");
 
   testStat->SetLineWidth(3);
   testStat->GetXaxis()->SetTitle("test statistic");
@@ -170,7 +171,7 @@ void drawChecks(bool ispp=true, float GOFdataval=100, string seed="2235"){
   //  cout<<"p-value(prob of toys having testStat>(dataValue_"+s_ispp+"="<<GOFdataval<<") ) = "<< integral1 / testStat->Integral() <<endl;
   //cout<<"or "<< integral2 / testStat->Integral() <<endl;
   cout<<"p-value (average) (prob of toys having testStat>(dataValue_"+s_ispp+"="<<GOFdataval<<") ) = "<< (integral1+integral2)/(2*testStat->Integral())<<endl;
-  c1->SaveAs("figs/GOF_"+(TString)s_ispp+".pdf");
+  c1->SaveAs("figs/GOF_"+(TString)s_ispp+(TString)(secondStep?"_2ndStep":"")+".pdf");
 
   cout<<endl;
 
@@ -181,9 +182,15 @@ void drawChecks(bool ispp=true, float GOFdataval=100, string seed="2235"){
   cout<<"SIGNAL TOYS : read file "<<filename4<<endl;
   ROOT::RDataFrame d_sigtoys("tree_fit_sb", filename4); //filename cannot handle TString pfffrr....
   
-  auto r1r2 = d_sigtoys.Histo2D({"",";r1;r2;",25,static_cast<double>(ispp?0.6:0.),static_cast<double>(ispp?1.1:2.3),25,static_cast<double>(ispp?0.95:0.15),static_cast<double>(ispp?1.45:0.8)},"r1","r2");
-  auto r1err = d_sigtoys.Histo1D({"",";r1 uncertainty;n toys",30,static_cast<double>(ispp?0.068:0.22),static_cast<double>(ispp?0.084:0.43)},"r1Err");
-  auto r2err = d_sigtoys.Histo1D({"",";r2 uncertainty;n toys",30,static_cast<double>(ispp?0.052:0.065),static_cast<double>(ispp?0.063:0.11)},"r2Err");
+  auto r1r2 = d_sigtoys
+    .Define("scaledr1","r1/1.").Define("scaledr2","r2/1.")
+    .Histo2D({"",";r1/r1_{true};r2/r2_{true};",25,static_cast<double>(ispp?0.7:0.),static_cast<double>(ispp?1.3:2.5),25,static_cast<double>(ispp?0.8:0.5),static_cast<double>(ispp?1.2:1.5)},"scaledr1","scaledr2");
+  auto r1err = d_sigtoys
+    .Define("scaledr1Err","r1Err/1.")
+    .Histo1D({"",";(r1 uncertainty)/r1_{true};n toys",30,static_cast<double>(ispp?0.08:0.30),static_cast<double>(ispp?0.105:0.55)},"scaledr1Err");
+  auto r2err = d_sigtoys
+    .Define("scaledr2Err","r2Err/1.")
+    .Histo1D({"",";(r2 uncertainty)/r2_{true};n toys",30,static_cast<double>(ispp?0.04:0.13),static_cast<double>(ispp?0.055:0.23)},"scaledr2Err");
 				 
   TCanvas *c3 = new TCanvas("c3","c3",4500,1500);
   c3->Divide(3,1);
@@ -208,7 +215,7 @@ void drawChecks(bool ispp=true, float GOFdataval=100, string seed="2235"){
 
   cout<<"r1-r2 correlation factor from the signal toys = "<<r1r2->GetCorrelationFactor();
 
-  c3->SaveAs("figs/SignalToys_POIvalAndErrors_"+(TString)s_ispp+".pdf");
+  c3->SaveAs("figs/SignalToys_POIvalAndErrors_"+(TString)s_ispp+(TString)(secondStep?"_2ndStep":"")+".pdf");
 
   cout<<endl;
   

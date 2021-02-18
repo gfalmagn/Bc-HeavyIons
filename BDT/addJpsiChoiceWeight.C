@@ -334,7 +334,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
 
 void addJpsiChoiceWeight(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts_ = vector<float>()){
   if (useBDTbins && BDTcuts_.size()<2){
-    BDTcuts_ = _BDTcuts(ispp,0); //we don't bother to make this dependent on the kinematic bin
+    BDTcuts_ = _BDTcuts(ispp,0,false); //we don't bother to make this dependent on the kinematic bin
   }
   
   addJpsiChoiceW(ispp,useBDTbins,BDTcuts_);

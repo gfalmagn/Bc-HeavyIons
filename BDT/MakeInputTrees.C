@@ -33,7 +33,7 @@ void MakeInputTrees(bool ispp = true){
   std::cout<<"nevents MC = "<<nentries[1]<<"\n";
   //Trees[1]->Print();
 
-  TFile *fileMCb = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/NonPromptJpsi/MConiatree/crab_BJPsiMM_TuneCUETP8M1_5p02TeV_pythia8_05082019_wLambdabFor10_ptHatMinCombined_ONIATREE.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/NonPromptJpsi/BToJpsi_pThat-2_TuneCP5-EvtGen_HydjetDrumMB_trimuons_oniatree_09012020.root","READ");
+  TFile *fileMCb = TFile::Open(ispp?"/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/NonPromptJpsi/MConiatree/crab_BJPsiMM_TuneCUETP8M1_5p02TeV_pythia8_05082019_wLambdabFor10_ptHatMinCombined_ONIATREE.root":"/data_CMS/cms/falmagne/tuples/PbPb18/Bc/TripleMu/MC/NonPromptJpsi/BToJpsi_pThat-2_TuneCP5-EvtGen_HydjetDrumMB_HINPbPbAutumn18DR_trimuons_oniatree_14022021.root","READ");
   Trees.push_back( (TTree*)fileMCb->Get("hionia/myTree") );
   nentries.push_back( (int)Trees[2]->GetEntries() );
   std::cout<<"nevents B->J/psi MC = "<<nentries[2]<<"\n";
@@ -165,9 +165,8 @@ void MakeInputTrees(bool ispp = true){
       b_INCentrality[i] = Trees[i]->GetBranch("Centrality");
       b_INCentrality[i]->SetAddress(&INCentrality[i]);
       
-      if(i!=1 && i!=2){ //CHANGE THIS !!! when samples are re-run
-	b_SumET_HF[i] = Trees[i]->GetBranch("SumET_HF");
-	b_SumET_HF[i]->SetAddress(&SumET_HF[i]);}
+      b_SumET_HF[i] = Trees[i]->GetBranch("SumET_HF");
+      b_SumET_HF[i]->SetAddress(&SumET_HF[i]);
     }
 
     b_HLTriggers[i] = Trees[i]->GetBranch("HLTriggers");
@@ -634,17 +633,17 @@ void MakeInputTrees(bool ispp = true){
   //Some variables and XS corrections
   TFile* fXS = TFile::Open("/home/llr/cms/falmagne/Bc/MCnormalization/NonPromptJpsiXS_scalefactor.root");
   TF1* SFpp = (TF1*)fXS->Get("SFpp");
-  std::pair<TF1*,float> scalepp (SFpp, 304800 * 0.06/1000); // SF(data/MC)(Non prompt Jpsi XS) * Lumi_pp[nb-1] (preliminary, from https://hypernews.cern.ch/HyperNews/CMS/get/luminosity/794.html) * BF(Jpsi-> mu mu) / MC in pb->nb 
+  std::pair<TF1*,float> scalepp (SFpp, L_pp * 0.06); // SF(data/MC)(Non prompt Jpsi XS) * Lumi_pp[pb-1] (preliminary, from https://hypernews.cern.ch/HyperNews/CMS/get/luminosity/794.html) * BF(Jpsi-> mu mu)
   TF1* SFPbPb = (TF1*)fXS->Get("SFPbPb");
-  std::pair<TF1*,float> scalePbPb (SFPbPb, 208*208 * 1.6054 * 0.06/1000);// SF(data/MC)(Non prompt Jpsi XS PbPb) * A^2 * Lumi_PbPb[nb-1] * MC in pb->nb / BF(Jpsi-> mu mu)
+  std::pair<TF1*,float> scalePbPb (SFPbPb, Leq_PbPb* 0.06);// SF(data/MC)(Non prompt Jpsi XS PbPb) * A^2 * Lumi_PbPb[pb-1] / BF(Jpsi-> mu mu)
   std::map<bool, std::pair<TF1*,float> > scaleMCb = {{ true, scalepp }, 
 						     { false, scalePbPb } }; 
 
   TFile* fXSprompt = TFile::Open("/home/llr/cms/falmagne/Bc/MCnormalization/PromptJpsiXS_scalefactor.root");
   TF1* SFppPrompt = (TF1*)fXSprompt->Get("SFpp");
-  std::pair<TF1*,float> scaleppPrompt (SFppPrompt, 304800 * 0.06/1000); // SF(data/MC)(Non prompt Jpsi XS) * Lumi_pp[nb-1] (preliminary, from https://hypernews.cern.ch/HyperNews/CMS/get/luminosity/794.html) * BF(Jpsi-> mu mu) / MC in pb->nb 
+  std::pair<TF1*,float> scaleppPrompt (SFppPrompt, L_pp * 0.06); // SF(data/MC)(Non prompt Jpsi XS) * Lumi_pp[pb-1] (preliminary, from https://hypernews.cern.ch/HyperNews/CMS/get/luminosity/794.html) * BF(Jpsi-> mu mu)
   TF1* SFPbPbPrompt = (TF1*)fXSprompt->Get("SFPbPb");
-  std::pair<TF1*,float> scalePbPbPrompt (SFPbPbPrompt, 208*208 * 1.6054 * 0.06/1000);// SF(data/MC)(Non prompt Jpsi XS PbPb) * A^2 * Lumi_PbPb[nb-1] * BF(Jpsi-> mu mu) / MC in pb->nb
+  std::pair<TF1*,float> scalePbPbPrompt (SFPbPbPrompt, Leq_PbPb* 0.06);// SF(data/MC)(Non prompt Jpsi XS PbPb) * A^2 * Lumi_PbPb[pb-1] / BF(Jpsi-> mu mu)
   std::map<bool, std::pair<TF1*,float> > scaleMCprompt = {{ true, scaleppPrompt }, 
 							  { false, scalePbPbPrompt } }; 
   float nall=0,npass=0,nside=0;
@@ -654,12 +653,12 @@ void MakeInputTrees(bool ispp = true){
   bool goodTree = false;
 
   for(int iIpt=0; iIpt<nInputT; iIpt++){//nInputT
+
     if(!ispp && iIpt==4) {
       out_trees[7]->Fill(); //dummy 1 event
       continue;} //no dimuon+track sample yet in PbPb
 
     for(int j=0; j<nentries[iIpt]; j++){//nentries[iIpt]
-
       if(j%200000==0){ cout<<"Scanned "<<100.*(double)j/nentries[iIpt]<<"% of tree #"<<iIpt<<endl; }
 
       b_Reco_3mu_size[iIpt]->GetEntry(j);
@@ -691,7 +690,7 @@ void MakeInputTrees(bool ispp = true){
 	  if(iIpt==1) genBcIdx = Reco_3mu_whichGen[iIpt][BcNb];
 
 	  Short_t QQidx_3[3] = { Reco_3mu_QQ1_idx[iIpt][BcNb], Reco_3mu_QQ2_idx[iIpt][BcNb], Reco_3mu_QQss_idx[iIpt][BcNb] };
-	  // if(fabs(Reco_3mu_charge[iIpt][BcNb])==3 && iIpt!=4){ //This fix for wrongsign can be removed after rerunning the oniatree
+	  // if(fabs(Reco_3mu_charge[iIpt][BcNb])==3 && iIpt!=4){ // fix for wrongsign
 	  //   bool foundit = false;
 	  //   if(Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_QQ_mumi_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]] && Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_QQ_mupl_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]]) {
 	  //     Reco_3mu_muW2_idx[iIpt][BcNb] = Reco_3mu_mumi_idx[iIpt][BcNb]; foundit=true;
@@ -703,8 +702,10 @@ void MakeInputTrees(bool ispp = true){
 	  // }
 	  Short_t muW3idx = (Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_3mu_muW2_idx[iIpt][BcNb])?(Reco_3mu_mumi_idx[iIpt][BcNb]):(Reco_3mu_mupl_idx[iIpt][BcNb]); //for the third dimuon choice, the muWidx=old_muWmi if old_muWmi!=muW2idx, and muWidx=old_muWpl otherwise
 	  if (iIpt!=4 && (muW3idx==Reco_3mu_muW_idx[iIpt][BcNb] || muW3idx==Reco_3mu_muW2_idx[iIpt][BcNb]) && fabs(Reco_3mu_charge[iIpt][BcNb])!=1) cout<<"!!!!!!!!! Wrong assignement of muW3idx !"<<endl;
-	  if (iIpt!=4 && (Reco_3mu_muW_idx[iIpt][BcNb]==Reco_3mu_mumi_idx[iIpt][BcNb] || Reco_3mu_muW_idx[iIpt][BcNb]==Reco_3mu_mupl_idx[iIpt][BcNb] || Reco_3mu_mupl_idx[iIpt][BcNb]==Reco_3mu_mumi_idx[iIpt][BcNb] )) cout<<"!!! OOOPS! Wrong assignement of muon indices!"<<endl;
-	  if (iIpt!=4 && (Reco_3mu_muW2_idx[iIpt][BcNb]==Reco_QQ_mumi_idx[iIpt][QQidx_3[1]] || Reco_3mu_muW2_idx[iIpt][BcNb]==Reco_QQ_mupl_idx[iIpt][QQidx_3[1]] || Reco_QQ_mupl_idx[iIpt][QQidx_3[1]]==Reco_QQ_mumi_idx[iIpt][QQidx_3[1]] )) cout<<"!!! OOOPS! Wrong assignement of muon indices (2nd QQ choice) !"<<endl;
+	  if (iIpt!=4 && Reco_3mu_QQ1_idx[iIpt][BcNb]>-1 && (Reco_3mu_muW_idx[iIpt][BcNb]==Reco_3mu_mumi_idx[iIpt][BcNb] || Reco_3mu_muW_idx[iIpt][BcNb]==Reco_3mu_mupl_idx[iIpt][BcNb] || Reco_3mu_mupl_idx[iIpt][BcNb]==Reco_3mu_mumi_idx[iIpt][BcNb] )) 
+	    cout<<"!!! OOOPS! Wrong assignement of muon indices! "<<Reco_3mu_muW_idx[iIpt][BcNb]<<" "<<Reco_3mu_mupl_idx[iIpt][BcNb]<<" "<<Reco_3mu_mumi_idx[iIpt][BcNb]<<endl;
+	  if ((iIpt<2 || iIpt==5) && Reco_3mu_QQ2_idx[iIpt][BcNb]>-1 && (Reco_3mu_muW2_idx[iIpt][BcNb]==Reco_QQ_mumi_idx[iIpt][QQidx_3[1]] || Reco_3mu_muW2_idx[iIpt][BcNb]==Reco_QQ_mupl_idx[iIpt][QQidx_3[1]] || Reco_QQ_mupl_idx[iIpt][QQidx_3[1]]==Reco_QQ_mumi_idx[iIpt][QQidx_3[1]] )) cout<<"!!! OOOPS! Wrong assignement of muon indices (2nd QQ choice) !"<<endl;
+
 	  Short_t muWidx_3[3] = { Reco_3mu_muW_idx[iIpt][BcNb], Reco_3mu_muW2_idx[iIpt][BcNb], muW3idx };
 	  Short_t mumiidx_3[3] = { Reco_3mu_mumi_idx[iIpt][BcNb], Reco_QQ_mumi_idx[iIpt][QQidx_3[1]], Reco_QQ_mumi_idx[iIpt][QQidx_3[2]] };
 	  Short_t muplidx_3[3] = { Reco_3mu_mupl_idx[iIpt][BcNb], Reco_QQ_mupl_idx[iIpt][QQidx_3[1]], Reco_QQ_mupl_idx[iIpt][QQidx_3[2]] };
@@ -925,9 +926,9 @@ void MakeInputTrees(bool ispp = true){
 				 mumi_isGlb[i] && mupl_isGlb[i] && muW_isGlb[i]
 				 && mumi_inLooseAcc[i] && mupl_inLooseAcc[i] && muW_inLooseAcc[i]
 				 ))
-		 && ( ( muW_trig[i] && mupl_trig[i] && muW_inTightAcc[i] && mupl_inTightAcc[i] ) || //two muons among three must trigger //BEWARE ! Not sure if TightAcceptance should be put there
+		 && ( ( muW_trig[i] && mupl_trig[i] && muW_inTightAcc[i] && mupl_inTightAcc[i] ) || //two muons among three must trigger + be in tight acceptance
 		      ( muW_trig[i] && mumi_trig[i] && muW_inTightAcc[i] && mumi_inTightAcc[i] ) ||
-		      ( mumi_trig[i] && mupl_trig[i] && mumi_inTightAcc[i] && mupl_inTightAcc[i] ) //only this last option can be true for dimuon+trk
+		      ( mumi_trig[i] && mupl_trig[i] && mumi_inTightAcc[i] && mupl_inTightAcc[i] )
 		      )
 		 && fabs(muW_dz)<0.6 && fabs(mumi_dz)<0.6 && fabs(mupl_dz)<0.6
 		 && (!ispp || (HLTriggers[iIpt]&((ispp || i>=4)?8:4096))>0) //the event must fire the trigger as well //BEWARE ! this should be re-established for PbPb when samples are re-run
@@ -1132,6 +1133,6 @@ void MakeInputTrees(bool ispp = true){
     out_trees[i]->AutoSave();
   }
 
-  // out_file.Close();
+  out_file.Close();
 
 }

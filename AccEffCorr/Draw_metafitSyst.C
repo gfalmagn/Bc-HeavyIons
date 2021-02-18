@@ -12,7 +12,7 @@
 #include "../helpers/Cuts.h"
 #include "../helpers/SystematicsList.h"
 
-void Draw_metafitSyst(bool firstStep=true){
+void Draw_metafitSyst(bool secondStep=false){
   
   bool averageNomError = false; //for the new nominal (average over some fit methods), take the average of the fit errors too
   bool doAverageNominal = true;
@@ -22,13 +22,15 @@ void Draw_metafitSyst(bool firstStep=true){
   vector<vector<vector<float> > > *Yields_postfit[2][_nMetafitSyst];
   vector<vector<float> > *rsig_relerr[3][_nMetafitSyst];
   vector<vector<float> > *eff_oneBinned[3];
-  vector<float> *acc_oneBinned[3];
+  vector<vector<float> > *acc_oneBinned;
 
-  vector<vector<double> > *InvAccEff_pp;
-  vector<vector<double> > *InvAccEff_PbPb;
-  TFile *infile4 = new TFile("../twoSteps/AccEffFrom2ndStepToys.root","READ");
-  infile4->GetObject("InvAccEffFrom2ndStep_withSystErr_pp", InvAccEff_pp);
-  infile4->GetObject("InvAccEffFrom2ndStep_withSystErr_PbPb", InvAccEff_PbPb);
+  // vector<vector<double> > *InvAccEff_pp;
+  // vector<vector<double> > *InvAccEff_PbPb;
+  // TFile *infile4 = new TFile("../twoSteps/AccEffFrom2ndStepToys.root","READ");
+  // if(secondStep){
+  //   infile4->GetObject("InvAccEffFrom2ndStep_withSystErr_pp", InvAccEff_pp);
+  //   infile4->GetObject("InvAccEffFrom2ndStep_withSystErr_PbPb", InvAccEff_PbPb);
+  // }
 
   vector<float> y_nom[3];
   vector<float> y_systErrLo[3];
@@ -38,7 +40,7 @@ void Draw_metafitSyst(bool firstStep=true){
   vector<float> y_systCorr[3];
   //vector<float> y_fitErr(nbins);
 
-  TFile *infile = new TFile("corrected_yields.root","READ");
+  TFile *infile = new TFile("corrected_yields"+(TString)(secondStep?"_2ndStep":"")+".root","READ");
 
   const int nbins = _NanaBins;
   vector<TGraphAsymmErrors*> gSyst[3];
@@ -47,7 +49,7 @@ void Draw_metafitSyst(bool firstStep=true){
   TMultiGraph* gSystRatio_all[3][nbins];
   double xErrLo[_nMetafitSyst+1][nbins], xErrHi[_nMetafitSyst+1][nbins], x[_nMetafitSyst+1][nbins], zero[nbins], newy[1];
   double yErrLo[3][_nMetafitSyst+1][nbins], yErrHi[3][_nMetafitSyst+1][nbins], yErrLo_ratio[3][_nMetafitSyst+1][nbins], yErrHi_ratio[3][_nMetafitSyst+1][nbins];
-  double y_oneBinned[3][_nMetafitSyst+1][nbins], y_ratio[3][_nMetafitSyst+1][nbins]; //oneBinned is actually corrected by the 2-steps Acc x Eff, if firstStep==false
+  double y_oneBinned[3][_nMetafitSyst+1][nbins], y_ratio[3][_nMetafitSyst+1][nbins]; //oneBinned is actually corrected by the 2-steps Acc x Eff, if secondStep==true
 
   //DRAW CMS Preliminary 
   TLatex CMStag;
@@ -63,10 +65,10 @@ void Draw_metafitSyst(bool firstStep=true){
     TFile *infile3, *infile2;
     if(ispp<2){
       infile3 = new TFile("../acceptance/acceptanceMap.root","READ");
-      infile3->GetObject("acceptance_oneBinned", acc_oneBinned[ispp]);
+      infile3->GetObject("acceptance_oneBinned"+(TString)(secondStep?"_2ndStep":""), acc_oneBinned);
 
       infile2 = new TFile("../efficiency/AcceptanceEfficiencyMap.root","READ");
-      infile2->GetObject("efficiency_oneBinned"+(TString)((ispp==1)?"_pp":"_PbPb"), eff_oneBinned[ispp]);
+      infile2->GetObject("efficiency_oneBinned"+(TString)((ispp==1)?"_pp":"_PbPb")+(TString)(secondStep?"_2ndStep":""), eff_oneBinned[ispp]);
     }
   
     float nAvNominal[nbins];
@@ -100,9 +102,9 @@ void Draw_metafitSyst(bool firstStep=true){
 	for(int b=1;b<=nbins;b++){
 	  //cout<<"analysis bin #"<<b<<endl;
 	  //      cout<<"one-binned acceptance, efficiency = "<<(*acc_oneBinned)[b]<<" "<<(*eff_oneBinned)[b][0]<<endl;
-	  float invAE;
-	  if(firstStep) invAE = 1 / (((*acc_oneBinned[ispp])[b] * (*eff_oneBinned[ispp])[b][0]));
-	  else invAE = (*(ispp?InvAccEff_pp:InvAccEff_PbPb))[b-1][0];
+	  float invAE = 1 / (((*acc_oneBinned)[1-(int)ispp][b] * (*eff_oneBinned[ispp])[b][0]));
+	  //if(!secondStep) invAE = 1 / (((*acc_oneBinned)[1-(int)ispp][b] * (*eff_oneBinned[ispp])[b][0]));;
+	  //else invAE = (*(ispp?InvAccEff_pp:InvAccEff_PbPb))[b-1][0];
 	  y_oneBinned[ispp][isys][b-1] = (*Yields_postfit[ispp][isys])[0][b][0] * invAE;
 	  yErrLo[ispp][isys][b-1] = (*rsig_relerr[ispp][isys])[b][1] * y_oneBinned[ispp][isys][b-1];
 	  yErrHi[ispp][isys][b-1] = (*rsig_relerr[ispp][isys])[b][2] * y_oneBinned[ispp][isys][b-1];
@@ -205,8 +207,8 @@ void Draw_metafitSyst(bool firstStep=true){
       CMStag.DrawLatex(0.19,0.80,"#font[52]{Preliminary}");
 
       c1->SetLeftMargin(0.15);
-      c1->SaveAs("figs/correctedYields_metafitSyst"+(TString)(firstStep?"_1stStep":"_2ndStep")+(TString)((ispp==1)?"_pp":((ispp==0)?"_PbPb":""))+".pdf");
-      c1->SaveAs("figs/correctedYields_metafitSyst"+(TString)(firstStep?"_1stStep":"_2ndStep")+(TString)((ispp==1)?"_pp":((ispp==0)?"_PbPb":""))+".png");
+      c1->SaveAs("figs/correctedYields_metafitSyst"+(TString)(secondStep?"_2ndStep":"")+(TString)((ispp==1)?"_pp":((ispp==0)?"_PbPb":""))+".pdf");
+      c1->SaveAs("figs/correctedYields_metafitSyst"+(TString)(secondStep?"_2ndStep":"")+(TString)((ispp==1)?"_pp":((ispp==0)?"_PbPb":""))+".png");
     }
 
     //******************************************************
@@ -234,7 +236,7 @@ void Draw_metafitSyst(bool firstStep=true){
 	    y_systErrHi[ispp][b] += pow(y_ratio[ispp][isys][b] - 1 ,2);
 	  }
 	  else if(RMSblock[isys+1]>iblock || RMSblock[isys+1]==0){
-	    y_systErrLo[ispp][b] += pow(max(fabs(y_systErrLo_maxDev[ispp][b][iblock]),y_systErrHi_maxDev[ispp][b][iblock]) ,2); //symmetric systematic error here
+	    y_systErrLo[ispp][b] += pow(max(fabs(y_systErrLo_maxDev[ispp][b][iblock]),y_systErrHi_maxDev[ispp][b][iblock]) ,2);
 	    y_systErrHi[ispp][b] += pow(max(fabs(y_systErrLo_maxDev[ispp][b][iblock]),y_systErrHi_maxDev[ispp][b][iblock]) ,2);
 	  }
 	  nVarUsed += 1;
@@ -284,8 +286,8 @@ void Draw_metafitSyst(bool firstStep=true){
       }
     }
 
-    TFile * outf = new TFile("corrected_yields.root","UPDATE");
-    if(ispp<2) outf->WriteObject(&y_nom[ispp],"FinalCorrectedYield"+(TString)(firstStep?"_1stStep":"_2ndStep")+(TString)((ispp==1)?"_pp":"_PbPb"));
+    TFile * outf = new TFile("corrected_yields"+(TString)(secondStep?"_2ndStep":"")+".root","UPDATE");
+    if(ispp<2) outf->WriteObject(&y_nom[ispp],"FinalCorrectedYield"+(TString)((ispp==1)?"_pp":"_PbPb"));
     outf->WriteObject(&y_systErrLo[ispp],(TString)((ispp<2)?"CorrectedYields":"RAA")+"_MetafitRelSystErrorLo_"+(TString)((ispp==1)?"pp":((ispp==0)?"PbPb":"")));
     outf->WriteObject(&y_systErrHi[ispp],(TString)((ispp<2)?"CorrectedYields":"RAA")+"_MetafitRelSystErrorHi_"+(TString)((ispp==1)?"pp":((ispp==0)?"PbPb":"")));
     outf->WriteObject(&y_systErrLo_maxDev[ispp],(TString)((ispp<2)?"CorrectedYields":"RAA")+"_MetafitRelSystErrorLoMaxDeviation"+(TString)((ispp==1)?"pp":((ispp==0)?"PbPb":"")));
@@ -376,7 +378,7 @@ void Draw_metafitSyst(bool firstStep=true){
     else if(isys==3) systname.SetTextSize(0.05);
     else systname.SetTextSize(0.054);
     float correctWeird = 0;
-    if(isys==3 || isys==6 || isys==7) correctWeird = 0.035;
+    //if(isys==3 || isys==6 || isys==7) correctWeird = 0.035;
     systname.DrawLatex(0.98+correctWeird,y,"#color["+(TString)to_string((int)col)+"]{"+systPrettyName[isys]+"}");
   }
 
@@ -392,7 +394,7 @@ void Draw_metafitSyst(bool firstStep=true){
     }
   }
 
-  c2->SaveAs("figs/correctedYields_and_RAA_metafitSyst_ratioToNominal.pdf");
-  c2->SaveAs("figs/correctedYields_and_RAA_metafitSyst_ratioToNominal.png");
+  c2->SaveAs("figs/correctedYields_and_RAA_metafitSyst_ratioToNominal"+(TString)(secondStep?"_2ndStep":"")+".pdf");
+  c2->SaveAs("figs/correctedYields_and_RAA_metafitSyst_ratioToNominal"+(TString)(secondStep?"_2ndStep":"")+".png");
 
 }

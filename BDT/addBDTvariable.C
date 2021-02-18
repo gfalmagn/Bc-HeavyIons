@@ -23,7 +23,7 @@
 #include "../helpers/Definitions.h"
 #include "../helpers/Cuts.h"
 
-void addBDTvariable(bool ispp=true, bool withTM=false){
+void addBDTvariable(bool ispp=true, bool secondStep=false, bool withTM=false){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -79,7 +79,7 @@ void addBDTvariable(bool ispp=true, bool withTM=false){
   float BDTrarity[ntrees];
 
   //Which BDT is used, and what fitting strategy
-  TString weightFile = "BDT"+(TString)(withTM?"finer":"finerShallow")+(TString)(ispp?"":"_PbPb")+"_withJpsiMC"+(TString)(useVarCorrWMass?"":"_dropVarCorrWMass")+(TString)(withTM?"_withTM":""); //BDTfinerShallow
+  TString weightFile = "BDT"+(TString)(withTM?"finer":"finerShallow")+(TString)(ispp?"":"_PbPb")+"_withJpsiMC"+(TString)(useVarCorrWMass?"":"_dropVarCorrWMass")+(TString)(withTM?"_withTM":"")+(TString)(secondStep?"_2ndStep":""); //BDTfinerShallow
   TString treeName[] = {"bkgWRONGSIGN","bkgBCMASS","bkgTRUEJPSI","sigRegion","signal_MC","bToJpsi_MC","PromptJpsi_MC","dimuonTrk","flipJpsi","flipJpsibMC"};
   TString prettyName[] = {"WRONGSIGN","J/Psi sidebands","High mass control","signal region","MC signal expectation",
 			  "MC NonPromptJpsi","MC PromptJpsi","dimuon+track (misID)","flipped J/Psi","flipped J/Psi nonprompt MC"};
@@ -100,7 +100,7 @@ void addBDTvariable(bool ispp=true, bool withTM=false){
   for(int iT=0; iT<(int)ntrees; iT++){
     std::cout << "--- Processing: " << T[iT]->GetEntries() << " events of tree "<< treeName[iT] << std::endl;
 
-    b_BDT.push_back( T[iT]->Branch("BDT",&BDT[iT],"BDT/F") );
+    b_BDT.push_back( T[iT]->Branch(secondStep?"BDT2":"BDT",&BDT[iT],secondStep?"BDT2/F":"BDT/F") );
     b_BDTprob.push_back( T[iT]->Branch("BDTprob",&BDTprob[iT],"BDTprob/F") );
     b_BDTrarity.push_back( T[iT]->Branch("BDTrarity",&BDTrarity[iT],"BDTrarity/F") );
 		     
@@ -253,8 +253,10 @@ void addBDTvariable(bool ispp=true, bool withTM=false){
 
       //      cout<<BDT[iT]<<endl;
       b_BDT[iT]->Fill();
-      b_BDTprob[iT]->Fill();
-      b_BDTrarity[iT]->Fill();
+      if(!secondStep){
+	b_BDTprob[iT]->Fill();
+	b_BDTrarity[iT]->Fill();
+      }
     }
     //END event loop
 

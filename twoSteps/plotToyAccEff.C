@@ -18,25 +18,31 @@
 #include "../helpers/Cuts.h"
 #include "../helpers/Tools.h"
 
-void plotToyAccEff(bool ispp=true){
+void plotToyAccEff(bool ispp=true, bool secondStep=true){
 
   //Grab acc and eff for all toys
   vector<vector<vector<float> > > *acc_biased; //(2, vector<vector<float> >(_NanaBins+1, vector<float>(_biasNmeth*(_biasNtoys+1), 0) ))
   TFile *facc = new TFile("../acceptance/acceptanceMap.root","READ");
-  facc->GetObject("acceptance_oneBinned_biased", acc_biased); 
+  facc->GetObject("acceptance_oneBinned_biased"+(TString)(secondStep?"_2ndStep":""), acc_biased); 
 
   //eff
   vector<vector<float> > *eff_biased;
   TFile *feff = new TFile("../efficiency/AcceptanceEfficiencyMap.root","READ");
-  feff->GetObject("efficiency_oneBinned_biased"+(TString)(ispp?"_pp":"_PbPb"), eff_biased); 
+  feff->GetObject("efficiency_oneBinned_biased"+(TString)(ispp?"_pp":"_PbPb")+(TString)(secondStep?"_2ndStep":""), eff_biased); 
   //names of "fit" methods of pT distributions
   
 
   //Grab nominal acc and eff, without second-step pT biasing of MC
-  vector<float> *acc_oneBinned;
+  vector<vector<float> > *acc_oneBinned;
   facc->GetObject("acceptance_oneBinned", acc_oneBinned);
   vector<vector<float> > *eff_oneBinned;
   feff->GetObject("efficiency_oneBinned"+(TString)(ispp?"_pp":"_PbPb"), eff_oneBinned);
+  vector<vector<float> > *acc_oneBinned_2ndStep;
+  vector<vector<float> > *eff_oneBinned_2ndStep;
+  if(secondStep){
+    facc->GetObject("acceptance_oneBinned"+(TString)(secondStep?"_2ndStep":""), acc_oneBinned_2ndStep);
+    feff->GetObject("efficiency_oneBinned"+(TString)(ispp?"_pp":"_PbPb")+(TString)(secondStep?"_2ndStep":""), eff_oneBinned_2ndStep);
+  }
 
   //histograms of acc and eff filled with toys
   vector<vector<TH1F*> > accI_toys(_biasNmeth);
@@ -52,22 +58,25 @@ void plotToyAccEff(bool ispp=true){
   for(int b=1;b<=_NanaBins;b++){
     
     //histograms definition
-    float accI_unbiased = 1/(*acc_oneBinned)[b];
+    float accI_unbiased = 1/(*acc_oneBinned)[1-(int)ispp][b];
     float effI_unbiased = 1/(*eff_oneBinned)[b][0];
     float acceffI_unbiased = accI_unbiased*effI_unbiased;
+    float accI_1stStep = secondStep?(1/(*acc_oneBinned_2ndStep)[1-(int)ispp][b]):1;
+    float effI_1stStep = secondStep?(1/(*eff_oneBinned_2ndStep)[b][0]):1;
+    float acceffI_1stStep = accI_1stStep*effI_1stStep;
     float maxacc = MaxVec((*acc_biased)[col][b], 1/accI_unbiased, ispp?1e5:(_biasNmeth+2*_biasNtoys));//exclude outliers (especially 4) from third method
-    float minacc = MinVec((*acc_biased)[col][b], 1/accI_unbiased);
+    float minacc = MinVec((*acc_biased)[col][b], 1/accI_unbiased, ispp?(_biasNmeth+1*_biasNtoys):1e5);
     float maxeff = MaxVec((*eff_biased)[b], 1/effI_unbiased, ispp?1e5:(_biasNmeth+2*_biasNtoys));
-    float mineff = MinVec((*eff_biased)[b], 1/effI_unbiased);
+    float mineff = MinVec((*eff_biased)[b], 1/effI_unbiased, ispp?(_biasNmeth+1*_biasNtoys):1e5);
     float maxacceff = maxacc*maxeff;
     float minacceff = minacc*mineff;
     for(int m=0;m<_biasNmeth;m++) acceffI_biased[b-1].push_back(1/((*acc_biased)[col][b][m] * (*eff_biased)[b][m]));
 
     for(int m=0;m<_biasNmeth;m++){
 
-      accI_toys[m].push_back(new TH1F("acc_toys"+(TString)(ispp?"_pp":"_PbPb")+"_bin"+(TString)to_string(b)+"_meth"+(TString)to_string(m), "acceptance toys "+(TString)(ispp?"pp":"PbPb")+" bin"+(TString)to_string(b)+";1/acceptance;n_{toys}", 23, 1/maxacc-0.05*(1/minacc - 1/maxacc) , 1/minacc+0.05*(1/minacc - 1/maxacc)));
-      effI_toys[m].push_back(new TH1F("eff_toys"+(TString)(ispp?"_pp":"_PbPb")+"_bin"+(TString)to_string(b)+"_meth"+(TString)to_string(m), "efficiency toys "+(TString)(ispp?"pp":"PbPb")+" bin"+(TString)to_string(b)+";1/efficiency;n_{toys}", 23, 1/maxeff-0.05*(1/mineff - 1/maxeff) , 1/mineff+0.05*(1/mineff - 1/maxeff)));
-      acceffI_toys[m].push_back(new TH1F("acceff_toys"+(TString)(ispp?"_pp":"_PbPb")+"_bin"+(TString)to_string(b)+"_meth"+(TString)to_string(m), "acc #times eff toys "+(TString)(ispp?"pp":"PbPb")+" bin"+(TString)to_string(b)+";1/(acc #times eff) ;n_{toys}", 23, 1/maxacceff-0.05*(1/minacceff - 1/maxacceff) , 1/minacceff+0.05*(1/minacceff - 1/maxacceff)));
+      accI_toys[m].push_back(new TH1F("acc_toys"+(TString)(ispp?"_pp":"_PbPb")+"_bin"+(TString)to_string(b)+"_meth"+(TString)to_string(m), "acceptance toys "+(TString)(ispp?"pp":"PbPb")+" bin"+(TString)to_string(b)+";1/acceptance;n_{toys}", 23, 1/maxacc-0.05*(1/minacc - 1/maxacc) , 1/minacc+0.1*(1/minacc - 1/maxacc)));
+      effI_toys[m].push_back(new TH1F("eff_toys"+(TString)(ispp?"_pp":"_PbPb")+"_bin"+(TString)to_string(b)+"_meth"+(TString)to_string(m), "efficiency toys "+(TString)(ispp?"pp":"PbPb")+" bin"+(TString)to_string(b)+";1/efficiency;n_{toys}", 23, 1/maxeff-0.05*(1/mineff - 1/maxeff) , 1/mineff+0.1*(1/mineff - 1/maxeff)));
+      acceffI_toys[m].push_back(new TH1F("acceff_toys"+(TString)(ispp?"_pp":"_PbPb")+"_bin"+(TString)to_string(b)+"_meth"+(TString)to_string(m), "acc #times eff toys "+(TString)(ispp?"pp":"PbPb")+" bin"+(TString)to_string(b)+";1/(acc #times eff) ;n_{toys}", 23, 1/maxacceff-0.05*(1/minacceff - 1/maxacceff) , 1/minacceff+0.1*(1/minacceff - 1/maxacceff)));
 
       //Run over all toys
       for(int t=0;t<_biasNtoys;t++){
@@ -85,10 +94,18 @@ void plotToyAccEff(bool ispp=true){
     unbiased->SetLineColor(kBlack);
     unbiased->SetLineWidth(3);
     unbiased->SetLineStyle(7);
+    TLine *corr1stStep = new TLine();
+    corr1stStep->SetLineColor(kMagenta+3);
+    corr1stStep->SetLineWidth(3);
+    corr1stStep->SetLineStyle(3);
     TH1F *dum = new TH1F("line_unbiased_bin"+(TString)to_string(b),"line_unbiased",10,0,1);
     dum->SetLineColor(kBlack);
     dum->SetLineWidth(3);
     dum->SetLineStyle(7);
+    TH1F *dum2 = new TH1F("line_1stStep_bin"+(TString)to_string(b),"line_1stStep",10,0,1);
+    dum2->SetLineColor(kMagenta+3);
+    dum2->SetLineWidth(3);
+    dum2->SetLineStyle(3);
 
     vector<Color_t> cols = {kRed,kBlue,kGreen+2,kMagenta,kOrange};
     vector<TLine> biasedNom(_biasNmeth, TLine());
@@ -119,7 +136,9 @@ void plotToyAccEff(bool ispp=true){
       biasedNom[m].DrawLine(1/(*acc_biased)[col][b][m],0, 1/(*acc_biased)[col][b][m], 0.4*accI_toys[0][b-1]->GetMaximum()); //positioned after SetRangeUser
     }
     unbiased->DrawLine(accI_unbiased,0, accI_unbiased, 0.4*accI_toys[0][b-1]->GetMaximum());
+    corr1stStep->DrawLine(accI_1stStep,0, accI_1stStep, 0.4*accI_toys[0][b-1]->GetMaximum());
     leg->AddEntry(dum, "unbiased MC");
+    leg->AddEntry(dum2, "1^{st}-step corrected");
 
     c1->cd(2)->SetLeftMargin(0.09);
     c1->cd(2)->SetRightMargin(0.02);
@@ -132,6 +151,7 @@ void plotToyAccEff(bool ispp=true){
       biasedNom[m].DrawLine(1/(*eff_biased)[b][m],0, 1/(*eff_biased)[b][m], 0.4*effI_toys[0][b-1]->GetMaximum());
     }
     unbiased->DrawLine(effI_unbiased,0, effI_unbiased, 0.4*effI_toys[0][b-1]->GetMaximum());
+    corr1stStep->DrawLine(effI_1stStep,0, effI_1stStep, 0.4*effI_toys[0][b-1]->GetMaximum());
 
     c1->cd(3)->SetLeftMargin(0.09);
     c1->cd(3)->SetRightMargin(0.02);
@@ -144,9 +164,10 @@ void plotToyAccEff(bool ispp=true){
       biasedNom[m].DrawLine(acceffI_biased[b-1][m],0, acceffI_biased[b-1][m], 0.4*acceffI_toys[0][b-1]->GetMaximum());
     }
     unbiased->DrawLine(acceffI_unbiased,0, acceffI_unbiased, 0.4*acceffI_toys[0][b-1]->GetMaximum());
+    corr1stStep->DrawLine(acceffI_1stStep,0, acceffI_1stStep, 0.4*acceffI_toys[0][b-1]->GetMaximum());
     leg->Draw("same");
 
-    c1->SaveAs("figs/AcceptanceEfficiencyToys_"+(TString)(ispp?"pp":"PbPb")+"_bin"+(TString)to_string(b)+".pdf");
+    c1->SaveAs("figs/AcceptanceEfficiencyToys_"+(TString)(ispp?"pp":"PbPb")+(TString)(secondStep?"_2ndStep":"")+"_bin"+(TString)to_string(b)+".pdf");
 
     TCanvas *c3 = new TCanvas("c3","c3",1500,1500);
     c3->SetLeftMargin(0.09);
@@ -156,9 +177,10 @@ void plotToyAccEff(bool ispp=true){
       biasedNom[m].DrawLine(acceffI_biased[b-1][m],0, acceffI_biased[b-1][m], 0.4*acceffI_toys[0][b-1]->GetMaximum());
     }
     unbiased->DrawLine(acceffI_unbiased,0, acceffI_unbiased, 0.4*acceffI_toys[0][b-1]->GetMaximum());
+    corr1stStep->DrawLine(acceffI_1stStep,0, acceffI_1stStep, 0.4*acceffI_toys[0][b-1]->GetMaximum());
     leg->Draw("same");
 
-    c3->SaveAs("figs/AcceptanceEfficiencyToys_"+(TString)(ispp?"pp":"PbPb")+"_bin"+(TString)to_string(b)+"_onlyAccEffProduct.pdf");
+    c3->SaveAs("figs/AcceptanceEfficiencyToys_"+(TString)(ispp?"pp":"PbPb")+(TString)(secondStep?"_2ndStep":"")+"_bin"+(TString)to_string(b)+"_onlyAccEffProduct.pdf");
 
     //Get mean of the three possible nominal values, and low and high RMS from this mean
     //mean
@@ -184,6 +206,7 @@ void plotToyAccEff(bool ispp=true){
 
     //Write output
     cout<<(TString)(ispp?"pp ":"PbPb ")<<"bin "<<b<<" unbiased one-binned AccEffInverse = "<<acceffI_unbiased<<endl;
+    cout<<(TString)(ispp?"pp ":"PbPb ")<<"bin "<<b<<" 1st-step-corrected one-binned AccEffInverse = "<<acceffI_1stStep<<endl;
     for(int m=0;m<_biasNmeth;m++)
       cout<<(TString)(ispp?"pp ":"PbPb ")<<"bin "<<b<<" mean, lo rms/mean, up rms/mean, relative_difference_with_unbiased of AccEffInverse for toys of biasing method "<<_biasMethName[m]<<" = "<<meanAndRMS[m][0]<<" "<<meanAndRMS[m][2]/meanAndRMS[m][0]<<" "<<meanAndRMS[m][3]/meanAndRMS[m][0]<<" "<<(meanAndRMS[m][0] - acceffI_unbiased)/acceffI_unbiased <<endl;
     cout<<"Mean of the three nominals (final nominal), max rel Up deviation, max rel Lo deviation = "<<meanAndRMS[_biasNmeth][0]<<" "<<DevToMeanHi/meanAndRMS[_biasNmeth][0]<<" "<<DevToMeanLo/meanAndRMS[_biasNmeth][0]<<endl;
@@ -227,7 +250,7 @@ void plotToyAccEff(bool ispp=true){
 
   //Record the final correction 
   TFile *fout = new TFile("AccEffFrom2ndStepToys.root","UPDATE");  
-  fout->WriteObject(&nomiAndErr,"InvAccEffFrom2ndStep_withSystErr_"+(TString)(ispp?"pp ":"PbPb "));
-  fout->WriteObject(&corrfactFinal,"InvAccEffFrom2ndStep_LinearisedCorrelationFactor_"+(TString)(ispp?"pp ":"PbPb "));
+  fout->WriteObject(&nomiAndErr,"InvAccEffFromCorrMC_withSystErr_"+(TString)(ispp?"pp":"PbPb")+(TString)(secondStep?"_2ndStep":""));
+  fout->WriteObject(&corrfactFinal,"InvAccEffFromCorrMC_LinearisedCorrelationFactor_"+(TString)(ispp?"pp":"PbPb")+(TString)(secondStep?"_2ndStep":""));
 
 }
