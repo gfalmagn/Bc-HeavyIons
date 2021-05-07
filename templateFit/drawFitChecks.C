@@ -12,9 +12,8 @@
 #include "TGaxis.h"
 #include "TCanvas.h"
 #include "TPad.h"
+#include "../helpers/hub.cpp"
 #include "../helpers/Cuts_BDT.h"
-#include "../helpers/Cuts.h"
-#include "../helpers/Tools.h"
 using namespace ROOT;
 
 //!!! THIS MACRO NEEDS ROOT6.14+, FOR RDATAFRAME, AND NO CMSSW ENVIRONMENT !
@@ -22,12 +21,25 @@ void drawChecks(bool ispp, bool secondStep, float GOFdataval, string seed);
 
 void drawFitChecks(bool secondStep=true){
   cout<<"\n______________ PP _______________________\n"<<endl;
-  drawChecks(true,secondStep,110.1,"2235");
+  drawChecks(true,secondStep,100.9,"2235");
   cout<<"\n______________ PBPB _______________________\n"<<endl;
-  drawChecks(false,secondStep,37.8,"2235");
+  drawChecks(false,secondStep,47.9,"2235");
 }
 
 void drawChecks(bool ispp=true, bool secondStep=true, float GOFdataval=100, string seed="2235"){
+
+  Hub H = Hub(secondStep,secondStep);
+  // H.SetFit(true);
+  H.SetMetafit();
+  // H.SetAccEffFinal(true);
+  // H.SetAccEff();
+  // H.SetTnP();
+  // H.SetBcTau();
+  // H.SetLumi();
+  // H.SetxLW();
+  // H.SetpTbias();
+  // H.SetFullErr();
+  // H.ScaleByLumi();
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -86,12 +98,22 @@ void drawChecks(bool ispp=true, bool secondStep=true, float GOFdataval=100, stri
 
   //NLL scan
   auto d2_toys = d_toys.Define("chi2", "2*deltaNLL").Define("scaledr1",(const char*)TString::Format("r1/%.4f",xBF[0])).Define("scaledr2",(const char*)TString::Format("r2/%.4f",yBF[0]));
-  auto NLL = d2_toys.Filter("chi2<25").Profile2D({"nll","",30,static_cast<double>(ispp?0.6:0.)/xBF[0],static_cast<double>(ispp?1.7:3.)/xBF[0],
-	                                                   30,static_cast<double>(ispp?0.75:0.)/yBF[0],static_cast<double>(ispp?1.35:2.5)/yBF[0]},
+  auto NLL = d2_toys.Filter("chi2<25").Profile2D({"nll","",30,static_cast<double>(ispp?0.75:0.)/xBF[0],static_cast<double>(ispp?1.65:3.)/xBF[0],
+	                                                   30,static_cast<double>(ispp?0.6:0.15)/yBF[0],static_cast<double>(ispp?1.5:2.3)/yBF[0]},
                                                   "scaledr1","scaledr2","chi2");
-  auto NLLv2 = d2_toys.Profile2D(                {"nll","",30,static_cast<double>(ispp?0.6:0.)/xBF[0],static_cast<double>(ispp?1.7:3.)/xBF[0],
-	                                                   30,static_cast<double>(ispp?0.75:0.)/yBF[0],static_cast<double>(ispp?1.35:2.5)/yBF[0]},
+  auto NLLv2 = d2_toys.Profile2D(                {"nll","",30,static_cast<double>(ispp?0.75:0.)/xBF[0],static_cast<double>(ispp?1.65:3.)/xBF[0],
+	                                                   30,static_cast<double>(ispp?0.6:0.15)/yBF[0],static_cast<double>(ispp?1.5:2.3)/yBF[0]},
                                                   "scaledr1","scaledr2","chi2");
+
+  //Extract the contribution of metafit error to the significance
+  vector<double> metafitRErrLo = {H.metafit.PbPb_pt.RelErrLo[1], H.metafit.PbPb_pt.RelErrLo[2]};
+  double metafitCorr = H.metafit.PbPb_pt.Corr[0];
+  double metafitNLL = (1/(1-pow(metafitCorr,2))) * ( 1/pow(metafitRErrLo[0],2) + 1/pow(metafitRErrLo[1],2) - 2*metafitCorr/(metafitRErrLo[0]*metafitRErrLo[1]) );
+  if(!ispp){
+    cout<<"metafit relative uncertainty (low) for PbPb, pT bin 1,2 = "<<metafitRErrLo[0]<<" "<<metafitRErrLo[1]<<endl;
+    cout<<"        bin-to-bin correlation = "<<metafitCorr<<endl;
+    cout<<"metafit error significance ; contribution to the sqrt(2*NLL) = "<<sqrt(metafitNLL)<<endl;
+  }
 
   //Evaluate significance by extrapolating NLL to (r1=0,r2=0)
   double x1 = (NLLv2->GetXaxis())->GetBinCenter(1); double y1 = (NLLv2->GetYaxis())->GetBinCenter(1); double z1 = NLLv2->GetBinContent(1,1);
@@ -103,6 +125,7 @@ void drawChecks(bool ispp=true, bool secondStep=true, float GOFdataval=100, stri
   double nllAt0 = (nllAt0v1+nllAt0v2)/2;
   cout<<"nll at (r1=0,r2=0) v1,v2,average = "<<nllAt0v1<<" "<<nllAt0v2<<" "<<nllAt0<<endl;
   cout<<"significance of non-zero signal (assuming gaussian likelihood) = "<<sqrt(nllAt0)<<endl;
+  if(!ispp) cout<<"significance of non-zero signal (assuming gaussian likelihood) including metafit uncertainty from pT dependence = "<<1/sqrt(1/nllAt0+1/metafitNLL)<<endl;
 
   //Draw NLL scan
   TCanvas *c2 = new TCanvas("c2","c2",1500,1500);
@@ -111,6 +134,7 @@ void drawChecks(bool ispp=true, bool secondStep=true, float GOFdataval=100, stri
 
   NLL->GetXaxis()->SetTitle("r1/r1_{best}");
   NLL->GetYaxis()->SetTitle("r2/r2_{best}");
+  if(!ispp) NLL->GetYaxis()->SetRangeUser(0,2.3);
   NLL->GetZaxis()->SetTitle("2 #times #DeltaNLL");
   NLL->SetMaximum(25);
   NLL->SetContour(25);
@@ -144,7 +168,7 @@ void drawChecks(bool ispp=true, bool secondStep=true, float GOFdataval=100, stri
   auto filename = "/home/llr/cms/falmagne/Bc/templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/higgsCombine_"+s_ispp+".GoodnessOfFit.mH120."+seed+".root";  
   cout<<"GOODNESS OF FIT : read file "<<filename<<endl;
   ROOT::RDataFrame d_gfit("limit", filename); //filename cannot handle TString pfffrr....
-  auto testStat = d_gfit.Histo1D({"","",40,static_cast<double>(ispp?70:24),static_cast<double>(ispp?168:89)},"limit");
+  auto testStat = d_gfit.Histo1D({"","",40,static_cast<double>(ispp?40:24),static_cast<double>(ispp?150:89)},"limit");
 
   testStat->SetLineWidth(3);
   testStat->GetXaxis()->SetTitle("test statistic");
@@ -187,10 +211,10 @@ void drawChecks(bool ispp=true, bool secondStep=true, float GOFdataval=100, stri
     .Histo2D({"",";r1/r1_{true};r2/r2_{true};",25,static_cast<double>(ispp?0.7:0.),static_cast<double>(ispp?1.3:2.5),25,static_cast<double>(ispp?0.8:0.5),static_cast<double>(ispp?1.2:1.5)},"scaledr1","scaledr2");
   auto r1err = d_sigtoys
     .Define("scaledr1Err","r1Err/1.")
-    .Histo1D({"",";(r1 uncertainty)/r1_{true};n toys",30,static_cast<double>(ispp?0.08:0.30),static_cast<double>(ispp?0.105:0.55)},"scaledr1Err");
+    .Histo1D({"",";(r1 uncertainty)/r1_{true};n toys",30,static_cast<double>(ispp?0.092:0.26),static_cast<double>(ispp?0.12:0.55)},"scaledr1Err");
   auto r2err = d_sigtoys
     .Define("scaledr2Err","r2Err/1.")
-    .Histo1D({"",";(r2 uncertainty)/r2_{true};n toys",30,static_cast<double>(ispp?0.04:0.13),static_cast<double>(ispp?0.055:0.23)},"scaledr2Err");
+    .Histo1D({"",";(r2 uncertainty)/r2_{true};n toys",30,static_cast<double>(ispp?0.046:0.14),static_cast<double>(ispp?0.06:0.23)},"scaledr2Err");
 				 
   TCanvas *c3 = new TCanvas("c3","c3",4500,1500);
   c3->Divide(3,1);

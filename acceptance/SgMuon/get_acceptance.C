@@ -10,6 +10,7 @@
 #include "TMath.h"
 #include "TFormula.h"
 #include "TStyle.h"
+#include "../../PbPb18/Utilities/EVENTUTILS.h"
 
 typedef std::map<std::string, std::string> StrToStr;
 
@@ -23,18 +24,23 @@ double GetZVal(TLorentzVector* mu, TH2D *h){
   return h->GetBinContent(b);
 }
 
-bool MuonKinAcceptance(float pt, float eta){
-  if (fabs(eta)>2.4) {return false;}
-  else if (fabs(eta)>2.1) {return (pt>1.8);}
-  else if (fabs(eta)<1.2) {return (pt>3.5);}
-  else {return (pt>(5.77-1.89*fabs(eta)));}
+bool looseAcc(float pt, float eta, bool TM = false){
+  if(TM) return (fabs(eta) < 2.4 &&
+                 ((fabs(eta) < 1.1 && pt >= 3.3) ||
+                  (1.1 <= fabs(eta) && fabs(eta) < 1.3 && pt >= 13.2-9.*fabs(eta) ) ||
+                  (1.3 <= fabs(eta) && pt >= 0.8 && pt >= 3.02-1.17*fabs(eta) )));
+  else return (fabs(eta) < 2.4 &&
+               ((fabs(eta) < 0.3 && pt >= 3.4) ||
+                (fabs(eta) > 0.3 && fabs(eta) < 1.1 && pt >= 3.3) ||
+                (fabs(eta) > 1.1 && fabs(eta) < 1.55 && pt >= 2.1 && pt >= 7.7-4.0*fabs(eta) ) ||
+                (fabs(eta) > 1.55 && pt >= 1.2 && pt >= 4.25-1.39*fabs(eta)) ));
 }
 
-bool MuonKinAcceptance2(float pt, float eta){
-  if (fabs(eta)>2.4) {return false;}
-  else if (fabs(eta)>2.1) {return (pt>1.5);}
-  else if (fabs(eta)<1.2) {return (pt>3.5);}
-  else {return (pt>(5.47-1.89*fabs(eta)));}
+bool tightAcc(float pt, float eta){
+  return (fabs(eta) < 2.4 &&
+	  ((fabs(eta) < 1.2 && pt >= 3.5) ||
+	   (1.2 <= fabs(eta) && fabs(eta) < 2.1 && pt >= 5.47-1.89*fabs(eta)) ||
+	   (2.1 <= fabs(eta) && pt >= 1.5)));
 }
 
 bool IsAcceptedMuon(TLorentzVector* mu, int ST, int SelType){
@@ -77,11 +83,12 @@ bool IsAcceptedMuon(TLorentzVector* mu, int ST, int SelType){
 
 void get_acceptance(bool ispp = true){
 
-  bool withTrig = true;
+  bool withTrig = false;
   bool L1trig = false;
   bool doTnP = withTrig;
   bool doJpsiEff = false;
   bool doJpsiAcc = false;
+  bool addNcollW = true && (!ispp);
 
   auto h_test = new TH1D();
   h_test->SetDefaultSumw2(true);
@@ -98,6 +105,10 @@ void get_acceptance(bool ispp = true){
   float Gen_weight; 
   TBranch *b_Gen_weight = T->GetBranch("Gen_weight");
   b_Gen_weight->SetAddress(&Gen_weight);
+
+  int Centrality; 
+  TBranch *b_Centrality = ispp?NULL:T->GetBranch("Centrality");
+  if(!ispp) b_Centrality->SetAddress(&Centrality);
 
   Short_t genmu_size;
   TBranch *b_genmu_size = T->GetBranch("Gen_mu_size");
@@ -215,6 +226,14 @@ void get_acceptance(bool ispp = true){
   double ptlow = doTnP?0.03:0; double pthigh = doTnP?6.03:6;
   TH2D *h_genmu_EtaPt = new TH2D("genmuEtaPt","All generated #mu;|#eta|;p_{T} [GeV]",muetabins,0,2.6,muptbins,ptlow,pthigh);
   TH2D *h_recmu_EtaPt = new TH2D("recmuEtaPt","All reconstructed #mu;|#eta|;p_{T} [GeV]",muetabins,0,2.6,muptbins,ptlow,pthigh);
+  TH2D *h_genmu_CentPt = new TH2D("genmuCentPt","All generated #mu;Centrality;p_{T} [GeV]",withTrig?30:50,0,100,(int)(0.7*muptbins),0.8,7);
+  TH2D *h_recmu_CentPt = new TH2D("recmuCentPt","All reconstructed #mu;Centrality;p_{T} [GeV]",withTrig?30:50,0,100,(int)(0.7*muptbins),0.8,7);
+  TH2D *h_genmu_EtaPt020 = new TH2D("genmuEtaPt0-20","All generated #mu;|#eta|;p_{T} [GeV]",muetabins,0,2.6,muptbins,ptlow,pthigh);
+  TH2D *h_recmu_EtaPt020 = new TH2D("recmuEtaPt0-20","All reconstructed #mu;|#eta|;p_{T} [GeV]",muetabins,0,2.6,muptbins,ptlow,pthigh);
+  TH2D *h_genmu_EtaPt2050 = new TH2D("genmuEtaPt20-50","All generated #mu;|#eta|;p_{T} [GeV]",muetabins,0,2.6,muptbins,ptlow,pthigh);
+  TH2D *h_recmu_EtaPt2050 = new TH2D("recmuEtaPt20-50","All reconstructed #mu;|#eta|;p_{T} [GeV]",muetabins,0,2.6,muptbins,ptlow,pthigh);
+  TH2D *h_genmu_EtaPt50100 = new TH2D("genmuEtaPt50-100","All generated #mu;|#eta|;p_{T} [GeV]",muetabins,0,2.6,muptbins,ptlow,pthigh);
+  TH2D *h_recmu_EtaPt50100 = new TH2D("recmuEtaPt50-100","All reconstructed #mu;|#eta|;p_{T} [GeV]",muetabins,0,2.6,muptbins,ptlow,pthigh);
 
   int NQQ_recoAccepted =0;
   int NQQ_accepted =0;
@@ -232,6 +251,8 @@ void get_acceptance(bool ispp = true){
     Reco_mu_4mom->Clear();
     Gen_QQ_4mom->Clear();
     Gen_mu_4mom->Clear();
+
+    if(!ispp && addNcollW) b_Centrality->GetEntry(i);
     
     //***** Choose needed branches
     if(doTnP){
@@ -264,11 +285,14 @@ void get_acceptance(bool ispp = true){
     if(ispp) { Gen_weight = 1;
     }else{ b_Gen_weight->GetEntry(i);  }
 
+    float wei = Gen_weight;
+    if(addNcollW && !ispp) wei *= findNcoll(Centrality);
+
     //Only muons from a gen Jpsi
     if(doTnP || doJpsiEff){
       for (int genQQNb=0; genQQNb<genJpsi_size; genQQNb++){
     	TLorentzVector *genQQ = (TLorentzVector*) Gen_QQ_4mom->At(genQQNb);    
-    	//      h_genJpsi_YPt->Fill(fabs(genQQ->Rapidity()),genQQ->Pt(), Gen_weight);
+    	//      h_genJpsi_YPt->Fill(fabs(genQQ->Rapidity()),genQQ->Pt(), wei);
 
     	//      int recQQIdx = Gen_QQ_whichRec[genQQNb];
     	int recmumiIdx = Gen_mu_whichRec[Gen_QQ_mumi_idx[genQQNb]];
@@ -291,7 +315,8 @@ void get_acceptance(bool ispp = true){
     	    if(tagIdx==-1) continue;
     	    //      TLorentzVector *recmuTag = (TLorentzVector*) Reco_mu_4mom->At(tagIdx);
     	    if(1==1
-    	       && MuonKinAcceptance2(genmuTag->Pt(),genmuTag->Eta())
+    	       && looseAcc(genmuTag->Pt(),genmuTag->Eta())
+	       && (tightAcc(genmuTag->Pt(),genmuTag->Eta()) || !withTrig)
     	       // && ((recmu_SelType[tagIdx])&(int)pow(2,12))>0
     	       && Reco_mu_nPixWMea[tagIdx]>0
     	       && Reco_mu_nTrkWMea[tagIdx]>5
@@ -312,7 +337,15 @@ void get_acceptance(bool ispp = true){
 	
     	      //Fill Pt,Eta for gen muons
     	      TLorentzVector *genmuProbe = (TLorentzVector*) Gen_mu_4mom->At(probeGenIdx);
-    	      h_genmu_EtaPt->Fill(fabs(genmuProbe->Eta()),genmuProbe->Pt(), Gen_weight);
+    	      h_genmu_EtaPt->Fill(fabs(genmuProbe->Eta()),genmuProbe->Pt(), wei);
+	      if(!ispp){
+		if(looseAcc(genmuProbe->Pt(),genmuProbe->Eta())
+		   && (tightAcc(genmuProbe->Pt(),genmuProbe->Eta()) || !withTrig)){
+		  h_genmu_CentPt->Fill((float)Centrality/2,genmuProbe->Pt(), wei);}
+		if(Centrality<2*20) h_genmu_EtaPt020->Fill(fabs(genmuProbe->Eta()),genmuProbe->Pt(), wei); 
+		if(Centrality>2*20 && Centrality<2*50) h_genmu_EtaPt2050->Fill(fabs(genmuProbe->Eta()),genmuProbe->Pt(), wei);
+		if(Centrality>2*50 && Centrality<2*100) h_genmu_EtaPt50100->Fill(fabs(genmuProbe->Eta()),genmuProbe->Pt(), wei);
+	      }
     	      genmuNb_goodTag+=1;
 
     	      if(probeIdx==-1) continue;
@@ -332,7 +365,15 @@ void get_acceptance(bool ispp = true){
     		 //	      && (genmu->P()>5.5 || fabs(genmu->Eta())<1)
     		 ){
     		//TLorentzVector *recmuProbe = (TLorentzVector*) Reco_mu_4mom->At(probeIdx);
-    		h_recmu_EtaPt->Fill(fabs(genmuProbe->Eta()),genmuProbe->Pt(), Gen_weight);
+    		h_recmu_EtaPt->Fill(fabs(genmuProbe->Eta()),genmuProbe->Pt(), wei);
+		if(!ispp){
+		  if(looseAcc(genmuProbe->Pt(),genmuProbe->Eta())
+		     && (tightAcc(genmuProbe->Pt(),genmuProbe->Eta()) || !withTrig)){
+		    h_recmu_CentPt->Fill((float)Centrality/2,genmuProbe->Pt(), wei);}
+		  if(Centrality<2*20) h_recmu_EtaPt020->Fill(fabs(genmuProbe->Eta()),genmuProbe->Pt(), wei);
+		  if(Centrality>2*20 && Centrality<2*50) h_recmu_EtaPt2050->Fill(fabs(genmuProbe->Eta()),genmuProbe->Pt(), wei);
+		  if(Centrality>2*50 && Centrality<2*100) h_recmu_EtaPt50100->Fill(fabs(genmuProbe->Eta()),genmuProbe->Pt(), wei);
+		}
     		recmuNb_goodTag+=1;
     	      }
     	    }
@@ -345,9 +386,9 @@ void get_acceptance(bool ispp = true){
     	  TLorentzVector *genmupl = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mupl_idx[genQQNb]);
     	  TLorentzVector *genmumi = (TLorentzVector*) Gen_mu_4mom->At(Gen_QQ_mumi_idx[genQQNb]);
       
-    	  if(MuonKinAcceptance2(genmupl->Pt(),genmupl->Eta()) && MuonKinAcceptance2(genmumi->Pt(),genmumi->Eta())
+    	  if(looseAcc(genmupl->Pt(),genmupl->Eta()) && looseAcc(genmumi->Pt(),genmumi->Eta())
     	     ){
-    	    h_genJpsi_YPt->Fill(genQQ->Rapidity(),genQQ->Pt(), Gen_weight);
+    	    h_genJpsi_YPt->Fill(genQQ->Rapidity(),genQQ->Pt(), wei);
 
     	    if (recmuplIdx==-1 || recmumiIdx==-1) continue;
     	    if( //((recmu_SelType[recmuplIdx])&(int)pow(2,12))>0 &&
@@ -376,16 +417,16 @@ void get_acceptance(bool ispp = true){
     		   )
     		){
 
-    	      //      	h_genJpsi_Pt->Fill(genQQ->Pt(), Gen_weight);
-    	      h_recJpsi_YPt->Fill(genQQ->Rapidity(),genQQ->Pt(), Gen_weight);
+    	      //      	h_genJpsi_Pt->Fill(genQQ->Pt(), wei);
+    	      h_recJpsi_YPt->Fill(genQQ->Rapidity(),genQQ->Pt(), wei);
       
     	      // if(((Reco_mu_trig[recmuplIdx])&(int)trigbit)>0  && ((Reco_mu_trig[recmumiIdx])&(int)trigbit)>0){
-    	      //   h_recJpsi_Pt->Fill(genQQ->Pt(), Gen_weight);}
+    	      //   h_recJpsi_Pt->Fill(genQQ->Pt(), wei);}
 
-    	      // if(MuonKinAcceptance(genmupl->Pt(),genmupl->Eta()) && MuonKinAcceptance(genmumi->Pt(),genmumi->Eta())){
-    	      //   h_recJpsi_Pt->Fill(genQQ->Pt(), Gen_weight);}
-    	      // if(MuonKinAcceptance2(genmupl->Pt(),genmupl->Eta()) && MuonKinAcceptance2(genmumi->Pt(),genmumi->Eta())){
-    	      //   h_rec2Jpsi_Pt->Fill(genQQ->Pt(), Gen_weight);}
+    	      // if(tightAcc(genmupl->Pt(),genmupl->Eta()) && tightAcc(genmumi->Pt(),genmumi->Eta())){
+    	      //   h_recJpsi_Pt->Fill(genQQ->Pt(), wei);}
+    	      // if(looseAcc(genmupl->Pt(),genmupl->Eta()) && looseAcc(genmumi->Pt(),genmumi->Eta())){
+    	      //   h_rec2Jpsi_Pt->Fill(genQQ->Pt(), wei);}
 
     	    }
     	  }
@@ -436,14 +477,22 @@ void get_acceptance(bool ispp = true){
     if(!doTnP){ // without TnP method
       //***** efficiency of single muons
     
-      // double Gen_weight = 1;
+      // double wei = 1;
       for (int genmuNb=0; genmuNb<genmu_size; genmuNb++){
     	// cout<<genmu_size<<" genmu#"<<genmuNb<<" Gen_mu_whichRec[genmuNb] = "<<Gen_mu_whichRec[genmuNb]<<endl;
     	// cout<<Gen_mu_4mom<<endl;
     	// cout<<Reco_mu_4mom<<endl;
     	// cout<<((TLorentzVector*) Gen_mu_4mom->At(genmuNb))->Pt()<<endl;
     	TLorentzVector *genmu = (TLorentzVector*) Gen_mu_4mom->At(genmuNb);
-    	h_genmu_EtaPt->Fill(fabs(genmu->Eta()),genmu->Pt(), Gen_weight);
+    	h_genmu_EtaPt->Fill(fabs(genmu->Eta()),genmu->Pt(), wei);
+	if(!ispp){
+	  if(looseAcc(genmu->Pt(),genmu->Eta(), (MuTypeForEfficiency=="tracker") )
+	     && (tightAcc(genmu->Pt(),genmu->Eta()) || !withTrig)){
+	    h_genmu_CentPt->Fill((float)Centrality/2,genmu->Pt(), wei);}
+	  if(Centrality<2*20) h_genmu_EtaPt020->Fill(fabs(genmu->Eta()),genmu->Pt(), wei); 
+	  if(Centrality>2*20 && Centrality<2*50) h_genmu_EtaPt2050->Fill(fabs(genmu->Eta()),genmu->Pt(), wei);
+	  if(Centrality>2*50 && Centrality<2*100) h_genmu_EtaPt50100->Fill(fabs(genmu->Eta()),genmu->Pt(), wei);
+	}
     	int recmuNb = Gen_mu_whichRec[genmuNb];
 	
     	if(recmuNb>-1){
@@ -462,7 +511,15 @@ void get_acceptance(bool ispp = true){
     	       && Reco_mu_dz[recmuNb]<20
     	       //&& ((Reco_mu_trig[recmuNb])&(int)pow(2,16))>0 //2^15,16,17 = L1,L2,L3 step
     		){
-    	      h_recmu_EtaPt->Fill(fabs(genmu->Eta()),genmu->Pt(), Gen_weight);
+	      if(!ispp){
+		if(looseAcc(genmu->Pt(),genmu->Eta(), (MuTypeForEfficiency=="tracker") )
+		   && (tightAcc(genmu->Pt(),genmu->Eta()) || !withTrig)){
+		  h_recmu_CentPt->Fill((float)Centrality/2,genmu->Pt(), wei);}
+		if(Centrality<2*20) h_recmu_EtaPt020->Fill(fabs(genmu->Eta()),genmu->Pt(), wei);
+		if(Centrality>2*20 && Centrality<2*50) h_recmu_EtaPt2050->Fill(fabs(genmu->Eta()),genmu->Pt(), wei);
+		if(Centrality>2*50 && Centrality<2*100) h_recmu_EtaPt50100->Fill(fabs(genmu->Eta()),genmu->Pt(), wei);
+	      }
+    	      h_recmu_EtaPt->Fill(fabs(genmu->Eta()),genmu->Pt(), wei);
     	    }
     	  }
     	}
@@ -487,7 +544,7 @@ void get_acceptance(bool ispp = true){
        // 	       && Reco_mu_dz[recmuNb]<20
        // 	       //&& ((Reco_mu_trig[recmuNb])&(int)pow(2,16))>0 //2^15,16,17 = L1,L2,L3 step
        // 		){
-       // 	      h_recmu_EtaPt->Fill(fabs(genmu->Eta()),genmu->Pt(), Gen_weight);
+       // 	      h_recmu_EtaPt->Fill(fabs(genmu->Eta()),genmu->Pt(), wei);
        // 	    }
        // 	  }
        // 	}
@@ -563,7 +620,7 @@ void get_acceptance(bool ispp = true){
 	TLorentzVector *genmupl = (TLorentzVector*) Gen_QQ_mupl_4mom->At(genQQNb);
 	TLorentzVector *genmumi = (TLorentzVector*) Gen_QQ_mumi_4mom->At(genQQNb);
       
-	if(MuonKinAcceptance2(genmupl->Pt(),genmupl->Eta()) && MuonKinAcceptance2(genmumi->Pt(),genmumi->Eta())
+	if(looseAcc(genmupl->Pt(),genmupl->Eta()) && looseAcc(genmumi->Pt(),genmumi->Eta())
 	   ){
 	  h_genJpsi_YPt_acc->Fill(genQQ->Rapidity(),genQQ->Pt());
 	}
@@ -785,6 +842,63 @@ void get_acceptance(bool ispp = true){
     c4->SaveAs("SingleMuAcceptance_ALLMUONS_"+(TString)((MuTypeForEfficiency=="tracker")?"SoftMuId":"HybridSoftMuId")+(TString)((ispp)?"_pp":"_PbPb")+".png");
   }
 
+  if(!ispp){
+    TCanvas * c7 = new TCanvas("c7","muon efficiency",1600,1400);
+    c7->SetRightMargin(0.135);
+    TH2D *h_muAccEff_EtaPt020 = (TH2D*)h_recmu_EtaPt020->Clone("muAccEffEtaPt0-20");
+    h_muAccEff_EtaPt020->SetTitle("(Reco+"+(TString)((MuTypeForEfficiency=="tracker" || MuTypeForEfficiency=="nonglobal")?"Soft":"HybSoft")+"ID"+(TString)(withTrig?"+"+(TString)(L1trig?"L1 ":"")+"Trigger":"")+")/Gen muons"+(TString)((ispp)?" (pp)":" (PbPb, cent [0,20%])")+";Gen |#eta|;Gen p_{T} [GeV];efficiency");// ("Reconstructed/Generated for "+MuTypeForEfficiency+" muons;Gen |#eta|;Gen p_{T} [GeV]"+"").c_str() 
+    h_muAccEff_EtaPt020->GetZaxis()->SetTitleOffset(1.1);
+    h_muAccEff_EtaPt020->Divide(h_genmu_EtaPt020);
+    h_muAccEff_EtaPt020->GetZaxis()->SetRangeUser(0,1);
+    h_muAccEff_EtaPt020->Draw("COLZ");
+    if(doTnP){
+      c7->SaveAs("SingleMuAcceptance_"+(TString)(withTrig?(L1trig?"L1step":"L3step"):"HybridSoftMuId")+"_TagPassedL3Mu3"+(TString)((ispp)?"_pp":"_PbPbCentrality020")+".pdf");
+    } else{
+      c7->SaveAs("SingleMuAcceptance_ALLMUONS_"+(TString)((MuTypeForEfficiency=="tracker")?"SoftMuId":"HybridSoftMuId")+(TString)((ispp)?"_pp":"_PbPbCentrality020")+".pdf");
+    }
+
+    TCanvas * c9 = new TCanvas("c9","muon efficiency",1600,1400);
+    c9->SetRightMargin(0.135);
+    TH2D *h_muAccEff_EtaPt2050 = (TH2D*)h_recmu_EtaPt2050->Clone("muAccEffEtaPt20-50");
+    h_muAccEff_EtaPt2050->SetTitle("(Reco+"+(TString)((MuTypeForEfficiency=="tracker" || MuTypeForEfficiency=="nonglobal")?"Soft":"HybSoft")+"ID"+(TString)(withTrig?"+"+(TString)(L1trig?"L1 ":"")+"Trigger":"")+")/Gen muons"+(TString)((ispp)?" (pp)":" (PbPb, cent [20,50%])")+";Gen |#eta|;Gen p_{T} [GeV];efficiency");// ("Reconstructed/Generated for "+MuTypeForEfficiency+" muons;Gen |#eta|;Gen p_{T} [GeV]"+"").c_str() 
+    h_muAccEff_EtaPt2050->GetZaxis()->SetTitleOffset(1.1);
+    h_muAccEff_EtaPt2050->Divide(h_genmu_EtaPt2050);
+    h_muAccEff_EtaPt2050->GetZaxis()->SetRangeUser(0,1);
+    h_muAccEff_EtaPt2050->Draw("COLZ");
+    if(doTnP){
+      c9->SaveAs("SingleMuAcceptance_"+(TString)(withTrig?(L1trig?"L1step":"L3step"):"HybridSoftMuId")+"_TagPassedL3Mu3"+(TString)((ispp)?"_pp":"_PbPbCentrality2050")+".pdf");
+    } else{
+      c9->SaveAs("SingleMuAcceptance_ALLMUONS_"+(TString)((MuTypeForEfficiency=="tracker")?"SoftMuId":"HybridSoftMuId")+(TString)((ispp)?"_pp":"_PbPbCentrality2050")+".pdf");
+    }
+
+    TCanvas * c14 = new TCanvas("c14","muon efficiency",1600,1400);
+    c14->SetRightMargin(0.135);
+    TH2D *h_muAccEff_EtaPt50100 = (TH2D*)h_recmu_EtaPt50100->Clone("muAccEffEtaPt50-100");
+    h_muAccEff_EtaPt50100->SetTitle("(Reco+"+(TString)((MuTypeForEfficiency=="tracker" || MuTypeForEfficiency=="nonglobal")?"Soft":"HybSoft")+"ID"+(TString)(withTrig?"+"+(TString)(L1trig?"L1 ":"")+"Trigger":"")+")/Gen muons"+(TString)((ispp)?" (pp)":" (PbPb, cent [50,100%])")+";Gen |#eta|;Gen p_{T} [GeV];efficiency");// ("Reconstructed/Generated for "+MuTypeForEfficiency+" muons;Gen |#eta|;Gen p_{T} [GeV]"+"").c_str() 
+    h_muAccEff_EtaPt50100->GetZaxis()->SetTitleOffset(1.1);
+    h_muAccEff_EtaPt50100->Divide(h_genmu_EtaPt50100);
+    h_muAccEff_EtaPt50100->GetZaxis()->SetRangeUser(0,1);
+    h_muAccEff_EtaPt50100->Draw("COLZ");
+    if(doTnP){
+      c14->SaveAs("SingleMuAcceptance_"+(TString)(withTrig?(L1trig?"L1step":"L3step"):"HybridSoftMuId")+"_TagPassedL3Mu3"+(TString)((ispp)?"_pp":"_PbPbCentrality50100")+".pdf");
+    } else{
+      c14->SaveAs("SingleMuAcceptance_ALLMUONS_"+(TString)((MuTypeForEfficiency=="tracker")?"SoftMuId":"HybridSoftMuId")+(TString)((ispp)?"_pp":"_PbPbCentrality50100")+".pdf");
+    }
+
+    TCanvas * c15 = new TCanvas("c15","muon efficiency",1600,1400);
+    c15->SetRightMargin(0.135);
+    TH2D *h_muAccEff_CentPt = (TH2D*)h_recmu_CentPt->Clone("muAccEffCentPt");
+    h_muAccEff_CentPt->SetTitle("(Reco+"+(TString)((MuTypeForEfficiency=="tracker" || MuTypeForEfficiency=="nonglobal")?"Soft":"HybSoft")+"ID"+(TString)(withTrig?"+"+(TString)(L1trig?"L1 ":"")+"Trigger":"")+")/Gen muons"+(TString)((ispp)?" (pp)":" (PbPb)")+";Centrality;Gen p_{T} [GeV];efficiency");// ("Reconstructed/Generated for "+MuTypeForEfficiency+" muons;Gen |#eta|;Gen p_{T} [GeV]"+"").c_str() 
+    h_muAccEff_CentPt->GetZaxis()->SetTitleOffset(1.1);
+    h_muAccEff_CentPt->Divide(h_genmu_CentPt);
+    h_muAccEff_CentPt->GetZaxis()->SetRangeUser(0,1);
+    h_muAccEff_CentPt->Draw("COLZ");
+    if(doTnP){
+      c15->SaveAs("SingleMuAcceptance_"+(TString)(withTrig?(L1trig?"L1step":"L3step"):"HybridSoftMuId")+"_TagPassedL3Mu3"+(TString)((ispp)?"_pp":"_PbPbCentralityMap")+".pdf");
+    } else{
+      c15->SaveAs("SingleMuAcceptance_ALLMUONS_"+(TString)((MuTypeForEfficiency=="tracker")?"SoftMuId":"HybridSoftMuId")+(TString)((ispp)?"_pp":"_PbPbCentralityMap")+".pdf");
+    }
+  }
 
   // gStyle->SetOptStat(0);
   if(doJpsiEff){

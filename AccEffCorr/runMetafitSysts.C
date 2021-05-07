@@ -2,6 +2,7 @@
 
 void runMetafitSysts(bool secondStep=false){
   gROOT->ProcessLine(".L CorrectPostfitYields.C++");
+  gSystem->Exec("rm corrected_yields"+(TString)(secondStep?"_2ndStep":"")+".root");
 
   for(int isys=0;isys<_nMetafitSyst;isys++){
     //pp

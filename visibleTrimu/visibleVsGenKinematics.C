@@ -14,7 +14,7 @@
 #include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
 #include "../helpers/Tools.h"
-#include "../acceptance/SgMuonAcceptanceCuts.h"
+#include "../helpers/SgMuonAcceptanceCuts.h"
 
 void MakePositive(TH2F* h){
   for(int i=1;i<=h->GetNbinsX(); i++){
@@ -25,7 +25,7 @@ void MakePositive(TH2F* h){
   h->SetMinimum(0);
 }
 
-void visibleVsGenKinematics(bool ispp=true){
+void visibleVsGenKinematics(bool ispp=true, bool secondStep=true){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -35,7 +35,7 @@ void visibleVsGenKinematics(bool ispp=true){
 
   //Grab the variations of the pT bias of MC, from first step r1 and r2
   TFile *BiasFile = TFile::Open("../twoSteps/pTBiases.root","READ");
-  TH1F* bias3muPt = (TH1F*)BiasFile->Get("pTbias_"+(TString)(ispp?"pp":"PbPb")+"_var"+(TString)to_string(1)); //variation 1 is the nominal for: p_T^{n+m log(p_T)} , fixed m
+  TH1F* bias3muPt = (TH1F*)BiasFile->Get("pTbias_"+(TString)(ispp?"pp":"PbPb")+"_var"+(TString)to_string(1)+(TString)(secondStep?"_2ndStep":"")); //variation 1 is the nominal for: p_T^{n+m log(p_T)} , fixed m
   
   //Get tree branches
   auto fullFile = TFile::Open("../BDT/BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root","READ");
@@ -45,8 +45,8 @@ void visibleVsGenKinematics(bool ispp=true){
   
   TH1F* Rec3muPt = new TH1F("Rec3muPt",";p_{T} [GeV];N_{sig}",70,0,50);
   TH1F* GenBcPt = new TH1F("GenBcPt",";p_{T} [GeV];N_{sig}",70,0,50);
-  TH2F* PtGenVisRatio_vsPt = new TH2F("PtGenVisRatio_vsPt",";p_{T}(trimuon) [GeV];(gen B_{c} p_{T}) / (reco trimuon p_{T})",32,3,43,81,0.5,2.3);
-  TH2F* PtVisGenRatio_vsM = new TH2F("PtVisGenRatio_vsM",";m(trimuon) [GeV];(reco trimuon p_{T}) / (gen B_{c} p_{T})",32,_mBcMin,_mBcMax,50,0.3,1.3);
+  TH2F* PtGenVisRatio_vsPt = new TH2F("PtGenVisRatio_vsPt",";p_{T}(trimuon) [GeV];(gen B_{c} p_{T}) / (reco trimuon p_{T})",25,4.5,35,81,0.5,2.3);
+  TH2F* PtVisGenRatio_vsM = new TH2F("PtVisGenRatio_vsM",";m(trimuon) [GeV];(reco trimuon p_{T}) / (gen B_{c} p_{T})",27,_mBcMin,_mBcMax,50,0.3,1.3);
 
   float sgenBc_Pt;
   float sgen3mu_Pt;

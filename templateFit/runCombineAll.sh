@@ -1,0 +1,18 @@
+SECONDSTEP=${1:-""} #"" or "_2ndStep" 
+nominalOnly=${2:-false}
+
+echo "
+pp pT-bins"
+source runCombine.sh "pp" "${SECONDSTEP}" "${nominalOnly}" "_2bins"
+echo "
+pp integrated"
+source runCombine.sh "pp" "${SECONDSTEP}" "${nominalOnly}" "_integrated"
+echo "
+PbPb pT-bins"
+source runCombine.sh "PbPb" "${SECONDSTEP}" "${nominalOnly}" "_2bins"
+echo "
+PbPb integrated"
+source runCombine.sh "PbPb" "${SECONDSTEP}" "${nominalOnly}" "_integrated"
+echo "
+PbPb centrality-bins"
+source runCombine.sh "PbPb" "${SECONDSTEP}" "${nominalOnly}" "_centBins"

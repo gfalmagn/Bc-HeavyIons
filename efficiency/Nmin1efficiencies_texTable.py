@@ -15,8 +15,9 @@ for col in [0,1]:
                    re.findall("\d+\.\d+:" if (col==0) else "\d+\.\d+;", (re.findall("float _alpha_cut\(bool ispp=true\)\{return ispp\?\d+\.\d+:\d+\.\d+;\}",tcuts)[0]))[0][:-1],
                    re.findall("\d+\.\d+" , (re.findall("_ctauSignif3D_cut = \d+\.\d+",tcuts)[0]))[0] ,                   
                    re.findall("\d+\.\d+" , (re.findall("_ctauSignif_cut = \d+\.\d+",tcuts)[0]))[0] ,                   
-                   re.findall("\d+\.\d+" , (re.findall("_QQdca_cut = \d+\.\d+",tcuts)[0]))[0] ,                   
                    re.findall("\d+:" if (col==0) else "\d+;", (re.findall("float _BcCorrM_cut\(bool ispp=true\)\{return ispp\?\d+:\d+;\}",tcuts)[0]))[0][:-1],
+                   re.findall("\d+\.\d+" , (re.findall("_dRsum_cut = \d+\.\d+",tcuts)[0]))[0] ,                   
+                   #re.findall("\d+\.\d+" , (re.findall("_QQdca_cut = \d+\.\d+",tcuts)[0]))[0] ,                   
                ] );
     
 print cuts
@@ -25,7 +26,7 @@ vart.append( [
     ("TrimuVProb" , 
      "\\rule{{0pt}}{{8mm}}(1) trimuon VtxProb & $>"+cuts[0][0]+"$ & {:.{prec0}f} &\\shortstack{{(from $prob>0.005$)\\\\$>${:.{prec1}f}}} & {:.{prec2}f} & \\shortstack{{(from $prob>0.005$)\\\\$>${:.{prec3}f}}}\\\\\n"),
     ("DimuVProb",
-     "\\rule{{0pt}}{{8mm}}(2) \\PJGy VtxProb & $>"+cuts[0][1]+"$ & {:.{prec0}f} & \\shortstack{{(from $prob>0.002$)\\\\$>${:.{prec1}f}}} & {:.{prec2}f} & \\shortstack{{(from $prob>0.002$)\\\\$>${:.{prec3}f}}}\\\\\n" ),
+     "\\rule{{0pt}}{{8mm}}(2) \\PJGy VtxProb & $>"+cuts[0][1]+"$ & {:.{prec0}f} & {:.{prec1}f} & {:.{prec2}f} & \\shortstack{{(from $prob>0.002$)\\\\$>${:.{prec3}f}}}\\\\\n" ),
     ("TrimuVProbDimuVProb",
      "\\multicolumn{{2}}{{c||}}{{(1) and (2)}} & {:.{prec0}f} & $>${:.{prec1}f} & {:.{prec2}f} & $>${:.{prec3}f}\\\\\n" ),
     ("alpha3D",
@@ -40,15 +41,17 @@ vart.append( [
      "\\rule{{0pt}}{{8mm}}(6) $\\tau_{{2D}}/\\sigma_{{\\tau_{{2D}}}}$ & $>"+cuts[0][5]+"$ & {:.{prec0}f} & \\shortstack{{(from $\\tau/\\sigma>0$)\\\\$>${:.{prec1}f}}} & {:.{prec2}f} & \\shortstack{{(from $\\tau/\\sigma>0$)\\\\$>${:.{prec3}f}}}\\\\[2pt]\n" ),
     ("tauSignif3DtauSignif2D",
      "\\multicolumn{{2}}{{c||}}{{(5) and (6)}} & {:.{prec0}f} & $>${:.{prec1}f} & {:.{prec2}f} & $>${:.{prec3}f}\\\\\n" ),
-    ("dca",
-     "(7) $dca(\\PJGy)$ & $<"+cuts[0][6]+"$~mm & {:.{prec0}f} &{:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
+    #("dca",
+    # "(10) $dca(\\PJGy)$ & $<"+cuts[0][7]+"$~mm & {:.{prec0}f} &{:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
     ("dz",
-     "(8) $max_i(d_z(\\mu_i))$ & $<6$~mm & {:.{prec0}f} & {:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ), 
+     "(7) $max_i(d_z(\\mu_i))$ & $<6$~mm & {:.{prec0}f} & {:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ), 
     ("CorrM",
-     "(9) $m_{{corr}}$ & $<"+cuts[0][7]+"\\GeV$ & {:.{prec0}f} & {:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
+     "(8) $m_{{corr}}$ & $<"+cuts[0][6]+"\\GeV$ & {:.{prec0}f} & {:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
+    ("dRsum",
+     "(9) $\\sum\\Delta R(\\mu_i,\\mu_j)$ & $<"+cuts[0][7]+"$ & {:.{prec0}f} & {:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
     ("3global",
      "\\multicolumn{{2}}{{c||}}{{(10) 3 \\textit{{hybrid-soft}} in loose acc.}} & {:.{prec0}f} & {:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
-    ("TrimuVProbDimuVProbTrimuVProbDimuVProbalpha3Dalpha2Dalpha2Dalpha3DtauSignif3DtauSignif2DtauSignif3DtauSignif2DdcaCorrMdz",
+    ("TrimuVProbDimuVProbTrimuVProbDimuVProbalpha3Dalpha2Dalpha2Dalpha3DtauSignif3DtauSignif2DtauSignif3DtauSignif2DdcaCorrMdRsumdz",
      "\\multicolumn{{2}}{{c||}}{{cuts (1) to (9)}} & \\textbf{{{:.{prec0}f}}} & \\textbf{{$>${:.{prec1}f}}} & \\textbf{{{:.{prec2}f}}} & \\textbf{{$>${:.{prec3}f}}}\\\\\n" )
 ])
 
@@ -56,7 +59,7 @@ vart.append( [
     ("TrimuVProb" , 
      "\\rule{{0pt}}{{8mm}}(1) trimuon VtxProb & $>"+cuts[1][0]+"$ & {:.{prec0}f} &\\shortstack{{(from $prob>0.005$)\\\\$>${:.{prec1}f}}} & {:.{prec2}f} & {:.{prec3}f}\\\\\n"),
     ("DimuVProb",
-     "\\rule{{0pt}}{{8mm}}(2) \\PJGy VtxProb & $>"+cuts[1][1]+"$ & {:.{prec0}f} & \\shortstack{{(from $prob>0.002$)\\\\$>${:.{prec1}f}}} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
+     "\\rule{{0pt}}{{8mm}}(2) \\PJGy VtxProb & $>"+cuts[1][1]+"$ & {:.{prec0}f} & {:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
     ("TrimuVProbDimuVProb",
      "\\multicolumn{{2}}{{c||}}{{(1) and (2)}} & {:.{prec0}f} & $>${:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
     ("alpha3D",
@@ -71,20 +74,22 @@ vart.append( [
      "\\rule{{0pt}}{{8mm}}(6) $\\tau_{{2D}}/\\sigma_{{\\tau_{{2D}}}}$ & $>"+cuts[1][5]+"$ & {:.{prec0}f} & \\shortstack{{(from $\\tau/\\sigma>0$)\\\\$>${:.{prec1}f}}} & {:.{prec2}f} & {:.{prec3}f}\\\\[2pt]\n" ),
     ("tauSignif3DtauSignif2D",
      "\\multicolumn{{2}}{{c||}}{{(5) and (6)}} & {:.{prec0}f} & $>${:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
-    ("dca",
-     "(7) $dca(\\PJGy)$ & $<"+cuts[1][6]+"$~mm & {:.{prec0}f} &{:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
+    #("dca",
+    # "(10) $dca(\\PJGy)$ & $<"+cuts[1][7]+"$~mm & {:.{prec0}f} &{:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
     ("dz",
-     "(8) $max_i(d_z(\\mu_i))$ & $<6$~mm & {:.{prec0}f} & {:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ), 
+     "(7) $max_i(d_z(\\mu_i))$ & $<6$~mm & {:.{prec0}f} & {:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ), 
     ("CorrM",
-     "(9) $m_{{corr}}$ & $<"+cuts[1][7]+"\\GeV$ & {:.{prec0}f} & {:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
+     "(8) $m_{{corr}}$ & $<"+cuts[1][6]+"\\GeV$ & {:.{prec0}f} & {:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
+    ("dRsum",
+     "(9) $\\sum\\Delta R(\\mu_i,\\mu_j)$ & $<"+cuts[1][7]+"$ & {:.{prec0}f} & {:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
     ("3global",
      "\\multicolumn{{2}}{{c||}}{{(10) 3 \\textit{{hybrid-soft}} in loose acc.}} & {:.{prec0}f} & {:.{prec1}f} & {:.{prec2}f} & {:.{prec3}f}\\\\\n" ),
-    ("TrimuVProbDimuVProbTrimuVProbDimuVProbalpha3Dalpha2Dalpha2Dalpha3DtauSignif3DtauSignif2DtauSignif3DtauSignif2DdcaCorrMdz",
+    ("TrimuVProbDimuVProbTrimuVProbDimuVProbalpha3Dalpha2Dalpha2Dalpha3DtauSignif3DtauSignif2DtauSignif3DtauSignif2DdcaCorrMdRsumdz",
      "\\multicolumn{{2}}{{c||}}{{cuts (1) to (9)}} & \\textbf{{{:.{prec0}f}}} & \\textbf{{$>${:.{prec1}f}}} & \\textbf{{{:.{prec2}f}}} & \\textbf{{{:.{prec3}f}}}\\\\\n" )
 ])
 
 samp = [["signal","fakeJpsi","bMCcorr","flipJpsi"],#pp
-        ["signal","fakeJpsi","bMC","PromptMC"]]#pbpb
+        ["signal","fakeJpsi","bMC ","PromptMC"]]#pbpb #space matters
 
 for f,fout, lines, sam, var in zip(fi,fo,li,samp,vart):
     lookhere = [False]*4

@@ -13,7 +13,7 @@
 #include "TGaxis.h"
 #include "../helpers/Cuts_BDT.h"
 #include "../helpers/Cuts.h"
-#include "../acceptance/SgMuonAcceptanceCuts.h"
+#include "../helpers/SgMuonAcceptanceCuts.h"
 
 void drawFakeJpsi(bool ispp=true, bool secondStep=true){
 

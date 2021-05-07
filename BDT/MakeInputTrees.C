@@ -13,7 +13,8 @@
 #include "../PbPb18/Utilities/EVENTUTILS.h"
 #include "../helpers/Definitions.h"
 #include "../helpers/Cuts.h"
-#include "../acceptance/SgMuonAcceptanceCuts.h"
+#include "../helpers/Tools.h"
+#include "../helpers/SgMuonAcceptanceCuts.h"
 
 void MakeInputTrees(bool ispp = true){
 
@@ -164,9 +165,11 @@ void MakeInputTrees(bool ispp = true){
     } else if(i!=4) {
       b_INCentrality[i] = Trees[i]->GetBranch("Centrality");
       b_INCentrality[i]->SetAddress(&INCentrality[i]);
-      
-      b_SumET_HF[i] = Trees[i]->GetBranch("SumET_HF");
-      b_SumET_HF[i]->SetAddress(&SumET_HF[i]);
+
+      if(i!=1){//TO BE CHANGED after rerunning !!!
+	b_SumET_HF[i] = Trees[i]->GetBranch("SumET_HF");
+	b_SumET_HF[i]->SetAddress(&SumET_HF[i]);
+      }
     }
 
     b_HLTriggers[i] = Trees[i]->GetBranch("HLTriggers");
@@ -181,7 +184,7 @@ void MakeInputTrees(bool ispp = true){
     b_Reco_3mu_QQ1_idx[i] = Trees[i]->GetBranch("Reco_3mu_QQ1_idx");
     b_Reco_3mu_QQ1_idx[i]->SetAddress(&Reco_3mu_QQ1_idx[i]);
 
-    if(i<4){
+    if(i!=4){
       b_Reco_3mu_QQ2_idx[i] = Trees[i]->GetBranch("Reco_3mu_QQ2_idx");
       b_Reco_3mu_QQ2_idx[i]->SetAddress(&Reco_3mu_QQ2_idx[i]);
 
@@ -439,12 +442,6 @@ void MakeInputTrees(bool ispp = true){
   float Bc_alpha3D[ntrees];
   float Bc_VtxProb[ntrees];
 
-  float Bc_M_shiftedM[ntrees];
-  float Bc_CorrM_shiftedM[ntrees];
-  float dR_sum_shiftedM[ntrees];
-  float dR_jpsiOverMuW_shiftedM[ntrees];
-  float dR_jpsiMuW_shiftedM[ntrees];
-
   float QQ_M[ntrees];
   float QQ_P[ntrees];
   float QQ_Pt[ntrees];
@@ -493,21 +490,29 @@ void MakeInputTrees(bool ispp = true){
   float dR_muWpl[ntrees];
   float dR_jpsi[ntrees];
   float dR_sum[ntrees];
+  float dR_sum_QQ2[ntrees];
   float dR_jpsiMuW[ntrees];
   float dR_jpsiOverMuW[ntrees];
   float MuonDxySignif_sum[ntrees];
+  float MuonDxySignif_min[ntrees];
   float muW_dxySignif[ntrees];
   float mumi_dxySignif[ntrees];
   float mupl_dxySignif[ntrees];
   float MuonDzSignif_sum[ntrees];
+  float MuonDzSignif_min[ntrees];
   float muW_dzSignif[ntrees];
   float mumi_dzSignif[ntrees];
   float mupl_dzSignif[ntrees];
+  float MuonDxyzSignif_sum[ntrees];
+  float MuonDxyzSignif_min[ntrees];
+  float muW_dxyzSignif[ntrees];
+  float mumi_dxyzSignif[ntrees];
+  float mupl_dxyzSignif[ntrees];
   float QQmuW_ptImbal[ntrees];
   int bkgType[ntrees];
   int QQ_momId[ntrees];
   float w_simple[ntrees];
-  float w_unblind[ntrees];
+  float w_blind[ntrees];
   //  float weightJpsiChoice[ntrees];
   float weightNcoll[ntrees];
   int flipJpsi[ntrees];
@@ -602,26 +607,27 @@ void MakeInputTrees(bool ispp = true){
     out_trees[i]->Branch("dR_jpsi",&dR_jpsi[i],"dR_jpsi/F");
     out_trees[i]->Branch("dR_jpsiMuW",&dR_jpsiMuW[i],"dR_jpsiMuW/F");
     out_trees[i]->Branch("dR_sum",&dR_sum[i],"dR_sum/F");
+    out_trees[i]->Branch("dR_sum_QQ2",&dR_sum_QQ2[i],"dR_sum_QQ2/F");
     out_trees[i]->Branch("dR_jpsiOverMuW",&dR_jpsiOverMuW[i],"dR_jpsiOverMuW/F");
     out_trees[i]->Branch("MuonDxySignif_sum",&MuonDxySignif_sum[i],"MuonDxySignif_sum/F");
+    out_trees[i]->Branch("MuonDxySignif_min",&MuonDxySignif_min[i],"MuonDxySignif_min/F");
     out_trees[i]->Branch("muW_dxySignif",&muW_dxySignif[i],"muW_dxySignif/F");
     out_trees[i]->Branch("mumi_dxySignif",&mumi_dxySignif[i],"mumi_dxySignif/F");
     out_trees[i]->Branch("mupl_dxySignif",&mupl_dxySignif[i],"mupl_dxySignif/F");
     out_trees[i]->Branch("MuonDzSignif_sum",&MuonDzSignif_sum[i],"MuonDzSignif_sum/F");
+    out_trees[i]->Branch("MuonDzSignif_min",&MuonDzSignif_min[i],"MuonDzSignif_min/F");
     out_trees[i]->Branch("muW_dzSignif",&muW_dzSignif[i],"muW_dzSignif/F");
     out_trees[i]->Branch("mumi_dzSignif",&mumi_dzSignif[i],"mumi_dzSignif/F");
     out_trees[i]->Branch("mupl_dzSignif",&mupl_dzSignif[i],"mupl_dzSignif/F");
+    out_trees[i]->Branch("MuonDxyzSignif_sum",&MuonDxyzSignif_sum[i],"MuonDxyzSignif_sum/F");
+    out_trees[i]->Branch("MuonDxyzSignif_min",&MuonDxyzSignif_min[i],"MuonDxyzSignif_min/F");
+    out_trees[i]->Branch("muW_dxyzSignif",&muW_dxyzSignif[i],"muW_dxyzSignif/F");
+    out_trees[i]->Branch("mumi_dxyzSignif",&mumi_dxyzSignif[i],"mumi_dxyzSignif/F");
+    out_trees[i]->Branch("mupl_dxyzSignif",&mupl_dxyzSignif[i],"mupl_dxyzSignif/F");
 
-    //shifted variables for TRUEJPSI in BDT training
-    out_trees[i]->Branch("Bc_M_shiftedM",&Bc_M_shiftedM[i],"Bc_M_shiftedM/F");
-    out_trees[i]->Branch("Bc_CorrM_shiftedM",&Bc_CorrM_shiftedM[i],"Bc_CorrM_shiftedM/F");
-    out_trees[i]->Branch("dR_sum_shiftedM",&dR_sum_shiftedM[i],"dR_sum_shiftedM/F");
-    out_trees[i]->Branch("dR_jpsiOverMuW_shiftedM",&dR_jpsiOverMuW_shiftedM[i],"dR_jpsiOverMuW_shiftedM/F");
-    out_trees[i]->Branch("dR_jpsiMuW_shiftedM",&dR_jpsiMuW_shiftedM[i],"dR_jpsiMuW_shiftedM/F");
-    
     out_trees[i]->Branch("bkgType",&bkgType[i],"bkgType/I");
     out_trees[i]->Branch("w_simple",&w_simple[i],"w_simple/F");
-    if(!ispp && i==3) out_trees[i]->Branch("w_unblind",&w_unblind[i],"w_unblind/F");
+    if(!ispp && i==3) out_trees[i]->Branch("w_blind",&w_blind[i],"w_blind/F");
     //    out_trees[i]->Branch("weightJpsiChoice",&weightJpsiChoice[i],"weightJpsiChoice/F");
     if(!ispp && (i>3 && i<7) )
       out_trees[i]->Branch("weightNcoll",&weightNcoll[i],"weightNcoll/F");
@@ -664,81 +670,91 @@ void MakeInputTrees(bool ispp = true){
       b_Reco_3mu_size[iIpt]->GetEntry(j);
       if(Reco_3mu_size[iIpt]==0) continue;
 
-      //Certain trees are filled only from certain files
-      int ntreestart = 0; int ntreestop = 3;
-      if(iIpt==1) {ntreestart = 4; ntreestop = 5;} 
-      else if(iIpt>=2) {ntreestart = 3+iIpt; ntreestop = ntreestart;}
+      Reco_3mu_4mom[iIpt]->Clear();
+      Reco_mu_4mom[iIpt]->Clear();
+      if(iIpt==4) Reco_trk_4mom[iIpt]->Clear();
+      Reco_QQ_4mom[iIpt]->Clear();
+      if(iIpt>=5){
+	Reco_QQ_mumi_4mom[iIpt]->Clear();
+	Reco_QQ_mupl_4mom[iIpt]->Clear();}
+      if(iIpt==1){
+	Gen_Bc_4mom[iIpt]->Clear();
+	Gen_3mu_4mom[iIpt]->Clear();
+      }
 
-      for(int i=ntreestart; i<=ntreestop; i++){ //only trees with data events for iIpt=0, MC events for iIpt=1, b->Jpsi MC events for iIpt=2, prompt Jpsi MC events for iIpt=3, dimuon+track events for iIpt=4
+      Trees[iIpt]->GetEntry(j);
 
-	Reco_3mu_4mom[iIpt]->Clear();
-	Reco_mu_4mom[iIpt]->Clear();
-	if(iIpt==4) Reco_trk_4mom[iIpt]->Clear();
-	Reco_QQ_4mom[iIpt]->Clear();
-	if(iIpt>=5){
-	  Reco_QQ_mumi_4mom[iIpt]->Clear();
-	  Reco_QQ_mupl_4mom[iIpt]->Clear();}
-	if(iIpt==1){
-	  Gen_Bc_4mom[iIpt]->Clear();
-	  Gen_3mu_4mom[iIpt]->Clear();
+      for(int BcNb=0;BcNb<Reco_3mu_size[iIpt];BcNb++){
+	Short_t genBcIdx = 0;
+	if(iIpt==1) genBcIdx = Reco_3mu_whichGen[iIpt][BcNb];
+
+	Short_t QQidx_3[3] = { Reco_3mu_QQ1_idx[iIpt][BcNb], Reco_3mu_QQ2_idx[iIpt][BcNb], Reco_3mu_QQss_idx[iIpt][BcNb] };
+	// if(fabs(Reco_3mu_charge[iIpt][BcNb])==3 && iIpt!=4){ // fix for wrongsign
+	//   bool foundit = false;
+	//   if(Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_QQ_mumi_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]] && Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_QQ_mupl_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]]) {
+	//     Reco_3mu_muW2_idx[iIpt][BcNb] = Reco_3mu_mumi_idx[iIpt][BcNb]; foundit=true;
+	//   }
+	//   if(Reco_3mu_mupl_idx[iIpt][BcNb]!=Reco_QQ_mumi_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]] && Reco_3mu_mupl_idx[iIpt][BcNb]!=Reco_QQ_mupl_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]]) {
+	//     Reco_3mu_muW2_idx[iIpt][BcNb] = Reco_3mu_mupl_idx[iIpt][BcNb]; foundit=true;
+	//   }
+	//   if(!foundit) cout<<"Did not find muW for wrongsign Bc"<<endl;
+	// }
+	Short_t muW3idx = (Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_3mu_muW2_idx[iIpt][BcNb])?(Reco_3mu_mumi_idx[iIpt][BcNb]):(Reco_3mu_mupl_idx[iIpt][BcNb]); //for the third dimuon choice, the muWidx=old_muWmi if old_muWmi!=muW2idx, and muWidx=old_muWpl otherwise
+	if (iIpt!=4 && (muW3idx==Reco_3mu_muW_idx[iIpt][BcNb] || muW3idx==Reco_3mu_muW2_idx[iIpt][BcNb]) && fabs(Reco_3mu_charge[iIpt][BcNb])!=1) cout<<"!!!!!!!!! Wrong assignement of muW3idx !"<<endl;
+	if (iIpt!=4 && Reco_3mu_QQ1_idx[iIpt][BcNb]>-1 && (Reco_3mu_muW_idx[iIpt][BcNb]==Reco_3mu_mumi_idx[iIpt][BcNb] || Reco_3mu_muW_idx[iIpt][BcNb]==Reco_3mu_mupl_idx[iIpt][BcNb] || Reco_3mu_mupl_idx[iIpt][BcNb]==Reco_3mu_mumi_idx[iIpt][BcNb] )) 
+	  {cout<<"!!! OOOPS! Continue, because wrong assignement of muon indices! "<<Reco_3mu_muW_idx[iIpt][BcNb]<<" "<<Reco_3mu_mupl_idx[iIpt][BcNb]<<" "<<Reco_3mu_mumi_idx[iIpt][BcNb]<<endl; continue;}
+	else if (iIpt<2 && Reco_3mu_QQ2_idx[iIpt][BcNb]>-1 && (Reco_3mu_muW2_idx[iIpt][BcNb]==Reco_QQ_mumi_idx[iIpt][QQidx_3[1]] || Reco_3mu_muW2_idx[iIpt][BcNb]==Reco_QQ_mupl_idx[iIpt][QQidx_3[1]] || Reco_QQ_mupl_idx[iIpt][QQidx_3[1]]==Reco_QQ_mumi_idx[iIpt][QQidx_3[1]] )) 
+	  {cout<<"!!! OOOPS! Continue, because Wrong assignement of muon indices (2nd QQ choice) !"<<Reco_3mu_muW_idx[iIpt][BcNb]<<" "<<Reco_3mu_mupl_idx[iIpt][BcNb]<<" "<<Reco_3mu_mumi_idx[iIpt][BcNb]<<endl; continue;}
+
+	Short_t muWidx_3[3] = { Reco_3mu_muW_idx[iIpt][BcNb], Reco_3mu_muW2_idx[iIpt][BcNb], muW3idx };
+	Short_t mumiidx_3[3] = { Reco_3mu_mumi_idx[iIpt][BcNb], Reco_QQ_mumi_idx[iIpt][QQidx_3[1]], Reco_QQ_mumi_idx[iIpt][QQidx_3[2]] };
+	Short_t muplidx_3[3] = { Reco_3mu_mupl_idx[iIpt][BcNb], Reco_QQ_mupl_idx[iIpt][QQidx_3[1]], Reco_QQ_mupl_idx[iIpt][QQidx_3[2]] };
+	if(iIpt==5){
+	  if(mumiidx_3[0] != mumiidx_3[1] && mumiidx_3[0] != muplidx_3[1]) muWidx_3[1] = mumiidx_3[0]; //Reco_3mu_muW2_idx is badly defined for flipJpsi
+	  if(muplidx_3[0] != mumiidx_3[1] && muplidx_3[0] != muplidx_3[1]) muWidx_3[1] = muplidx_3[0];
 	}
 
-	Trees[iIpt]->GetEntry(j);
+	int nCandidatePairs = (fabs(Reco_3mu_charge[iIpt][BcNb])==1)?2:3; //use candidates for all three Jpsi-dimuon choices if Bc_charge is wrong, and only the two OS pairs if Bc_charge is right
+	if(iIpt==4) nCandidatePairs = 1;
 
-	for(int BcNb=0;BcNb<Reco_3mu_size[iIpt];BcNb++){
-	  Short_t genBcIdx = 0;
-	  if(iIpt==1) genBcIdx = Reco_3mu_whichGen[iIpt][BcNb];
+	//**************************************************************
+	//Loop on the 2 or 3 possible Jpsi dimuon choices 
+	int thisTrimuGaveABc = -1;
+	for(int k=0; k<nCandidatePairs; k++){
+	  int k2 = (k==0 && iIpt!=4)?1:0;
+	  Short_t QQidx = QQidx_3[k];
+	  Short_t QQ2idx = QQidx_3[k2];
+	  Short_t muWidx = muWidx_3[k];
+	  Short_t mumiidx = mumiidx_3[k];
+	  Short_t muplidx = muplidx_3[k];
 
-	  Short_t QQidx_3[3] = { Reco_3mu_QQ1_idx[iIpt][BcNb], Reco_3mu_QQ2_idx[iIpt][BcNb], Reco_3mu_QQss_idx[iIpt][BcNb] };
-	  // if(fabs(Reco_3mu_charge[iIpt][BcNb])==3 && iIpt!=4){ // fix for wrongsign
-	  //   bool foundit = false;
-	  //   if(Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_QQ_mumi_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]] && Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_QQ_mupl_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]]) {
-	  //     Reco_3mu_muW2_idx[iIpt][BcNb] = Reco_3mu_mumi_idx[iIpt][BcNb]; foundit=true;
-	  //   }
-	  //   if(Reco_3mu_mupl_idx[iIpt][BcNb]!=Reco_QQ_mumi_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]] && Reco_3mu_mupl_idx[iIpt][BcNb]!=Reco_QQ_mupl_idx[iIpt][Reco_3mu_QQ2_idx[iIpt][BcNb]]) {
-	  //     Reco_3mu_muW2_idx[iIpt][BcNb] = Reco_3mu_mupl_idx[iIpt][BcNb]; foundit=true;
-	  //   }
-	  //   if(!foundit) cout<<"Did not find muW for wrongsign Bc"<<endl;
-	  // }
-	  Short_t muW3idx = (Reco_3mu_mumi_idx[iIpt][BcNb]!=Reco_3mu_muW2_idx[iIpt][BcNb])?(Reco_3mu_mumi_idx[iIpt][BcNb]):(Reco_3mu_mupl_idx[iIpt][BcNb]); //for the third dimuon choice, the muWidx=old_muWmi if old_muWmi!=muW2idx, and muWidx=old_muWpl otherwise
-	  if (iIpt!=4 && (muW3idx==Reco_3mu_muW_idx[iIpt][BcNb] || muW3idx==Reco_3mu_muW2_idx[iIpt][BcNb]) && fabs(Reco_3mu_charge[iIpt][BcNb])!=1) cout<<"!!!!!!!!! Wrong assignement of muW3idx !"<<endl;
-	  if (iIpt!=4 && Reco_3mu_QQ1_idx[iIpt][BcNb]>-1 && (Reco_3mu_muW_idx[iIpt][BcNb]==Reco_3mu_mumi_idx[iIpt][BcNb] || Reco_3mu_muW_idx[iIpt][BcNb]==Reco_3mu_mupl_idx[iIpt][BcNb] || Reco_3mu_mupl_idx[iIpt][BcNb]==Reco_3mu_mumi_idx[iIpt][BcNb] )) 
-	    cout<<"!!! OOOPS! Wrong assignement of muon indices! "<<Reco_3mu_muW_idx[iIpt][BcNb]<<" "<<Reco_3mu_mupl_idx[iIpt][BcNb]<<" "<<Reco_3mu_mumi_idx[iIpt][BcNb]<<endl;
-	  if ((iIpt<2 || iIpt==5) && Reco_3mu_QQ2_idx[iIpt][BcNb]>-1 && (Reco_3mu_muW2_idx[iIpt][BcNb]==Reco_QQ_mumi_idx[iIpt][QQidx_3[1]] || Reco_3mu_muW2_idx[iIpt][BcNb]==Reco_QQ_mupl_idx[iIpt][QQidx_3[1]] || Reco_QQ_mupl_idx[iIpt][QQidx_3[1]]==Reco_QQ_mumi_idx[iIpt][QQidx_3[1]] )) cout<<"!!! OOOPS! Wrong assignement of muon indices (2nd QQ choice) !"<<endl;
+	  //cout<<"Dimuon choice #"<<k<<endl;
+	  //can add pre-selection here
+	  if(QQidx>-1){
+	    //cout<<"Good dimuon"<<endl;
 
-	  Short_t muWidx_3[3] = { Reco_3mu_muW_idx[iIpt][BcNb], Reco_3mu_muW2_idx[iIpt][BcNb], muW3idx };
-	  Short_t mumiidx_3[3] = { Reco_3mu_mumi_idx[iIpt][BcNb], Reco_QQ_mumi_idx[iIpt][QQidx_3[1]], Reco_QQ_mumi_idx[iIpt][QQidx_3[2]] };
-	  Short_t muplidx_3[3] = { Reco_3mu_mupl_idx[iIpt][BcNb], Reco_QQ_mupl_idx[iIpt][QQidx_3[1]], Reco_QQ_mupl_idx[iIpt][QQidx_3[2]] };
+	    TLorentzVector *recBc = (TLorentzVector*) Reco_3mu_4mom[iIpt]->At(BcNb);
+	    TLorentzVector *recQQ = (TLorentzVector*) Reco_QQ_4mom[iIpt]->At(QQidx);
+	    if(muWidx==-1 || mumiidx==-1 || muplidx==-1) {cout<<"!!!!!!! one muon has a -1 index !! Skip this candidate"<<endl; continue;}
+	    if((muWidx>=Reco_mu_size[iIpt] || mumiidx>=Reco_mu_size[iIpt] || muplidx>=Reco_mu_size[iIpt]) && iIpt!=4) {cout<<"!!!!!!! Muon index > muons vectro size ! Skip this candidate"<<endl; continue;}
+	    TLorentzVector *recBc_mumi = (TLorentzVector*) ((iIpt<5)?(Reco_mu_4mom[iIpt]->At(mumiidx)):(Reco_QQ_mumi_4mom[iIpt]->At(QQidx)));
+	    TLorentzVector *recBc_mupl = (TLorentzVector*) ((iIpt<5)?(Reco_mu_4mom[iIpt]->At(muplidx)):(Reco_QQ_mupl_4mom[iIpt]->At(QQidx)));
+	    TLorentzVector *recBc_muW = (TLorentzVector*) ((iIpt==5 && k==1)?(
+									      (Reco_mu_charge[iIpt][muWidx]>0)?(Reco_QQ_mupl_4mom[iIpt]->At(QQidx_3[0])):(Reco_QQ_mumi_4mom[iIpt]->At(QQidx_3[0]))
+									      ):(
+										 ((iIpt!=4)?Reco_mu_4mom:Reco_trk_4mom)[iIpt]->At(muWidx)
+										 )); //muW is a track in case of dimuon+track
 
-	  int nCandidatePairs = (fabs(Reco_3mu_charge[iIpt][BcNb])==1)?2:3; //use candidates for all three Jpsi-dimuon choices if Bc_charge is wrong, and only the two OS pairs if Bc_charge is right
-	  if(iIpt>=4) nCandidatePairs = 1;
+	    float BcCandE = sqrt(pow(recQQ->P(),2) + pow(m_Jpsi,2) ) + recBc_muW->E() ;
+	    float BcCandM = sqrt( pow( BcCandE ,2) - pow(recBc->P(),2) );
+	    float QQCandM = recQQ->M();
 
-	  //**************************************************************
-	  //Loop on the 2 or 3 possible Jpsi dimuon choices 
-	  int thisTrimuGaveABc = -1;
-	  for(int k=0; k<nCandidatePairs; k++){
-	    Short_t QQidx = QQidx_3[k];
-	    Short_t QQ2idx = QQidx_3[(k==0 && iIpt!=4)?1:0];
-	    Short_t muWidx = muWidx_3[k];
-	    Short_t mumiidx = mumiidx_3[k];
-	    Short_t muplidx = muplidx_3[k];
+	    //Certain trees are filled only from certain files
+	    int ntreestart = 0; int ntreestop = 3;
+	    if(iIpt==1) {ntreestart = 4; ntreestop = 5;} 
+	    else if(iIpt>=2) {ntreestart = 3+iIpt; ntreestop = ntreestart;}
 
-	    //cout<<"Dimuon choice #"<<k<<endl;
-	    //can add pre-selection here
-	    if(QQidx>-1){
-	      //cout<<"Good dimuon"<<endl;
-
-	      TLorentzVector *recBc = (TLorentzVector*) Reco_3mu_4mom[iIpt]->At(BcNb);
-	      TLorentzVector *recQQ = (TLorentzVector*) Reco_QQ_4mom[iIpt]->At(QQidx);
-	      if(muWidx==-1 || mumiidx==-1 || muplidx==-1) {cout<<"!!!!!!! one muon has a -1 index !! Skip this candidate"<<endl; continue;}
-	      if((muWidx>=Reco_mu_size[iIpt] || mumiidx>=Reco_mu_size[iIpt] || muplidx>=Reco_mu_size[iIpt]) && iIpt!=4) {cout<<"!!!!!!! Muon index > muons vectro size ! Skip this candidate"<<endl; continue;}
-	      TLorentzVector *recBc_muW = (TLorentzVector*) ((iIpt!=4)?Reco_mu_4mom:Reco_trk_4mom)[iIpt]->At(muWidx); //muW is a track in case of dimuon+track
-	      TLorentzVector *recBc_mumi = (TLorentzVector*) ((iIpt<5)?(Reco_mu_4mom[iIpt]->At(mumiidx)):(Reco_QQ_mumi_4mom[iIpt]->At(QQidx)));
-	      TLorentzVector *recBc_mupl = (TLorentzVector*) ((iIpt<5)?(Reco_mu_4mom[iIpt]->At(muplidx)):(Reco_QQ_mupl_4mom[iIpt]->At(QQidx)));
-
-	      float BcCandE = sqrt(pow(recQQ->P(),2) + pow(m_Jpsi,2) ) + recBc_muW->E() ;
-	      float BcCandM = sqrt( pow( BcCandE ,2) - pow(recBc->P(),2) );
-	      float QQCandM = recQQ->M();
+	    for(int i=ntreestart; i<=ntreestop; i++){ //only trees with data events for iIpt=0, MC events for iIpt=1, b->Jpsi MC events for iIpt=2, prompt Jpsi MC events for iIpt=3, dimuon+track events for iIpt=4
 
 	      muW_eta[i] = recBc_muW->Eta();
 	      mumi_eta[i] = recBc_mumi->Eta();
@@ -870,7 +886,7 @@ void MakeInputTrees(bool ispp = true){
 	      QQ_dca[i] = Reco_QQ_dca[iIpt][QQidx];
 	      QQ2_VtxProb[i] = (QQ2idx<Reco_QQ_size[iIpt] && QQ2idx>-1)?(Reco_QQ_VtxProb[iIpt][QQ2idx]):0;
 	      QQ2_dca[i] = (QQ2idx<Reco_QQ_size[iIpt] && QQ2idx>-1)?(Reco_QQ_dca[iIpt][QQ2idx]):100;
-	      if(iIpt>=5){//flipJpsi
+	      if(iIpt>=5 && (QQ2_VtxProb[i]<0 || QQ2_VtxProb[i]>1 || QQ2_dca[i]<0 || QQ2_dca[i]>30) ){//flipJpsi
 		QQ2_VtxProb[i] = 0.9999;
 		QQ2_dca[i] = 1e-6;
 	      }
@@ -940,32 +956,78 @@ void MakeInputTrees(bool ispp = true){
 		  QQ2_M[i] = (Reco_mu_charge[iIpt][muWidx]>0)?((*recBc_mumi+*recBc_muW).M()):((*recBc_mupl+*recBc_muW).M()); //QQ2 is the second OS pair
 		  QQ3_M[i] = (Reco_mu_charge[iIpt][muWidx]>0)?((*recBc_mupl+*recBc_muW).M()):((*recBc_mumi+*recBc_muW).M()); //QQ3 is the SS pair
 		}
+
+		float QQM_correction = m_Jpsi / QQ_M[i];
+		float QQ2M_correction = m_Jpsi / QQ2_M[i];
+
+		//corrected mass
+		Bc_M[i] = BcCandM;
+		Bc_Pt[i] = sqrt( pow(QQM_correction * recQQ->Px()+recBc_muW->Px() ,2) + pow(QQM_correction * recQQ->Py()+recBc_muW->Py() ,2) );
+		Bc_P[i] = sqrt( pow(Bc_Pt[i] ,2) + pow(QQM_correction * recQQ->Pz()+recBc_muW->Pz() ,2) );
+		float PperpTrimu = TMath::Sin(Bc_alpha3D[i]) * Bc_P[i];
+		Bc_CorrM[i] = sqrt(Bc_M[i]*Bc_M[i] + PperpTrimu*PperpTrimu) + PperpTrimu;
+
+		//sum of deltaR's
+		float dRjpsi = (float) recBc_mumi->DeltaR(*recBc_mupl);
+		float dRmuWmi = (float) recBc_muW->DeltaR(*recBc_mumi);
+		float dRmuWpl = (float) recBc_muW->DeltaR(*recBc_mupl);
+		vector<float> dRcorr = dRcorrectedForQQM(dRjpsi,dRmuWmi,dRmuWpl,QQM_correction,mumi_Pt[i],mupl_Pt[i]);
+		dR_jpsi[i] = dRcorr[0];
+		dR_muWmi[i] = dRcorr[1];		
+		dR_muWpl[i] = dRcorr[2]; 
+		dR_sum[i] = dR_muWmi[i] + dR_muWpl[i] + dR_jpsi[i];
 		
-		// //**** Measure efficiency of dimuon mass signal region //needs to remove previous Jpsi mass cuts 
-		// if(k==0){
-		//   nall += w_simple[i];
-		//   if(inJpsiMassRange(QQ_M[i], maxEta<1.5) || inJpsiMassRange(QQ2_M[i], maxEta<1.5)) npass +=w_simple[i];
-		//   if(!inJpsiMassRange(QQ_M[i], maxEta<1.5) && !inJpsiMassRange(QQ2_M[i], maxEta<1.5) && (inJpsiMassSB(QQ_M[i], maxEta<1.5) || inJpsiMassSB(QQ2_M[i], maxEta<1.5)) ) nside +=w_simple[i];
-		// }
-		//**** Deal with the Jpsi dimuon choice
-		//		weightJpsiChoice[i] = 1;
-		if((i==0 || i==2 || i==3) && inJpsiMassRange(QQ_M[i], maxEta<1.5) && inJpsiMassRange(QQ2_M[i], maxEta<1.5) 
-		   && QQ2_dca[i]<QQ_dca[i] && QQ2_VtxProb[i]>_QQvtxProb_cut)
-		  continue; //In data, if both OS dimuons are in Jpsi peak region, choose the one with best dca (so no bias on the Jpsi mass)
-		if(i==1 && inJpsiMassSB(QQ_M[i], maxEta<1.5) && inJpsiMassSB(QQ2_M[i], maxEta<1.5)
-		   && QQ2_dca[i]<QQ_dca[i] && QQ2_VtxProb[i]>_QQvtxProb_cut)
-		   continue; //In data sidebands, if both OS dimuons are in Jpsi sidebands, choose the one with best dca (so no bias on the Jpsi mass)
+		if(iIpt!=4){
+		  TLorentzVector *recBc_muW2 = (TLorentzVector*) ((iIpt==5)?(
+									     (Reco_mu_charge[iIpt][muWidx_3[k2]]>0)?(Reco_QQ_mupl_4mom[iIpt]->At(QQidx)):(Reco_QQ_mumi_4mom[iIpt]->At(QQidx))
+									     ):(
+										(iIpt!=4)?Reco_mu_4mom:Reco_trk_4mom)[iIpt]->At(min(muWidx_3[k2],(Short_t)(Reco_mu_size[iIpt]-1)))
+								  );
+		  TLorentzVector *recBc_mumi2 = (TLorentzVector*) ((iIpt<5)?(Reco_mu_4mom[iIpt]->At(mumiidx_3[k2])
+									     ):(
+										(Reco_mu_charge[iIpt][muWidx_3[k2]]<0)?(Reco_mu_4mom[iIpt]->At(muWidx_3[k2])):(Reco_QQ_mumi_4mom[iIpt]->At(QQidx)))
+								   );
+		  TLorentzVector *recBc_mupl2 = (TLorentzVector*) ((iIpt<5)?(Reco_mu_4mom[iIpt]->At(muplidx_3[k2])
+									     ):(
+										(Reco_mu_charge[iIpt][muWidx_3[k2]]>0)?(Reco_mu_4mom[iIpt]->At(muWidx_3[k2])):(Reco_QQ_mupl_4mom[iIpt]->At(QQidx)))
+								   );
+		  float dRjpsi2 = (float) recBc_mumi2->DeltaR(*recBc_mupl2);
+		  float dRmuWmi2 = (float) recBc_muW2->DeltaR(*recBc_mumi2);
+		  float dRmuWpl2 = (float) recBc_muW2->DeltaR(*recBc_mupl2);
+		  vector<float> dRcorr2 = dRcorrectedForQQM(dRjpsi2,dRmuWmi2,dRmuWpl2,QQ2M_correction,recBc_mumi2->Pt(),recBc_mupl2->Pt());
+		  dR_sum_QQ2[i] = dRcorr2[0] + dRcorr2[1] + dRcorr2[2];
+		}
 
-		// if(//(i==1 || i==2) && 
-		//    inJpsiMassSB(QQ_M[i], maxEta<1.5) && inJpsiMassRange(QQ2_M[i], maxEta<1.5) && Reco_QQ_dca[iIpt][QQ2idx]<0.3) weightJpsiChoice[i] = (ispp?0.213:0.662); //if QQ1 passes all BCMASS sample cuts, check if the other dimuon QQ2 passes the SIGNAL REGION cuts. If yes, apply a weight corresponding to the integrated proba of a data event not to contain a true Jpsi
-		// if(i!=0 && //(i==0 || i==2 || i==3) && 
-		//    inJpsiMassRange(QQ_M[i], maxEta<1.5) && inJpsiMassSB(QQ2_M[i], maxEta<1.5) && Reco_QQ_dca[iIpt][QQ2idx]<0.3) weightJpsiChoice[i] = (1-(ispp?0.213:0.662)); //if QQ1 passes all SIGNAL sample cuts, check if the other dimuon QQ2 passes the jpsi mass sidebands cuts. If yes, apply a weight corresponding to the integrated proba of a data event to contain a true Jpsi
-		// w_simple[i] *= weightJpsiChoice[i];
+		//Other deltaR variables
+		dR_jpsiMuW[i] = (float) recQQ->DeltaR(*recBc_muW);
+		if(dR_jpsiMuW[i]<=0) dR_jpsiMuW[i] = 1e-8; if(dR_jpsiMuW[i]>4) dR_jpsiMuW[i] = 4; //check that deltaR is in [0,4]
+		dR_jpsiOverMuW[i] = dR_jpsi[i] / (dR_muWmi[i] + dR_muWpl[i]) ;
+		if (dR_jpsiOverMuW[i]>1) dR_jpsiOverMuW[i] = 1.;
 
-		// if(!ispp && i==5 && iIpt==2 && recQQ->Pt()>6.5 && recQQ->Pt()<7.5)
-		//   cout<< "weight, NcollWeight, Gen_weight, A^2*L_PbPb*BF, dataOverMC(QQ_Pt), weight/(NcollWeight*Gen_weight*lumi*dataOverMC) = "<<w_simple[i]<<" "<<weightNcoll[i]<<" "<<Gen_weight[iIpt]<<" "<< scaleMCb[ispp].second<<" "<<(scaleMCb[ispp].first)->Eval(recQQ->Pt())<<" "<<w_simple[i]/(weightNcoll[i]*Gen_weight[iIpt]*scaleMCb[ispp].second*(scaleMCb[ispp].first)->Eval(recQQ->Pt()))<<endl;
-		// if(ispp && i==5 && iIpt==2 && recQQ->Pt()>6.5 && recQQ->Pt()<7.5)
-		//   cout<< "weight, pthat_weight, A^2*L_PbPb*BF, dataOverMC(QQ_Pt), weight/(NcollWeight*Gen_weight*lumi*dataOverMC) = "<<w_simple[i]<<" "<<pthatweight[iIpt]<<" "<< scaleMCb[ispp].second<<" "<<(scaleMCb[ispp].first)->Eval(recQQ->Pt())<<" "<<w_simple[i]/(pthatweight[iIpt]*scaleMCb[ispp].second*(scaleMCb[ispp].first)->Eval(recQQ->Pt()))<<endl;
+		//mass shift for the TRUEJPSI (high mass control region) bkg
+		if(i==2){
+		  float BcM_correction = 1-1.2/Bc_M[i];
+		  Bc_M[i] = Bc_M[i] * BcM_correction;
+		  Bc_CorrM[i] = sqrt(Bc_M[i]*Bc_M[i] + PperpTrimu*PperpTrimu) + PperpTrimu;
+		  float dRmuWplmi = TMath::ACos(1- BcM_correction*BcM_correction* (1-TMath::Cos(dR_muWpl[i])) ) + 
+		                    TMath::ACos(1- BcM_correction*BcM_correction* (1-TMath::Cos(dR_muWmi[i])) );
+		  dR_jpsiOverMuW[i] = dR_jpsi[i] / dRmuWplmi;
+		  if (dR_jpsiOverMuW[i]>1) dR_jpsiOverMuW[i] = 1.; if(std::isnan(dR_jpsiOverMuW[i])) dR_jpsiOverMuW[i] = 0; 
+		  dR_jpsiMuW[i] = TMath::ACos(1- BcM_correction*BcM_correction* (1-TMath::Cos(dR_jpsiMuW[i])) );
+		  if(dR_jpsiMuW[i]<0) dR_jpsiMuW[i] = 0; if(dR_jpsiMuW[i]>4) dR_jpsiMuW[i] = 4; if(std::isnan(dR_jpsiMuW[i])) dR_jpsiMuW[i] = 4; //check that deltaR is in [0,4]
+		  dR_sum[i] = dRmuWplmi + dR_jpsi[i];
+		}
+
+		//*** End of the selection
+		if(Bc_CorrM[i] > _BcCorrM_cut(ispp) || dR_sum[i]>_dRsum_cut) continue;
+
+		// //**** Deal with the Jpsi dimuon choice
+		// if((i==0 || i==2 || i==3) && inJpsiMassRange(QQ_M[i], maxEta<1.5) && inJpsiMassRange(QQ2_M[i], maxEta<1.5) 
+		//    && QQ2_dca[i]<_QQdca_cut && QQ2_VtxProb[i]>QQ_VtxProb[i])
+		//   continue; //In data, if both OS dimuons are in Jpsi peak region, choose the one with best VtxProb (so no bias on the Jpsi mass)
+		// if(i==1 && inJpsiMassSB(QQ_M[i], maxEta<1.5) && inJpsiMassSB(QQ2_M[i], maxEta<1.5)
+		//    && QQ2_dca[i]<_QQdca_cut && QQ2_VtxProb[i]>QQ_VtxProb[i])
+		//    continue; //In data sidebands, if both OS dimuons are in Jpsi sidebands, choose the one with best VtxProb (so no bias on the Jpsi mass)
 		
 		//cout<<"Passes all selections!!!!!!!!!"<<endl;
 		//**** Finish filling the output variables
@@ -993,21 +1055,14 @@ void MakeInputTrees(bool ispp = true){
 		if(iIpt==1 && i==5) bkgType[i] = 9; //new bkgType for unmatched trimuons from signal MC, merged in the b->Jpsi background //BEWARE, this was =7 before introduction of dimuon+track!
 		if(iIpt==6) bkgType[i] = 10; //flipJpsi b MC
 
-		float QQM_correction = m_Jpsi / recQQ->M();
-
-		Bc_M[i] = BcCandM;
+		Bc_Y[i] = recBc->Rapidity();//0.5* TMath::Log((BcCandE + recBc->Pz())/(BcCandE - recBc->Pz()));
+		Bc_phi[i] = recBc->Phi();
 		//Bc_M[i] = sqrt( pow(  QQM_correction*recQQ->E() + recBc_muW->E()  ,2) - pow( Bc_P[i] ,2) ); //sqrt( (QQ_E + muW_E)^2 - Bc_P^2 )
 		Bc_charge[i] = Reco_3mu_charge[iIpt][BcNb];
 		//Bc_P[i] = recBc->P();
 		//Bc_Pt[i] = recBc->Pt();
-		Bc_Pt[i] = sqrt( pow(QQM_correction * recQQ->Px()+recBc_muW->Px() ,2) + pow(QQM_correction * recQQ->Py()+recBc_muW->Py() ,2) );
-		Bc_P[i] = sqrt( pow(Bc_Pt[i] ,2) + pow(QQM_correction * recQQ->Pz()+recBc_muW->Pz() ,2) );
-		Bc_Y[i] = recBc->Rapidity();//0.5* TMath::Log((BcCandE + recBc->Pz())/(BcCandE - recBc->Pz()));
-		Bc_phi[i] = recBc->Phi();
 		Bc_ctau[i] = Reco_3mu_ctau[iIpt][BcNb] * recBc->Pt()/Bc_Pt[i];
 		Bc_ctau3D[i] = Reco_3mu_ctau3D[iIpt][BcNb] * recBc->P()/Bc_P[i];
-		float PperpTrimu = TMath::Sin(Bc_alpha3D[i]) * Bc_P[i];
-		Bc_CorrM[i] = sqrt(Bc_M[i]*Bc_M[i] + PperpTrimu*PperpTrimu) + PperpTrimu;
 
 		Bc_M_withQQM[i] = recBc->M();
 		Bc_M_muWisK[i] = sqrt( pow(   sqrt(pow(recBc_muW->P(),2) + pow(m_K,2) ) + sqrt(pow(recQQ->P(),2) + pow(m_Jpsi,2) )  ,2) - pow(Bc_P[i],2) );
@@ -1020,46 +1075,7 @@ void MakeInputTrees(bool ispp = true){
 		QQ_phi[i] = recQQ->Phi();
 		QQ_charge[i] = Reco_QQ_sign[iIpt][QQidx];
 		QQ_momId[i] = (iIpt==0)?0:Gen_QQ_momId[iIpt][Reco_QQ_whichGen[iIpt][QQidx]];
-
-		dR_jpsi[i] = (float) recBc_mumi->DeltaR(*recBc_mupl);
-		float dRjpsi_corr = (dR_jpsi[i]<=0)?1:( TMath::ACos(1- QQM_correction*QQM_correction* (1-TMath::Cos(dR_jpsi[i])) ) / dR_jpsi[i] );
-		dR_jpsi[i] = dRjpsi_corr * dR_jpsi[i];
-		if(dR_jpsi[i]<=0) dR_jpsi[i] = 1e-8; if(dR_jpsi[i]>4) dR_jpsi[i] = 4; //check that deltaR is in [0,4]
-
-		float dRmuWmi = (float) recBc_muW->DeltaR(*recBc_mumi);
-		float dRmuWpl = (float) recBc_muW->DeltaR(*recBc_mupl);
-		float mumiCorr = 0.5*(dRjpsi_corr-1) * mupl_Pt[i]/(mupl_Pt[i]+mumi_Pt[i]);
-		float muplCorr = mumiCorr*mumi_Pt[i]/mupl_Pt[i];
-		dR_muWmi[i] = dRmuWmi*( 1+ mumiCorr*(1+ (pow(dR_jpsi[i]/dRjpsi_corr ,2) - pow( dRmuWpl,2))/pow(dRmuWmi ,2) ) );
-		dR_muWpl[i] = dRmuWpl*( 1+ muplCorr*(1+ (pow(dR_jpsi[i]/dRjpsi_corr ,2) - pow( dRmuWmi,2))/pow(dRmuWpl ,2) ) );
-		if(dR_muWmi[i]<=0) dR_muWmi[i] = 1e-8; if(dR_muWmi[i]>4) dR_muWmi[i] = 4; if(std::isnan(dR_muWmi[i])) dR_muWmi[i] = dRmuWmi; //check that deltaR is in [0,4]
-		if(dR_muWpl[i]<=0) dR_muWpl[i] = 1e-8; if(dR_muWpl[i]>4) dR_muWpl[i] = 4; if(std::isnan(dR_muWpl[i])) dR_muWpl[i] = dRmuWpl; //check that deltaR is in [0,4]
-
-		dR_jpsiMuW[i] = (float) recQQ->DeltaR(*recBc_muW);
-		if(dR_jpsiMuW[i]<=0) dR_jpsiMuW[i] = 1e-8; if(dR_jpsiMuW[i]>4) dR_jpsiMuW[i] = 4; //check that deltaR is in [0,4]
-		dR_sum[i] = dR_muWmi[i] + dR_muWpl[i] + dR_jpsi[i];
-		dR_jpsiOverMuW[i] = dR_jpsi[i] / (dR_muWmi[i] + dR_muWpl[i]) ;
-		if (dR_jpsiOverMuW[i]>1) dR_jpsiOverMuW[i] = 1.;
-
-		//mass shift for the TRUEJPSI (high mass control region) bkg
-		Bc_M_shiftedM[i] = Bc_M[i];
-		Bc_CorrM_shiftedM[i] = Bc_CorrM[i];
-		dR_jpsiOverMuW_shiftedM[i] = dR_jpsiOverMuW[i];
-		dR_jpsiMuW_shiftedM[i] = dR_jpsiMuW[i];
-		dR_sum_shiftedM[i] = dR_sum[i];
-		if(i==2){
-		  float BcM_correction = 1-1.2/Bc_M[i];
-		  Bc_M_shiftedM[i] = Bc_M[i] * BcM_correction;
-		  Bc_CorrM_shiftedM[i] = sqrt(Bc_M_shiftedM[i]*Bc_M_shiftedM[i] + PperpTrimu*PperpTrimu) + PperpTrimu;
-		  float dRmuWplmi = TMath::ACos(1- BcM_correction*BcM_correction* (1-TMath::Cos(dR_muWpl[i])) ) + 
-		                    TMath::ACos(1- BcM_correction*BcM_correction* (1-TMath::Cos(dR_muWmi[i])) );
-		  dR_jpsiOverMuW_shiftedM[i] = dR_jpsi[i] / dRmuWplmi;
-		  if (dR_jpsiOverMuW_shiftedM[i]>1) dR_jpsiOverMuW_shiftedM[i] = 1.; if(std::isnan(dR_jpsiOverMuW_shiftedM[i])) dR_jpsiOverMuW_shiftedM[i] = dR_jpsiOverMuW[i];
-		  dR_jpsiMuW_shiftedM[i] = TMath::ACos(1- BcM_correction*BcM_correction* (1-TMath::Cos(dR_jpsiMuW[i])) );
-		  if(dR_jpsiMuW_shiftedM[i]<0) dR_jpsiMuW_shiftedM[i] = 0; if(dR_jpsiMuW_shiftedM[i]>4) dR_jpsiMuW_shiftedM[i] = 4; if(std::isnan(dR_jpsiMuW_shiftedM[i])) dR_jpsiMuW_shiftedM[i] = dR_jpsiMuW[i]; //check that deltaR is in [0,4]
-		  dR_sum_shiftedM[i] = dRmuWplmi + dR_jpsi[i];
-		}
-
+		
 		muW_isJpsiBro[i] = (iIpt!=2 && iIpt!=3 && iIpt!=6)?false:Reco_3mu_muW_isGenJpsiBro[iIpt][BcNb];
 		muW_trueId[i] = (iIpt!=2 && iIpt!=3 && iIpt!=6)?0:Reco_3mu_muW_trueId[iIpt][BcNb];
 		muW_normChi2_inner[i] = (iIpt==4)?0:Reco_mu_normChi2_inner[iIpt][muWidx];
@@ -1072,14 +1088,24 @@ void MakeInputTrees(bool ispp = true){
 		mupl_P[i] = recBc_mupl->P();
 		mupl_phi[i] = recBc_mupl->Phi();
 
+		//transverse muon displacement from PV 
 		muW_dxySignif[i] = fabs( muW_dxy / ((iIpt==4)?(Reco_trk_dxyError[iIpt][muWidx]):(Reco_mu_dxyErr[iIpt][muWidx]) ) );
-		muW_dzSignif[i] = fabs( muW_dz / ((iIpt==4)?(Reco_trk_dzError[iIpt][muWidx]):(Reco_mu_dzErr[iIpt][muWidx]) ) );
 		mumi_dxySignif[i] = fabs( mumi_dxy / Reco_mu_dxyErr[iIpt][mumiidx] );
-		mumi_dzSignif[i] = fabs( mumi_dz / Reco_mu_dzErr[iIpt][mumiidx] );
 		mupl_dxySignif[i] = fabs( mupl_dxy / Reco_mu_dxyErr[iIpt][muplidx] );
-		mupl_dzSignif[i] = fabs( mupl_dz / Reco_mu_dzErr[iIpt][muplidx] );	      
 		MuonDxySignif_sum[i] = muW_dxySignif[i] + mumi_dxySignif[i] + mupl_dxySignif[i];
+		MuonDxySignif_min[i] = min(muW_dxySignif[i], min(mumi_dxySignif[i], mupl_dxySignif[i]));
+		//z muon displacements
+		muW_dzSignif[i] = fabs( muW_dz / ((iIpt==4)?(Reco_trk_dzError[iIpt][muWidx]):(Reco_mu_dzErr[iIpt][muWidx]) ) );
+		mumi_dzSignif[i] = fabs( mumi_dz / Reco_mu_dzErr[iIpt][mumiidx] );
+		mupl_dzSignif[i] = fabs( mupl_dz / Reco_mu_dzErr[iIpt][muplidx] );	      
 		MuonDzSignif_sum[i] = muW_dzSignif[i] + mumi_dzSignif[i] + mupl_dzSignif[i];
+		MuonDzSignif_min[i] = min(muW_dzSignif[i], min(mumi_dzSignif[i], mupl_dzSignif[i]));
+		//3D muon displacements: sigma(f = sqrt(x2+z2))^2 = x2 * sigmax2 / f2 + z2 * sigmaz2 / f2 ;
+		muW_dxyzSignif[i] = (pow(muW_dxy,2) + pow(muW_dz,2))  /  sqrt( pow(muW_dxy,4)/pow(muW_dxySignif[i],2) + pow(muW_dz,4)/pow(muW_dzSignif[i],2) );
+		mumi_dxyzSignif[i] = (pow(mumi_dxy,2) + pow(mumi_dz,2))  /  sqrt( pow(mumi_dxy,4)/pow(mumi_dxySignif[i],2) + pow(mumi_dz,4)/pow(mumi_dzSignif[i],2) );
+		mupl_dxyzSignif[i] = (pow(mupl_dxy,2) + pow(mupl_dz,2))  /  sqrt( pow(mupl_dxy,4)/pow(mupl_dxySignif[i],2) + pow(mupl_dz,4)/pow(mupl_dzSignif[i],2) );
+		MuonDxyzSignif_sum[i] = muW_dxyzSignif[i] + mumi_dxyzSignif[i] + mupl_dxyzSignif[i];
+		MuonDxyzSignif_min[i] = min(muW_dxyzSignif[i], min(mumi_dxyzSignif[i], mupl_dxyzSignif[i]));
 	      
 		QQmuW_ptImbal[i] = fabs((QQ_Pt[i]-muW_Pt[i])/(QQ_Pt[i]+muW_Pt[i]));
 
@@ -1102,14 +1128,17 @@ void MakeInputTrees(bool ispp = true){
 		  }
 		}
 
-		if(Bc_CorrM_shiftedM[i] > _BcCorrM_cut(ispp) || dR_sum_shiftedM[i]>7.5) continue; //cuts no signal in PbPb, and 0.1% in pp
 		if(!ispp && min(Centrality[i],min(Centrality_Up[i],Centrality_Down[i])) >= 2*_Centmax[0]) continue; //keep 0-90% centrality
 	    	     
 		if(!(std::isnan(w_simple[i]))){
 		  if(!ispp && i==3 && Bc_M[i]<_mBcMax){ //whether to blind 3/4 of the events of signal region
-		    w_unblind[i] = w_simple[i];
-		    if((j%4)==0) w_simple[i] *= 4;
-		    else w_simple[i]=0;
+		    if((j%4)==0) w_blind[i] *= w_simple[i];
+		    else w_blind[i]=0;
+
+		    // //this was with the blinding
+		    // w_unblind[i] = w_simple[i];
+		    // if((j%4)==0) w_simple[i] *= 4;
+		    // else w_simple[i]=0;
 		  }
 
 		  thisTrimuGaveABc = i;
@@ -1117,10 +1146,10 @@ void MakeInputTrees(bool ispp = true){
 		}
 	      } //end if passes full selection
 
-	    } //end if(QQ_isValid)
-	  } //end loop on 2/3 possible Jpsi dimuon choice
-	} //end loop on Bc candidates
-      } //end loop on selection of output trees 
+	    } //end loop on selection of output trees 
+	  } //end if(QQ_isValid)
+	} //end loop on 2/3 possible Jpsi dimuon choice
+      } //end loop on Bc candidates
     } //end loop on entries
     // cout<<"Jpsi mass signal region nall,npass,efficiency = "<<nall<<" "<<npass<<" "<<npass/nall<<endl;
     // cout<<"Jpsi mass sidebands nall,npass,efficiency = "<<nall<<" "<<nside<<" "<<nside/nall<<endl;

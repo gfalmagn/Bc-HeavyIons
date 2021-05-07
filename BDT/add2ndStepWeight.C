@@ -69,7 +69,9 @@ void add2ndStepWeight(bool ispp=true, bool withTM=false){
       T[iT]->GetEntry(j);
 
       if(iT==4){
-	weight2[iT] = weight[iT] * getBias( biasPTMC , gen3mu_Pt[iT]);
+	float addw = getBias( biasPTMC , gen3mu_Pt[iT]);
+	if(addw<=1e-7) addw = 1;
+	weight2[iT] = weight[iT] * addw;
 	b_weight2[iT]->Fill();
       }
     }

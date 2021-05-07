@@ -15,7 +15,7 @@
 #include "../../helpers/Cuts_BDT.h"
 #include "../../helpers/Cuts.h"
 
-void BDTweight(bool ispp=true, bool step2=true, bool step3=false){
+void BDTweight(bool ispp=true, bool step2=true, bool step3=false, bool inCentBins=false){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -34,16 +34,22 @@ void BDTweight(bool ispp=true, bool step2=true, bool step3=false){
   auto histFile = TFile::Open("../../templateFit/InputForCombine_"+(TString)(ispp?"pp":"PbPb")+(TString)(step2?"_2ndStep":"")+metafitSyst+".root");
 
   //file of fit output
-  TString normFileName = "../../templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(ispp?"pp":"PbPb")+"_2bins"+(TString)((step2 && useFutureFit)?"_2ndStep":"")+metafitSyst+systExt+".root"; //!!!! HERE change to 2nd step
+  TString normFileName = "../../templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(ispp?"pp":"PbPb")+(TString)(inCentBins?"_centBins":"_2bins")+(TString)((step2 && useFutureFit)?"_2ndStep":"")+metafitSyst+systExt+".root";
   auto normFile = TFile::Open(normFileName);
+  TString normFileNameInteg = "../../templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(ispp?"pp":"PbPb")+"_integrated"+(TString)((step2 && useFutureFit)?"_2ndStep":"")+metafitSyst+systExt+".root";
+  auto normFileInteg = TFile::Open(normFileNameInteg);
 
   //Grab NP for shape morphings
-  RooArgList fittedPars = ((RooFitResult*)normFile->Get("fit_s"))->floatParsFinal();
-  float np_FakeJpsiSB = ((RooRealVar*)fittedPars.find("JpsiSB"))->getValV();
-  float np_JpsiMC = ((RooRealVar*)fittedPars.find(ispp?"wPromptMC":"UncorrNPJ"))->getValV();
-  float np_flipJpsi = ((RooRealVar*)fittedPars.find(ispp?"flipJSameSide":"FlipJorMC"))->getValV();
-  vector<float> shapeMorph = {0,0,np_FakeJpsiSB,np_JpsiMC,np_flipJpsi};
-  cout<<"np_FakeJpsiSB np_JpsiMC np_flipJpsi = "<<np_FakeJpsiSB <<" "<<np_JpsiMC <<" "<<np_flipJpsi <<endl;
+  vector<float> np_FakeJpsiSB, np_JpsiMC, np_flipJpsi;
+  vector<vector<float> > shapeMorph;
+  for(int i=0;i<2;i++){
+    RooArgList fittedPars = ((RooFitResult*)((i==0)?normFileInteg:normFile)->Get("fit_s"))->floatParsFinal();
+    np_FakeJpsiSB.push_back( ((RooRealVar*)fittedPars.find("JpsiSB"))->getValV() );
+    np_JpsiMC.push_back( ispp?(((RooRealVar*)fittedPars.find("wPromptMC"))->getValV()):0. ); //ispp?"wPromptMC":"UncorrNPJ"
+    np_flipJpsi.push_back( ((RooRealVar*)fittedPars.find(ispp?"flipJSameSide":"FlipJorMC"))->getValV() );
+    shapeMorph.push_back( vector<float>({0,0,np_FakeJpsiSB[i],np_JpsiMC[i],np_flipJpsi[i]}) );
+    cout<<(TString)((i==0)?"integrated fit: ":"2pT bins fit: ")+" np_FakeJpsiSB np_JpsiMC np_flipJpsi = "<<np_FakeJpsiSB[i] <<" "<<np_JpsiMC[i] <<" "<<np_flipJpsi[i] <<endl;
+  }
 
   //Grab BDT distributions  
   vector<vector<TH1F*> > h_bdtSum(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1));
@@ -55,20 +61,20 @@ void BDTweight(bool ispp=true, bool step2=true, bool step3=false){
   vector<TH1F*> h_BDTratio(_NanaBins+1);
 
   for(int i=0; i<nproc; i++){
-    for(int b=1;b<=_NanaBins;b++){
+    for(int b=0;b<=_NanaBins;b++){
       for(int k=1;k<=_nChan(ispp);k++){
-	h_bdt[i][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+"Kin"+(TString)to_string(b)+"/"+procName[i][0]+"/BDTv");
-	h_bdtUp[i][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+"Kin"+(TString)to_string(b)+"/"+procName[i][(i>1)?1:0]+"/BDTv");
-	h_bdtDown[i][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+"Kin"+(TString)to_string(b)+"/"+procName[i][(i>1)?2:0]+"/BDTv");
+	h_bdt[i][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+(TString)((b==0)?"":((TString)(inCentBins?"Cent":"Kin")+(TString)to_string(b)))+"/"+procName[i][0]+"/BDTv");
+	h_bdtUp[i][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+(TString)((b==0)?"":((TString)(inCentBins?"Cent":"Kin")+(TString)to_string(b)))+"/"+procName[i][(i>1)?1:0]+"/BDTv");
+	h_bdtDown[i][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+(TString)((b==0)?"":((TString)(inCentBins?"Cent":"Kin")+(TString)to_string(b)))+"/"+procName[i][(i>1)?2:0]+"/BDTv");
 
 	//deal with shape morphing, assuming linear interpolation
-	if(shapeMorph[i]>0){
-	  h_bdt[i][b][k]->Scale(1-shapeMorph[i]); //bdtnew = (1-np)*bdtold + np*bdtup;
-	  h_bdt[i][b][k]->Add(h_bdtUp[i][b][k] , shapeMorph[i]);
+	if(shapeMorph[(int)(b>0)][i]>0){
+	  h_bdt[i][b][k]->Scale(1-shapeMorph[(int)(b>0)][i]); //bdtnew = (1-np)*bdtold + np*bdtup;
+	  h_bdt[i][b][k]->Add(h_bdtUp[i][b][k] , shapeMorph[(int)(b>0)][i]);
 	}
-	else if(shapeMorph[i]<0){
-	  h_bdt[i][b][k]->Scale(1+shapeMorph[i]); //bdtnew = (1+np)*bdtold - np*bdtdown;
-	  h_bdt[i][b][k]->Add(h_bdtDown[i][b][k] , -shapeMorph[i]);
+	else if(shapeMorph[(int)(b>0)][i]<0){
+	  h_bdt[i][b][k]->Scale(1+shapeMorph[(int)(b>0)][i]); //bdtnew = (1+np)*bdtold - np*bdtdown;
+	  h_bdt[i][b][k]->Add(h_bdtDown[i][b][k] , -shapeMorph[(int)(b>0)][i]);
 	}
 
 	h_bdt[i][b][k]->Rebin(ispp?3:4);
@@ -78,29 +84,30 @@ void BDTweight(bool ispp=true, bool step2=true, bool step3=false){
   
   //Grab postfit yields
   RooArgSet *Yields = (RooArgSet*)normFile->Get("norm_fit_s");
+  RooArgSet *Yields_integ = (RooArgSet*)normFileInteg->Get("norm_fit_s");
   vector<vector<vector<float> > > yields(nproc, vector<vector<float> >(_NanaBins+1, vector<float>(_nChan(ispp)+1)));
 
   for(int i=0; i<nproc; i++){
-    for(int b=1;b<=_NanaBins;b++){
+    for(int b=0;b<=_NanaBins;b++){
       for(int k=1;k<=_nChan(ispp);k++){
-	yields[i][b][k] = Yields->getRealValue("BDT"+(TString)(to_string(k))+"Kin"+(TString)(to_string(b))+"/"+procName[i][0]);
+	yields[i][b][k] = ((b==0)?Yields_integ:Yields)->getRealValue("BDT"+(TString)to_string(k)+(TString)((b==0)?"":((TString)(inCentBins?"Cent":"Kin")+(TString)to_string(b)))+"/"+procName[i][0]);
 	if(i==0) yields[i][b][k] = h_bdt[i][b][k]->Integral(); //for data_obs
 	//update the integral of BDT distro to the postfit yield
 	else h_bdt[i][b][k]->Scale( yields[i][b][k] / h_bdt[i][b][k]->Integral() );
 	//	cout<<"ispp iproc b k yield = "<<ispp<<" "<<i<<" "<<b<<" "<<k<<" "<<yields[i][b][k]<<endl;
 
 	//sum of postfit templates
-	if(i==1) h_bdtSum[b][k] = (TH1F*)h_bdt[i][b][k]->Clone("BDT"+(TString)to_string(k)+"Kin"+(TString)to_string(b)+"/sumTemplates/BDTv");
+	if(i==1) h_bdtSum[b][k] = (TH1F*)h_bdt[i][b][k]->Clone("BDT"+(TString)to_string(k)+(TString)((b==0)?"":((TString)(inCentBins?"Cent":"Kin")+(TString)to_string(b)))+"/sumTemplates/BDTv");
 	else if(i>1) h_bdtSum[b][k]->Add(h_bdt[i][b][k]);
 
 	//drawing stuff
 	h_bdt[i][b][k]->SetLineWidth(3);
-	h_bdt[i][b][k]->GetXaxis()->SetRangeUser(_BDTcuts(ispp,b,step2)[0]-0.05,_BDTcuts(ispp,b,step2)[_nChan(ispp)]+0.05);
+	h_bdt[i][b][k]->GetXaxis()->SetRangeUser(_BDTcuts(ispp,inCentBins?0:b , inCentBins?b:0,step2)[0]-0.05,_BDTcuts(ispp,inCentBins?0:b , inCentBins?b:0,step2)[_nChan(ispp)]+0.05);
 	h_bdt[i][b][k]->GetXaxis()->SetTitleSize(0.06);
 	h_bdt[i][b][k]->GetYaxis()->SetTitleSize(0.06);
 	if(i==1){
 	  h_bdtSum[b][k]->SetLineWidth(3);
-	  h_bdtSum[b][k]->GetXaxis()->SetRangeUser(_BDTcuts(ispp,b,step2)[0]-0.05,_BDTcuts(ispp,b,step2)[_nChan(ispp)]+0.05);
+	  h_bdtSum[b][k]->GetXaxis()->SetRangeUser(_BDTcuts(ispp,inCentBins?0:b , inCentBins?b:0,step2)[0]-0.05,_BDTcuts(ispp,inCentBins?0:b , inCentBins?b:0,step2)[_nChan(ispp)]+0.05);
 	  h_bdtSum[b][k]->GetXaxis()->SetTitleSize(0.06);
 	  h_bdtSum[b][k]->GetYaxis()->SetTitleSize(0.06);
 	}
@@ -109,11 +116,11 @@ void BDTweight(bool ispp=true, bool step2=true, bool step3=false){
   }
 
   //Summing over BDT bins
-  for(int b=1;b<=_NanaBins;b++){      
+  for(int b=0;b<=_NanaBins;b++){      
     for(int k=1;k<=_nChan(ispp);k++){
       if(k==1) {
-	h_BDTData[b] = (TH1F*)h_bdt[0][b][k]->Clone("Kin"+(TString)to_string(b)+"/data/BDTv");
-	h_BDTSum[b] = (TH1F*)h_bdtSum[b][k]->Clone("Kin"+(TString)to_string(b)+"/sumTemplates/BDTv");
+	h_BDTData[b] = (TH1F*)h_bdt[0][b][k]->Clone((TString)((b==0)?"":((TString)(inCentBins?"Cent":"Kin")+(TString)to_string(b)))+"/data/BDTv");
+	h_BDTSum[b] = (TH1F*)h_bdtSum[b][k]->Clone((TString)((b==0)?"":((TString)(inCentBins?"Cent":"Kin")+(TString)to_string(b)))+"/sumTemplates/BDTv");
       }
       else {
 	h_BDTData[b]->Add(h_bdt[0][b][k]);
@@ -123,7 +130,7 @@ void BDTweight(bool ispp=true, bool step2=true, bool step3=false){
   }
 
   gStyle->SetOptStat(0);
-  for(int b=1;b<=_NanaBins;b++){
+  for(int b=0;b<=_NanaBins;b++){
     
     //plot all separate BDT distros
     TCanvas* c1 = new TCanvas("allSourcesBin"+(TString)(ispp?"_pp":"_PbPb")+(TString)to_string(b),"allSourcesBin"+(TString)(ispp?"_pp":"_PbPb")+(TString)to_string(b),3000,1000);
@@ -160,7 +167,7 @@ void BDTweight(bool ispp=true, bool step2=true, bool step3=false){
     h_bdt[4][b][1]->SetTitle("J/#psi-#mu combinatorics;BDT;postfit yield;");
     h_bdt[4][b][1]->Draw("");
 
-    c1->SaveAs("figs/BDTdistr_allSources_"+(TString)(step2?(step3?"3rdStep_":(useFutureFit?"2ndStepUseFinalFit_":"2ndStep_")):"")+(TString)(ispp?"pp":"PbPb")+"_kinBin_"+(TString)to_string(b)+".pdf");
+    c1->SaveAs("figs/BDTdistr_allSources_"+(TString)(step2?(step3?"3rdStep_":(useFutureFit?"2ndStepUseFinalFit_":"2ndStep_")):"")+(TString)(ispp?"pp":"PbPb")+(TString)(inCentBins?"_centBin":"_kinBin")+(TString)to_string(b)+".pdf");
 
     //plot comparison data/summed templates
     TCanvas* c2 = new TCanvas("dataPostfitComp"+(TString)(ispp?"_pp":"_PbPb")+(TString)to_string(b),"dataPostfitComp"+(TString)(ispp?"_pp":"_PbPb")+(TString)to_string(b),1500,1500);
@@ -203,9 +210,9 @@ void BDTweight(bool ispp=true, bool step2=true, bool step3=false){
     TLine one = TLine();
     one.SetLineStyle(7);
     one.SetLineColor(kGray+2);
-    one.DrawLine(_BDTcuts(ispp,b,step2)[0]-0.05, 1 ,_BDTcuts(ispp,b,step2)[_nChan(ispp)]+0.05, 1);
+    one.DrawLine(_BDTcuts(ispp,inCentBins?0:b , inCentBins?b:0,step2)[0]-0.05, 1 ,_BDTcuts(ispp,inCentBins?0:b , inCentBins?b:0,step2)[_nChan(ispp)]+0.05, 1);
 
-    c2->SaveAs("figs/BDTdistr_dataComparisonToSummedTemplates_"+(TString)(step2?(step3?"3rdStep_":(useFutureFit?"2ndStepUseFinalFit_":"2ndStep_")):"")+(TString)(ispp?"pp":"PbPb")+"_kinBin"+(TString)to_string(b)+".pdf");
+    c2->SaveAs("figs/BDTdistr_dataComparisonToSummedTemplates_"+(TString)(step2?(step3?"3rdStep_":(useFutureFit?"2ndStepUseFinalFit_":"2ndStep_")):"")+(TString)(ispp?"pp":"PbPb")+(TString)(inCentBins?"_centBin":"_kinBin")+(TString)to_string(b)+".pdf");
 
     //regularize weights histo
     for(int B=1;B<=h_BDTratio[b]->GetNbinsX();B++){
@@ -217,8 +224,8 @@ void BDTweight(bool ispp=true, bool step2=true, bool step3=false){
   }
 
   TFile* weightF = new TFile("BDTdistrWeights_"+(TString)(ispp?"pp":"PbPb")+".root","UPDATE");
-  for(int b=1;b<=_NanaBins;b++)
-    h_BDTratio[b]->Write("BDT_RatioDataToSummedTemplates_"+(TString)(step2?(step3?"3rdStep_":(useFutureFit?"2ndStepUseFinalFit_":"2ndStep_")):"")+(TString)(ispp?"pp":"PbPb")+"_kinBin"+(TString)to_string(b));
+  for(int b=0;b<=_NanaBins;b++)
+    h_BDTratio[b]->Write("BDT_RatioDataToSummedTemplates_"+(TString)(step2?(step3?"3rdStep_":(useFutureFit?"2ndStepUseFinalFit_":"2ndStep_")):"")+(TString)(ispp?"pp":"PbPb")+(TString)(inCentBins?"_centBin":"_kinBin")+(TString)to_string(b));
   weightF->Close();
 
 }
@@ -228,6 +235,8 @@ void BDTweighting(bool step2=true, bool step3=false){
   cout<<endl<<"BDT comparison for pp"<<endl<<endl;
   BDTweight(true,step2,step3);
   cout<<endl<<"BDT comparison for PbPb"<<endl<<endl;
-  BDTweight(false,step2,step3);
+  BDTweight(false,step2,step3,false);
+  cout<<endl<<"BDT comparison for PbPb centrality bins"<<endl<<endl;
+  BDTweight(false,step2,step3,true);
 }
 

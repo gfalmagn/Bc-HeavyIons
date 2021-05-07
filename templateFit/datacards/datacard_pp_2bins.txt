@@ -1,6 +1,6 @@
 imax 6
 jmax 3
-kmax 6
+kmax 5
 ---------------
 shapes data_obs * InputForCombine_pp$METAFITSYST.root $CHANNEL/$PROCESS/BcM 
 shapes BcSig    * InputForCombine_pp$METAFITSYST.root $CHANNEL/$PROCESS/BcM 
@@ -16,7 +16,7 @@ process  	     BcSig     FakeJpsi  JpsiMC    flipJpsi  BcSig     FakeJpsi  JpsiM
 process  	     0         1	 2	   3         0         1	 2	   3         0         1	 2	   3         0         1	 2	   3         0         1	 2	   3         0         1	 2	   3         
 rate	             -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        
 --------------------------------
-lumi	      lnN    1.015     1.015     -	   1.015     1.015     1.015     -	   1.015     1.015     1.015     -	   1.015     1.015     1.015     -	   1.015     1.015     1.015     -	   1.015     1.015     1.015     -	   1.015         
+#lumi	      lnN    1.019     -         1.019	   1.019     1.019     -         1.019	   1.019     1.019     -         1.019	   1.019     1.019     -         1.019	   1.019     1.019     -         1.019	   1.019     1.019     -         1.019	   1.019         
 wPromptMC     shape  -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     
 flipJSameSide shape  -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     
 JpsiSB	      shape  -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     #2 sigma variation

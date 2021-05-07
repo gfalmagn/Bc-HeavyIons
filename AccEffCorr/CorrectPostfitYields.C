@@ -49,13 +49,14 @@ void CorrectPostfitYields(bool ispp = true, bool secondStep=false, TString metaf
   vector<vector<vector<TH1F*> > > h_AECorr_BDT23(allProc.size(), vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1)));  
   vector<vector<vector<TH1F*> > > h_AECorr_BDT3(allProc.size(), vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1)));  
   vector<vector<vector<TH1F*> > > h_BcM_postfit(nproc, vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1)));  
+  vector<vector<vector<TH1F*> > > h_BcM_postfit_cent(nproc, vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1)));  
   vector<vector<vector<TH1F*> > > h_BcM_prefit(nproc, vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1)));  
   vector<vector<vector<TH1F*> > > h_BcM_AEweighted(allProc.size(), vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1)));  
   vector<vector<vector<TH1F*> > > h_BcM_AEweighted_BDT23(allProc.size(), vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1)));  
   vector<vector<vector<TH1F*> > > h_BcM_AEweighted_BDT3(allProc.size(), vector<vector<TH1F*> >(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1)));  
   vector<vector<vector<float> > > Yields_pref(nproc, vector<vector<float> >(_NanaBins+1, vector<float>(_nChan(ispp)+1))); //prefit
   vector<vector<vector<float> > > Yields_postf(nproc, vector<vector<float> >(_NanaBins+1, vector<float>(_nChan(ispp)+1))); //postfit, except for data
-  vector<vector<vector<float> > > YieldsCorr(nproc, vector<vector<float> >(_NanaBins+1, vector<float>(_nChan(ispp)+1))); //postfit, except for data
+  vector<vector<vector<float> > > Yields_postf_cent(nproc, vector<vector<float> >(_NanaBins+1, vector<float>(_nChan(ispp)+1))); //postfit, except for data
   vector<vector<float> > corrYield(_NanaBins+1, vector<float>(_nChan(ispp)+1, 0));
   vector<vector<float> > corrYield_MC(_NanaBins+1, vector<float>(_nChan(ispp)+1, 0));
   vector<vector<float> > corrYield_MCv2(_NanaBins+1, vector<float>(_nChan(ispp)+1, 0));
@@ -65,8 +66,11 @@ void CorrectPostfitYields(bool ispp = true, bool secondStep=false, TString metaf
   vector<vector<float> > corrYieldErr_BDT23(_NanaBins+1, vector<float>(_nChan(ispp)+1, 0));
   vector<vector<float> > corrYieldErr_BDT3(_NanaBins+1, vector<float>(_nChan(ispp)+1, 0));
   vector<float> r1r2Corr(1,0);
+  vector<float> r1r2Corr_cent(1,0);
   vector<float> rsig(_NanaBins+1,0), rsig_true(_NanaBins+1,0), rsig_errl(_NanaBins+1,0), rsig_errh(_NanaBins+1,0);
   vector<vector<float> > rsig_relerr(_NanaBins+1,vector<float>(3,0));
+  vector<float> rsig_cent(_NanaBins+1,0), rsig_errl_cent(_NanaBins+1,0), rsig_errh_cent(_NanaBins+1,0);
+  vector<vector<float> > rsig_relerr_cent(_NanaBins+1,vector<float>(3,0));
   vector<vector<TH1F*> > h_BcM_BkgSubData(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1));
   vector<vector<TH1F*> > h_BcM_BkgSubData_BDT23(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1));
   vector<vector<TH1F*> > h_BcM_BkgSubData_BDT3(_NanaBins+1, vector<TH1F*>(_nChan(ispp)+1));
@@ -82,27 +86,31 @@ void CorrectPostfitYields(bool ispp = true, bool secondStep=false, TString metaf
   // Extract mass histograms before and after AccEff corrections, for all samples, including systematic variations (allProc)
   //********************************************************  
   auto histFile = TFile::Open("../templateFit/InputForCombine_"+(TString)(ispp?"pp":"PbPb")+(TString)(secondStep?"_2ndStep":"")+metafitSyst+".root"); 
-  cout<<"Extract (mass-dependent) acceptance x efficiency corrections from file "<<"../templateFit/InputForCombine_"+(TString)(ispp?"pp":"PbPb")+metafitSyst+".root"<<endl;
+  cout<<"Extract (mass-dependent) acceptance x efficiency corrections from file "<<"../templateFit/InputForCombine_"+(TString)(ispp?"pp":"PbPb")+(TString)(secondStep?"_2ndStep":"")+metafitSyst+".root"<<endl;
 
   for(int p=0; p<(int)allProc.size(); p++){
     int MainProc = allProc[p].first;
     int sys = allProc[p].second;
-    for(int b=1;b<=_NanaBins;b++){
+    for(int b=0;b<=_NanaBins;b++){
       for(int k=1;k<=_nChan(ispp);k++){
-	h_AECorr[p][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+"Kin"+(TString)to_string(b)+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM_AccEffCorr");
-	h_AECorr_BDT23[p][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+"Kin"+(TString)to_string(b)+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM_AccEffCorr_BDTeff23");
-	h_AECorr_BDT3[p][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+"Kin"+(TString)to_string(b)+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM_AccEffCorr_BDTeff3");
-	h_BcM_AEweighted[p][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+"Kin"+(TString)to_string(b)+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM_AccEffWeighted"); //grab BcM, corrected by event-by-event acc-eff
-	h_BcM_AEweighted_BDT23[p][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+"Kin"+(TString)to_string(b)+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM_AccEffWeighted_BDTeff23"); //grab BcM, corrected by event-by-event acc-eff
-	h_BcM_AEweighted_BDT3[p][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+"Kin"+(TString)to_string(b)+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM_AccEffWeighted_BDTeff3"); //grab BcM, corrected by event-by-event acc-eff
+	h_AECorr[p][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM_AccEffCorr");
+	h_AECorr_BDT23[p][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM_AccEffCorr_BDTeff23");
+	h_AECorr_BDT3[p][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM_AccEffCorr_BDTeff3");
+	h_BcM_AEweighted[p][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM_AccEffWeighted"); //grab BcM, corrected by event-by-event acc-eff
+	h_BcM_AEweighted_BDT23[p][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM_AccEffWeighted_BDTeff23"); //grab BcM, corrected by event-by-event acc-eff
+	h_BcM_AEweighted_BDT3[p][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM_AccEffWeighted_BDTeff3"); //grab BcM, corrected by event-by-event acc-eff
 
 	if(sys==0) {
-	  h_BcM_prefit[MainProc][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+"Kin"+(TString)to_string(b)+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM"); //prefit histo
+	  h_BcM_prefit[MainProc][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM"); //prefit histo
 	  h_BcM_prefit[MainProc][b][k]->SetDirectory(0);
 	}
 	if(p==1) {
-	  h_BcM_postfit[MainProc][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+"Kin"+(TString)to_string(b)+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM"); //grab data BcM histo
+	  h_BcM_postfit[MainProc][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM"); //grab data BcM histo
 	  h_BcM_postfit[MainProc][b][k]->SetDirectory(0);
+	  if(!ispp){
+	    h_BcM_postfit_cent[MainProc][b][k] = (TH1F*)histFile->Get("BDT"+(TString)to_string(k)+(TString)((b==0)?"":("Cent"+(TString)to_string(b)))+"/"+procNameDef[MainProc]+systName[MainProc][sys]+"/BcM"); //grab data BcM histo
+	    h_BcM_postfit_cent[MainProc][b][k]->SetDirectory(0);
+	  }
 	}
 
 	h_AECorr[p][b][k]->SetDirectory(0);
@@ -121,25 +129,41 @@ void CorrectPostfitYields(bool ispp = true, bool secondStep=false, TString metaf
   //Extract POSTFIT SHAPES and SHAPE NUISANCE PARAMETERS from combine output
   //******************************************************** 
   TString normFileName = "../templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(ispp?"pp":"PbPb")+"_2bins"+(TString)(secondStep?"_2ndStep":"")+metafitSyst+systExt+(TString)(_preFitCorrAE?"_wAccEff":"")+".root";
-  cout<<"Extract normalisations from file "<<normFileName<<endl;
+  TString normFileIntName = "../templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(ispp?"pp":"PbPb")+"_integrated"+(TString)(secondStep?"_2ndStep":"")+metafitSyst+systExt+(TString)(_preFitCorrAE?"_wAccEff":"")+".root";
+  TString normFileCentName = "../templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/fitDiagnostics_"+(TString)(ispp?"pp":"PbPb")+"_centBins"+(TString)(secondStep?"_2ndStep":"")+metafitSyst+systExt+(TString)(_preFitCorrAE?"_wAccEff":"")+".root";
+  cout<<"Extract normalisations from files "<<normFileName<<" "<<(ispp?"":normFileCentName)<<" "<<normFileIntName<<" "<<endl;
   auto normFile = TFile::Open(normFileName);
+  auto normFileInt = TFile::Open(normFileIntName);
+  auto normFileCent= TFile::Open(ispp?normFileName:normFileCentName);
 
   for(int proc=0; proc<nproc; proc++){
     if(proc==1) continue; //data is not a postfit shape
-    for(int b=1;b<=_NanaBins;b++){
+    for(int b=0;b<=_NanaBins;b++){
       for(int k=1;k<=_nChan(ispp);k++){
-
 	h_BcM_postfit[proc][b][k] = (TH1F*)h_AECorr[1][b][k]->Clone("Bc_M_postfit_"+procNameDef[proc]); //Do this to recover proper X axis //not essential, but prettier	
 	h_BcM_postfit[proc][b][k]->SetDirectory(0);
+	if(!ispp){
+	  h_BcM_postfit_cent[proc][b][k] = (TH1F*)h_AECorr[1][b][k]->Clone("Bc_M_postfit_"+procNameDef[proc]); //Do this to recover proper X axis //not essential, but prettier	
+	  h_BcM_postfit_cent[proc][b][k]->SetDirectory(0);
+	}
 
 	//fetch postfit shapes                                                                           
-	//cout<<"fetching histogram shapes_fit_s/BDT"+(TString)(to_string(k))+"Kin"+(TString)to_string(b)+"/"+procNameDef[proc]<<endl;
-	TH1F* h_tmp = (TH1F*)normFile->Get("shapes_fit_s/BDT"+(TString)(to_string(k))+"Kin"+(TString)to_string(b)+"/"+procNameDef[proc]) ;
+	//cout<<"fetching histogram shapes_fit_s/BDT"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+"/"+procNameDef[proc]<<endl;
+	TH1F* h_tmp = (TH1F*)((b==0)?normFileInt:normFile)->Get("shapes_fit_s/BDT"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+"/"+procNameDef[proc]) ;
 	for(int bin=0;bin<=h_BcM_postfit[proc][b][k]->GetNbinsX();bin++){
 	  h_BcM_postfit[proc][b][k]->SetBinContent(bin, h_tmp->GetBinContent(bin));
 	  h_BcM_postfit[proc][b][k]->SetBinError(bin, h_tmp->GetBinError(bin));
 	}
 	delete h_tmp;
+
+	if(!ispp){
+	  TH1F* h_tmp = (TH1F*)((b==0)?normFileInt:normFileCent)->Get("shapes_fit_s/BDT"+(TString)(to_string(k))+(TString)((b==0)?"":("Cent"+(TString)to_string(b)))+"/"+procNameDef[proc]) ;
+	  for(int bin=0;bin<=h_BcM_postfit_cent[proc][b][k]->GetNbinsX();bin++){
+	    h_BcM_postfit_cent[proc][b][k]->SetBinContent(bin, h_tmp->GetBinContent(bin));
+	    h_BcM_postfit_cent[proc][b][k]->SetBinError(bin, h_tmp->GetBinError(bin));
+	  }
+	  delete h_tmp;
+	}
 
       }
     }
@@ -147,53 +171,69 @@ void CorrectPostfitYields(bool ispp = true, bool secondStep=false, TString metaf
 
   //get values of nuisance parameters
   RooArgList fittedPars = ((RooFitResult*)normFile->Get("fit_s"))->floatParsFinal();
+  RooArgList fittedParsInt = ((RooFitResult*)normFileInt->Get("fit_s"))->floatParsFinal();
+  RooArgList fittedParsCent = ispp?RooArgList():( ((RooFitResult*)normFileCent->Get("fit_s"))->floatParsFinal() );
   float JpsiSB = ((RooRealVar*)fittedPars.find("JpsiSB"))->getValV(); //getError()
   float flipJ = ((RooRealVar*)fittedPars.find(ispp?"flipJSameSide":"FlipJorMC"))->getValV(); //getError()
-  float JMC = ((RooRealVar*)fittedPars.find(ispp?"wPromptMC":"UncorrNPJ"))->getValV(); //getError()
+  float JMC = ispp?( ((RooRealVar*)fittedPars.find(ispp?"wPromptMC":"UncorrNPJ"))->getValV() ):0; //getError()
   r1r2Corr[0] = ((RooFitResult*)normFile->Get("fit_s"))->correlation("r1","r2");
+  if(!ispp) r1r2Corr_cent[0] = ((RooFitResult*)normFileCent->Get("fit_s"))->correlation("r1","r2");
 
   //Fill yields pre/post-fit (integrals of BcM distros)
   for(int proc=0; proc<nproc; proc++){
-    for(int b=1;b<=_NanaBins;b++){
+    for(int b=0;b<=_NanaBins;b++){
       Yields_pref[proc][b][0] = 0;
       Yields_postf[proc][b][0] = 0;
       for(int k=1;k<=_nChan(ispp);k++){
 	Yields_pref[proc][b][k] = h_BcM_prefit[proc][b][k]->Integral(1,_nbinMSR(ispp)[k-1]) ;
-	Yields_postf[proc][b][k] = h_BcM_postfit[proc][b][k]->Integral(1,_nbinMSR(ispp)[k-1]) ;
 	Yields_pref[proc][b][0] += Yields_pref[proc][b][k];
+	Yields_postf[proc][b][k] = h_BcM_postfit[proc][b][k]->Integral(1,_nbinMSR(ispp)[k-1]) ;
 	Yields_postf[proc][b][0] += Yields_postf[proc][b][k];
-      }
-    }
-    for(int k=0;k<=_nChan(ispp);k++){
-      Yields_pref[proc][0][k] = 0;
-      Yields_postf[proc][0][k] = 0;
-      for(int b=1;b<=_NanaBins;b++){
-	Yields_pref[proc][0][k] += Yields_pref[proc][b][k];
-	Yields_postf[proc][0][k] += Yields_postf[proc][b][k];
+        if(!ispp){
+	  Yields_postf_cent[proc][b][k] = h_BcM_postfit_cent[proc][b][k]->Integral(1,_nbinMSR(ispp)[k-1]) ;
+	  Yields_postf_cent[proc][b][0] += Yields_postf_cent[proc][b][k];
+	}
+
       }
     }
   }
 
-  for(int b=1;b<=_NanaBins;b++){
-    rsig[b] = ((RooRealVar*)fittedPars.find("r"+(TString)to_string(b)))->getValV();
-    rsig_errl[b] = ((RooRealVar*)fittedPars.find("r"+(TString)to_string(b)))->getErrorLo();
-    rsig_errh[b] = ((RooRealVar*)fittedPars.find("r"+(TString)to_string(b)))->getErrorHi();
+  for(int b=0;b<=_NanaBins;b++){
+    rsig[b] = ((RooRealVar*)((b==0)?fittedParsInt:fittedPars).find("r"+(TString)to_string(max(b,1))))->getValV();
+    rsig_errl[b] = ((RooRealVar*)((b==0)?fittedParsInt:fittedPars).find("r"+(TString)to_string(max(b,1))))->getErrorLo();
+    rsig_errh[b] = ((RooRealVar*)((b==0)?fittedParsInt:fittedPars).find("r"+(TString)to_string(max(b,1))))->getErrorHi();
     rsig_true[b] = Yields_postf[0][b][0]/Yields_pref[0][b][0];
     rsig_relerr[b][1] = -rsig_errl[b]/rsig[b];
     rsig_relerr[b][2] =  rsig_errh[b]/rsig[b];
     rsig_relerr[b][0] =  (rsig_relerr[b][1]+rsig_relerr[b][2])/2;
+
+    if(!ispp){
+      rsig_cent[b] = ((RooRealVar*)((b==0)?fittedParsInt:fittedParsCent).find("r"+(TString)to_string(max(b,1))))->getValV();
+      rsig_errl_cent[b] = ((RooRealVar*)((b==0)?fittedParsInt:fittedParsCent).find("r"+(TString)to_string(max(b,1))))->getErrorLo();
+      rsig_errh_cent[b] = ((RooRealVar*)((b==0)?fittedParsInt:fittedParsCent).find("r"+(TString)to_string(max(b,1))))->getErrorHi();
+      rsig_relerr_cent[b][1] = -rsig_errl_cent[b]/rsig_cent[b];
+      rsig_relerr_cent[b][2] =  rsig_errh_cent[b]/rsig_cent[b];
+      rsig_relerr_cent[b][0] =  (rsig_relerr_cent[b][1]+rsig_relerr_cent[b][2])/2;
+    }
   }
 
   cout<<"Shape morphing parameters (JpsiSB, flipJSameSide/FlipJorMC, wPromptMC/UncorrNPJ) are found to be "<<JpsiSB<<" "<<flipJ<<" "<<JMC<<endl;
   cout<<"Signal normalisation modifiers for the 2 pt bins are found to be "<<rsig[1]<<" "<<rsig[2]<<endl;
+  if(!ispp) cout<<"Signal normalisation modifiers for the 2 centrality bins are found to be "<<rsig_cent[1]<<" "<<rsig_cent[2]<<endl;
   cout<<"           versus actual ratio of postfit and prefit signal normalisations = "<<rsig_true[1]<<" "<<rsig_true[2]<<endl;
 
   //only for writing it out
   RooArgSet *Yields = (RooArgSet*)normFile->Get("norm_fit_s");
+  RooArgSet *YieldsInt = (RooArgSet*)normFileInt->Get("norm_fit_s");
+  RooArgSet *YieldsCent = NULL;
+  if(!ispp) YieldsCent = (RooArgSet*)normFileCent->Get("norm_fit_s");
   vector<float> nsig = vector<float>(_NanaBins+1,0);
-  for(int b=1;b<=_NanaBins;b++){
+  vector<float> nsig_cent = vector<float>(_NanaBins+1,0);
+  for(int b=0;b<=_NanaBins;b++){
     for(int k=1;k<=_nChan(ispp);k++){
-      nsig[b] += Yields->getRealValue("BDT"+(TString)(to_string(k))+"Kin"+(TString)(to_string(b))+"/BcSig");
+      nsig[b] += ((b==0)?YieldsInt:Yields)->getRealValue("BDT"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+"/BcSig");
+      if(!ispp)
+	nsig_cent[b] += ((b==0)?YieldsInt:YieldsCent)->getRealValue("BDT"+(TString)(to_string(k))+(TString)((b==0)?"":("Cent"+(TString)to_string(b)))+"/BcSig");
     }
   }
   normFile->Close();
@@ -202,7 +242,7 @@ void CorrectPostfitYields(bool ispp = true, bool secondStep=false, TString metaf
     //********************************************************
     //Subtract background from data, considering AccEff-corrected yields
     //******************************************************** 
-    for(int b=1;b<=_NanaBins;b++){
+    for(int b=0;b<=_NanaBins;b++){
       if(verbose) cout<<endl<<"b = "<<b<<endl;
       corrYield[b][0] = 0;
       corrYield_BDT23[b][0] = 0;
@@ -218,15 +258,15 @@ void CorrectPostfitYields(bool ispp = true, bool secondStep=false, TString metaf
 	corrYield_MC[b][k]=0;
 	corrYield_MCv2[b][k]=0;
 
-	h_BcM_BkgSubData[b][k] = (TH1F*)h_BcM_AEweighted[1][b][k]->Clone("BackgroundSubtractedData_AEcorr_BDT"+(TString)(to_string(k))+"Kin"+(TString)to_string(b)+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"));
-	h_BcM_BkgSubData_BDT23[b][k] = (TH1F*)h_BcM_AEweighted_BDT23[1][b][k]->Clone("BackgroundSubtractedData_AEcorr_BDTeff23_BDT"+(TString)(to_string(k))+"Kin"+(TString)to_string(b)+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"));
-	h_BcM_BkgSubData_BDT3[b][k] = (TH1F*)h_BcM_AEweighted_BDT3[1][b][k]->Clone("BackgroundSubtractedData_AEcorr_BDTeff3_BDT"+(TString)(to_string(k))+"Kin"+(TString)to_string(b)+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"));
+	h_BcM_BkgSubData[b][k] = (TH1F*)h_BcM_AEweighted[1][b][k]->Clone("BackgroundSubtractedData_AEcorr_BDT"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"));
+	h_BcM_BkgSubData_BDT23[b][k] = (TH1F*)h_BcM_AEweighted_BDT23[1][b][k]->Clone("BackgroundSubtractedData_AEcorr_BDTeff23_BDT"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"));
+	h_BcM_BkgSubData_BDT3[b][k] = (TH1F*)h_BcM_AEweighted_BDT3[1][b][k]->Clone("BackgroundSubtractedData_AEcorr_BDTeff3_BDT"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"));
 
-	h_BcM_Data[b][k] = new TH1F("corrData_bin"+(TString)(to_string(k))+"Kin"+(TString)to_string(b)+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"), "Data-background, corrected by AccEff, bin"+(TString)(to_string(k))+"Kin"+(TString)to_string(b), _nbinMSR(ispp)[k-1], _mBcMin, _mBcMax);    
-	h_BcM_Bkg[b][k] = new TH1F("corrBkg_bin"+(TString)(to_string(k))+"Kin"+(TString)to_string(b)+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"), "Scaled background, corrected by AccEff, bin"+(TString)(to_string(k))+"Kin"+(TString)to_string(b), _nbinMSR(ispp)[k-1], _mBcMin, _mBcMax);    
-	h_BcM_DataMinBkg[b][k] = new TH1F("corrDataMinBkg_bin"+(TString)(to_string(k))+"Kin"+(TString)to_string(b)+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"), "Data-background, corrected by AccEff, bin"+(TString)(to_string(k))+"Kin"+(TString)to_string(b), _nbinMSR(ispp)[k-1], _mBcMin, _mBcMax);    
-	h_BcM_SigMC[b][k] = new TH1F("corrSigMC_bin"+(TString)(to_string(k))+"Kin"+(TString)to_string(b)+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"), "Scaled signal MC corrected by AccEff, bin"+(TString)(to_string(k))+"Kin"+(TString)to_string(b), _nbinMSR(ispp)[k-1], _mBcMin, _mBcMax);    
-	h_BcM_SigMCv2[b][k] = new TH1F("corrSigMCv2_bin"+(TString)(to_string(k))+"Kin"+(TString)to_string(b)+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"), "Signal MC (v2) corrected by AccEff, bin"+(TString)(to_string(k))+"Kin"+(TString)to_string(b), _nbinMSR(ispp)[k-1], _mBcMin, _mBcMax);    
+	h_BcM_Data[b][k] = new TH1F("corrData_bin"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"), "Data-background, corrected by AccEff, bin"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b))), _nbinMSR(ispp)[k-1], _mBcMin, _mBcMax);    
+	h_BcM_Bkg[b][k] = new TH1F("corrBkg_bin"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"), "Scaled background, corrected by AccEff, bin"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b))), _nbinMSR(ispp)[k-1], _mBcMin, _mBcMax);    
+	h_BcM_DataMinBkg[b][k] = new TH1F("corrDataMinBkg_bin"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"), "Data-background, corrected by AccEff, bin"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b))), _nbinMSR(ispp)[k-1], _mBcMin, _mBcMax);    
+	h_BcM_SigMC[b][k] = new TH1F("corrSigMC_bin"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"), "Scaled signal MC corrected by AccEff, bin"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b))), _nbinMSR(ispp)[k-1], _mBcMin, _mBcMax);    
+	h_BcM_SigMCv2[b][k] = new TH1F("corrSigMCv2_bin"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b)))+metafitSyst+systExt+(TString)(ispp?"pp":"PbPb"), "Signal MC (v2) corrected by AccEff, bin"+(TString)(to_string(k))+(TString)((b==0)?"":("Kin"+(TString)to_string(b))), _nbinMSR(ispp)[k-1], _mBcMin, _mBcMax);    
       
 	for(int bin=1;bin<=h_BcM_BkgSubData[b][k]->GetNbinsX();bin++){ //forget underflow here?
 
@@ -296,6 +336,8 @@ void CorrectPostfitYields(bool ispp = true, bool secondStep=false, TString metaf
 	
 	  if(verbose) cout<<"corrected data vs corrected bkg: "<<h_BcM_BkgSubData[b][k]->GetBinContent(bin)<<" "<<binBkg[0]<<endl;
 	  if(verbose) cout<<"data-bkg vs MC signal v1 and v2: "<<h_BcM_BkgSubData[b][k]->GetBinContent(bin) - binBkg[0]<<" "<<yield[0] * h_AECorr[0][b][k]->GetBinContent(bin)<<" "<<rsig[b]*h_BcM_AEweighted[0][b][k]->GetBinContent(bin)<<endl;
+	  if(verbose) cout<<" detail of MC val = "<<yield[0] <<" "<< h_AECorr[0][b][k]->GetBinContent(bin)<<endl;
+
 	  h_BcM_BkgSubData[b][k]->SetBinContent(bin, h_BcM_BkgSubData[b][k]->GetBinContent(bin) - binBkg[0]); //substract corrected background from corrected data
 	  h_BcM_BkgSubData[b][k]->SetBinError(bin, sqrt(pow(h_BcM_BkgSubData[b][k]->GetBinContent(bin),2) + pow(binBkgErr[0],2)) ); //forget the shape morphing subtleties in the error
 	  h_BcM_BkgSubData_BDT23[b][k]->SetBinContent(bin, h_BcM_BkgSubData_BDT23[b][k]->GetBinContent(bin) - binBkg[1]); //substract corrected background from corrected data
@@ -492,5 +534,14 @@ void CorrectPostfitYields(bool ispp = true, bool secondStep=false, TString metaf
   outf->WriteObject(&nsig,"nsig"+(TString)(ispp?"_pp":"_PbPb")+metafitSyst+systExt);  
   outf->WriteObject(&rsig,"rsig"+(TString)(ispp?"_pp":"_PbPb")+metafitSyst+systExt);  
   outf->WriteObject(&rsig_relerr,"rsig_relerr"+(TString)(ispp?"_pp":"_PbPb")+metafitSyst+systExt);  
+  outf->WriteObject(&r1r2Corr,"r1r2Correlation"+(TString)(ispp?"_pp":"_PbPb")+metafitSyst+systExt);
+
+  if(!ispp){
+    outf->WriteObject(&Yields_postf_cent,"Yields_postfit_centralityDep_PbPb"+metafitSyst+systExt);  
+    outf->WriteObject(&nsig_cent,"nsig_centralityDep_PbPb"+metafitSyst+systExt);  
+    outf->WriteObject(&rsig_cent,"rsig_centralityDep_PbPb"+metafitSyst+systExt);  
+    outf->WriteObject(&rsig_relerr_cent,"rsig_relerr_centralityDep_PbPb"+metafitSyst+systExt);  
+    outf->WriteObject(&r1r2Corr_cent,"r1r2Correlation_centralityDep_PbPb"+metafitSyst+systExt);
+  }
   outf->Close();
 }

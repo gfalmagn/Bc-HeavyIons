@@ -55,19 +55,19 @@ TH2Poly *_hp(){
     res->AddBin( 0.9+i*0.3 ,16.5, 1.2+i*0.3 ,18);
   }
   res->AddBin(2.1,15,2.3,18.);
-  //pt 18-22
-  res->AddBin(0,18,0.5,20.);   res->AddBin(0,20,0.5,22.); 
+  //pt 18-24
+  res->AddBin(0,18,0.5,21.);   res->AddBin(0,21,0.5,24.); 
   for(int i=0;i<=5;i++) 
-    res->AddBin(0.5+i*0.3,18,0.8+i*0.3,22.); 
-  //pt 22-30
-  res->AddBin(0,22,0.5,30.); 
-  for(int i=0;i<=5;i++) res->AddBin(0.5+i*0.3,22,0.8+i*0.3,30.); 
-  //pt 30-50
-  res->AddBin(0,30,0.3,50.); 
-  for(int i=0;i<=4;i++) res->AddBin(0.3+i*0.4,30,0.7+i*0.4,50.); 
+    res->AddBin(0.5+i*0.3,18,0.8+i*0.3,24.); 
+  //pt 24-35
+  res->AddBin(0,24,0.5,35.); 
+  for(int i=0;i<=5;i++) res->AddBin(0.5+i*0.3,24,0.8+i*0.3,35.); 
+  /* //pt 30-50 */
+  /* res->AddBin(0,30,0.3,50.);  */
+  /* for(int i=0;i<=4;i++) res->AddBin(0.3+i*0.4,30,0.7+i*0.4,50.);  */
 
   //y 2.3-2.4
-  res->AddBin(2.3,0,2.4,4); res->AddBin(2.3,4,2.4,7); res->AddBin(2.3,7,2.4,10); res->AddBin(2.3,10,2.4,14); res->AddBin(2.3,14,2.4,22); res->AddBin(2.3,22,2.4,50);
+  res->AddBin(2.3,0,2.4,4); res->AddBin(2.3,4,2.4,7); res->AddBin(2.3,7,2.4,10); res->AddBin(2.3,10,2.4,14); res->AddBin(2.3,14,2.4,22); res->AddBin(2.3,22,2.4,35);
 
   return res;
 }
@@ -115,19 +115,19 @@ TH2Poly *_hp_coarse(){
     res->AddBin( 1.3+i*0.5 ,15, 1.8+i*0.5 ,16.5);
     res->AddBin( 1.3+i*0.5 ,16.5, 1.8+i*0.5 ,18);
   }
-  //pt 18-22
-  res->AddBin(0,18,0.5,22.); res->AddBin(0.5,18,0.9,22.);
+  //pt 18-24
+  res->AddBin(0,18,0.5,24.); res->AddBin(0.5,18,0.9,24.);
   for(int i=0;i<=3;i++)
-    res->AddBin(0.9+i*0.35,18,1.25+i*0.35,22.);
-  //pt 22-30
-  res->AddBin(0,22,0.5,30.); res->AddBin(0.5,22,0.9,30.);
+    res->AddBin(0.9+i*0.35,18,1.25+i*0.35,24.);
+  //pt 24-30
+  res->AddBin(0,24,0.5,35.); res->AddBin(0.5,24,0.9,35.);
   for(int i=0;i<=3;i++)
-    res->AddBin(0.9+i*0.35,22.,1.25+i*0.35,30.);
-  //pt 30-50
-  res->AddBin(0,30,0.7,50.); res->AddBin(0.7,30,1.3,50.); res->AddBin(1.3,30,1.8,50.); res->AddBin(1.8,30,2.3,50.);
+    res->AddBin(0.9+i*0.35,24.,1.25+i*0.35,35.);
+  //  //pt 30-50
+  //  res->AddBin(0,30,0.7,50.); res->AddBin(0.7,30,1.3,50.); res->AddBin(1.3,30,1.8,50.); res->AddBin(1.8,30,2.3,50.);
 
   //y 2.3-2.4
-  res->AddBin(2.3,0,2.4,6); res->AddBin(2.3,6,2.4,18); res->AddBin(2.3,18,2.4,50);
+  res->AddBin(2.3,0,2.4,6); res->AddBin(2.3,6,2.4,18); res->AddBin(2.3,18,2.4,35);
 
   return res;
 }
@@ -150,15 +150,15 @@ TH2Poly *_hp_coarser(){
   res->AddBin(0,13,1.3,15.); res->AddBin(1.3,13,2.3,15.); 
   //pt 15-18
   res->AddBin(0,15,1.3,18.); res->AddBin(1.3,15,2.3,18.);
-  //pt 18-22
-  res->AddBin(0,18,1.3,22.); res->AddBin(1.3,18,2.3,22.);
-  //pt 22-30
-  res->AddBin(0,22,1.3,30.); res->AddBin(1.3,22,2.3,30.);
-  //pt 30-50
-  res->AddBin(0,30,1.3,50.); res->AddBin(1.3,30,2.3,50.);
+  //pt 18-24
+  res->AddBin(0,18,1.3,24.); res->AddBin(1.3,18,2.3,24.);
+  //pt 24-30
+  res->AddBin(0,24,1.3,35.); res->AddBin(1.3,24,2.3,35.);
+  //  //pt 30-50
+  //  res->AddBin(0,30,1.3,50.); res->AddBin(1.3,30,2.3,50.);
 
   //y 2.3-2.4
-  res->AddBin(2.3,0,2.4,6); res->AddBin(2.3,6,2.4,50);
+  res->AddBin(2.3,0,2.4,6); res->AddBin(2.3,6,2.4,35);
 
   return res;
 }

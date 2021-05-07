@@ -1,0 +1,32 @@
+imax 3
+jmax 3
+kmax 5
+---------------
+shapes data_obs * InputForCombine_pp$METAFITSYST.root $CHANNEL/$PROCESS/BcM 
+shapes BcSig    * InputForCombine_pp$METAFITSYST.root $CHANNEL/$PROCESS/BcM 
+shapes FakeJpsi * InputForCombine_pp$METAFITSYST.root $CHANNEL/$PROCESS/BcM $CHANNEL/$PROCESS_$SYSTEMATIC/BcM 
+shapes JpsiMC   * InputForCombine_pp$METAFITSYST.root $CHANNEL/$PROCESS/BcM $CHANNEL/$PROCESS_$SYSTEMATIC/BcM 
+shapes flipJpsi * InputForCombine_pp$METAFITSYST.root $CHANNEL/$PROCESS/BcM $CHANNEL/$PROCESS_$SYSTEMATIC/BcM 
+---------------
+bin         BDT1      BDT2      BDT3    
+observation -1        -1  	-1    	
+------------------------------
+bin	             BDT1      BDT1      BDT1      BDT1      BDT2      BDT2      BDT2      BDT2      BDT3      BDT3      BDT3      BDT3      
+process  	     BcSig     FakeJpsi  JpsiMC    flipJpsi  BcSig     FakeJpsi  JpsiMC    flipJpsi  BcSig     FakeJpsi  JpsiMC    flipJpsi  
+process  	     0         1	 2	   3         0         1	 2	   3         0         1	 2	   3         
+rate	             -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        -1        
+--------------------------------
+#lumi	      lnN    1.019     -         1.019	   1.019     1.019     -         1.019	   1.019     1.019     -         1.019	   1.019     
+wPromptMC     shape  -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     -	       -	 1.  	   1.  	     
+flipJSameSide shape  -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     -	       -    	 1.	   1.	     
+JpsiSB	      shape  -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     -	       0.5 	 - 	   - 	     
+misID	      lnN    -         -	 1.4	   -	     -         -	 1.4	   -	     -         -	 1.4	   -	     
+highMass      lnN    -         -	 -	   1.4	     -         -	 -	   1.4	     -         -	 -	   1.4	     
+#wPromptMC: the same nuisance param makes flipJpsi vary, concerning how the BDT weights are calculated
+
+misIDinit	rateParam *     JpsiMC   2. [1.999,2.001]
+highMassInit	rateParam *   	flipJpsi 1. [0.999,1.001]
+#misID		param 2. 0.6
+#highMassControl	param 1. 0.3
+
+* autoMCStats 10 #Poisson threshold on typical number of events in binomial

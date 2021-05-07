@@ -38,6 +38,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
   float QQ2_M[ntrees];
   float QQ2_dca[ntrees];
   float QQ2_VtxProb[ntrees];
+  float dR_sum_QQ2[ntrees];
   float w_simple[ntrees];
   float w_unblind[ntrees];
   float weight[ntrees];
@@ -54,7 +55,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
   //***************** Jpsi mass histos and binning
   vector<vector<TH1F*>> h_QQM;
   vector<vector<TH1F*>> h_QQM_tight;
-  int nbinsPeak = 10, nbinsPeakT = 8;
+  int nbinsPeak = ispp?9:8, nbinsPeakT = ispp?7:6;
   float binsM[7+nbinsPeak]; 
   binsM[0] = m_Jpsi-0.4;
   binsM[1] = m_Jpsi-JpeakLo-JpeakLoBuf-JpeakWid/2;
@@ -99,6 +100,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
     T[iT]->SetBranchAddress("QQ2_M", &QQ2_M[iT]);
     T[iT]->SetBranchAddress("QQ2_dca", &QQ2_dca[iT]);
     T[iT]->SetBranchAddress("QQ2_VtxProb", &QQ2_VtxProb[iT]);
+    T[iT]->SetBranchAddress("dR_sum_QQ2", &dR_sum_QQ2[iT]);
     T[iT]->SetBranchAddress("w_simple", &w_simple[iT]);
     if(!ispp && iT==3) T[iT]->SetBranchAddress("w_unblind", &w_unblind[iT]);
     if(useBDTbins) T[iT]->SetBranchAddress("BDT", &BDT[iT]);
@@ -129,12 +131,15 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
 	if(BDT[iT]>BDTcuts[k] && BDT[iT]<BDTcuts[k+1]) kbin = k+1;
       }
 
-      if(( inJpsiMassRange(QQ_M[iT], maxEta<1.5) && !(inJpsiMassSB(QQ2_M[iT], maxEta<1.5)
-						      && QQ2_VtxProb[iT]>_QQvtxProb_cut && QQ2_dca[iT]<_QQdca_cut && QQ2_dca[iT]>0) )
-	 || (inJpsiMassSB(QQ_M[iT], maxEta<1.5) && !(inJpsiMassRange(QQ2_M[iT], maxEta<1.5)
-						     && QQ2_VtxProb[iT]>_QQvtxProb_cut && QQ2_dca[iT]<_QQdca_cut && QQ2_dca[iT]>0) )
+      if(
+	 !( (inJpsiMassRange(QQ2_M[iT], maxEta<1.5) || inJpsiMassSB(QQ2_M[iT], maxEta<1.5))
+	    && QQ2_VtxProb[iT]>_QQvtxProb_cut && QQ2_dca[iT]<_QQdca_cut && QQ2_dca[iT]>0 && dR_sum_QQ2[iT]<_dRsum_cut)
+	 // ( inJpsiMassRange(QQ_M[iT], maxEta<1.5) && !(inJpsiMassSB(QQ2_M[iT], maxEta<1.5)
+	 // 					      && QQ2_VtxProb[iT]>_QQvtxProb_cut && QQ2_dca[iT]<_QQdca_cut && QQ2_dca[iT]>0) )
+	 // || (inJpsiMassSB(QQ_M[iT], maxEta<1.5) && !(inJpsiMassRange(QQ2_M[iT], maxEta<1.5)
+	 // 					     && QQ2_VtxProb[iT]>_QQvtxProb_cut && QQ2_dca[iT]<_QQdca_cut && QQ2_dca[iT]>0) )
 	 ){
-	float w = (!ispp && iT==3)?w_unblind[iT]:w_simple[iT];
+	float w = w_simple[iT];//when blinded: (!ispp && iT==3)?w_unblind[iT]:w_simple[iT];
 	if(maxEta<1.5) {
 	  float norm = inJpsiMassRange(QQ_M[iT],true)?1:((float)nbinsPeakT/2.);
 	  if(useBDTbins) h_QQM_tight[kbin][iT]->Fill(QQ_M[iT], fabs(w)/norm );//not considering the weight of Jpsi SB subtraction
@@ -224,9 +229,9 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
       T[iT]->GetEntry(j);
 
       weight[iT] = w_simple[iT];
-      if(!ispp && iT==3 && BDT[iT]<(_withTM?-0.2:-0.3)) weight[iT] = w_unblind[iT]; //unblind data events in the low-BDT CR
+      //when blinded:      if(!ispp && iT==3 && BDT[iT]<(_withTM?-0.2:-0.3)) weight[iT] = w_unblind[iT]; //unblind data events in the low-BDT CR
 
-      if(iT!=0 && iT<7) { //forget WRONGSIGN and dimuon+track and FLIPJPSI
+      if(iT!=0 && iT!=7) { //forget WRONGSIGN and dimuon+track
 
 	float maxEta = max(fabs(muW_eta[iT]),max(fabs(mumi_eta[iT]),fabs(mupl_eta[iT])));
 	int kbin = nBDTb; //kbin 0 is for all BDT values
@@ -234,10 +239,13 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
 	  if(BDT[iT]>BDTcuts[k] && BDT[iT]<BDTcuts[k+1]) kbin = k+1;
 	}
 
-	if((inJpsiMassRange(QQ_M[iT], maxEta<1.5) && inJpsiMassSB(QQ2_M[iT], maxEta<1.5)
-	    && QQ2_VtxProb[iT]>_QQvtxProb_cut && QQ2_dca[iT]<_QQdca_cut && QQ2_dca[iT]>0)
-	   || (inJpsiMassSB(QQ_M[iT], maxEta<1.5) && inJpsiMassRange(QQ2_M[iT], maxEta<1.5)
-	       && QQ2_VtxProb[iT]>_QQvtxProb_cut && QQ2_dca[iT]<_QQdca_cut && QQ2_dca[iT]>0)
+	if(
+	   (inJpsiMassRange(QQ2_M[iT], maxEta<1.5) || inJpsiMassSB(QQ2_M[iT], maxEta<1.5))
+	   && QQ2_VtxProb[iT]>_QQvtxProb_cut && QQ2_dca[iT]<_QQdca_cut && QQ2_dca[iT]>0 && dR_sum_QQ2[iT]<_dRsum_cut
+	   // (inJpsiMassRange(QQ_M[iT], maxEta<1.5) && inJpsiMassSB(QQ2_M[iT], maxEta<1.5)
+	   //  && QQ2_VtxProb[iT]>_QQvtxProb_cut && QQ2_dca[iT]<_QQdca_cut && QQ2_dca[iT]>0)
+	   // || (inJpsiMassSB(QQ_M[iT], maxEta<1.5) && inJpsiMassRange(QQ2_M[iT], maxEta<1.5)
+	   //     && QQ2_VtxProb[iT]>_QQvtxProb_cut && QQ2_dca[iT]<_QQdca_cut && QQ2_dca[iT]>0)
 	   ){
 	   
 	  //consider ONLY DATA unambiguous events
@@ -334,7 +342,7 @@ void addJpsiChoiceW(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts
 
 void addJpsiChoiceWeight(bool ispp=true, bool useBDTbins=false, vector<float> BDTcuts_ = vector<float>()){
   if (useBDTbins && BDTcuts_.size()<2){
-    BDTcuts_ = _BDTcuts(ispp,0,false); //we don't bother to make this dependent on the kinematic bin
+    BDTcuts_ = _BDTcuts(ispp,0,0,false); //we don't bother to make this dependent on the kinematic bin
   }
   
   addJpsiChoiceW(ispp,useBDTbins,BDTcuts_);

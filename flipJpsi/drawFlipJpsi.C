@@ -200,8 +200,8 @@ void drawFlipJpsi(bool ispp=true, bool secondStep=true, bool highMass = false){
   h_samEta->Draw("histEsame");
 
   TLegend *leg2 = new TLegend(0.5,0.76,0.9,0.96);
-  leg2->AddEntry(h_oppEta,"opposite #eta flipping");
-  leg2->AddEntry(h_samEta,"same #eta flipping");
+  leg2->AddEntry(h_oppEta,"opposite #eta rotation");
+  leg2->AddEntry(h_samEta,"same #eta rotation");
   leg2->SetTextSize(0.04);
   leg2->Draw();
 
@@ -221,8 +221,8 @@ void drawFlipJpsi(bool ispp=true, bool secondStep=true, bool highMass = false){
   h_otherPhi->Draw("histEsame");
 
   TLegend *leg3 = new TLegend(0.5,0.76,0.9,0.96);
-  leg3->AddEntry(h_oppPhi,"opposite #phi flipping");
-  leg3->AddEntry(h_otherPhi,"other #phi flippings");
+  leg3->AddEntry(h_oppPhi,"opposite #phi rotations");
+  leg3->AddEntry(h_otherPhi,"other #phi rotations");
   leg3->SetTextSize(0.04);
   leg3->Draw();
 
@@ -244,7 +244,7 @@ void drawFlipJpsi(bool ispp=true, bool secondStep=true, bool highMass = false){
   h_MCtrueJ->Draw("histEsame");
 
   TLegend *leg4 = new TLegend(0.5,0.76,0.9,0.96);
-  leg4->AddEntry(h_fliptrueJ,"flipped J/#psi");
+  leg4->AddEntry(h_fliptrueJ,"pivoted J/#psi");
   leg4->AddEntry(h_MCtrueJ,"J/#psi MC (w/o B decays)");
   leg4->SetTextSize(0.04);
   leg4->Draw();

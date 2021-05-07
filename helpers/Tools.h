@@ -3,6 +3,26 @@ float quadSum(float f1, float f2, float f3=0, float f4=0){
   return sqrt(f1*f1+f2*f2+f3*f3+f4*f4);
 }
 
+float quadSubtract(float f1, float f2, float f3=0, float f4=0){
+  float tmp = f1*f1-f2*f2-f3*f3-f4*f4;
+  return ((tmp>=0)?1:(-1)) * sqrt(fabs(f1*f1-f2*f2-f3*f3-f4*f4));
+}
+
+std::vector<float> dRcorrectedForQQM(float dRjpsi,float dRmuWmi, float dRmuWpl, float QQM_correction, float mumiPt, float muplPt){
+  float dRjpsi_corr = (dRjpsi<=0)?1:( TMath::ACos(1- QQM_correction*QQM_correction* (1-TMath::Cos(dRjpsi)) ) / dRjpsi );
+  dRjpsi = dRjpsi_corr * dRjpsi;
+  if(dRjpsi<=0) dRjpsi = 1e-8; if(dRjpsi>4) dRjpsi = 4; //check that deltaR is in [0,4]
+
+  float mumiCorr = 0.5*(dRjpsi_corr-1) * muplPt/(muplPt+mumiPt);
+  float muplCorr = mumiCorr*mumiPt/muplPt;
+  float dRmuWmi_new = dRmuWmi*( 1+ mumiCorr*(1+ (pow(dRjpsi/dRjpsi_corr ,2) - pow( dRmuWpl,2))/pow(dRmuWmi ,2) ) );
+  float dRmuWpl_new = dRmuWpl*( 1+ muplCorr*(1+ (pow(dRjpsi/dRjpsi_corr ,2) - pow( dRmuWmi,2))/pow(dRmuWpl ,2) ) );
+  if(dRmuWmi_new<=0) dRmuWmi_new = 1e-8; if(dRmuWmi_new>4) dRmuWmi_new = 4; if(std::isnan(dRmuWmi_new)) dRmuWmi_new = dRmuWmi; //check that deltaR is in [0,4]
+  if(dRmuWpl_new<=0) dRmuWpl_new = 1e-8; if(dRmuWpl_new>4) dRmuWpl_new = 4; if(std::isnan(dRmuWpl_new)) dRmuWpl_new = dRmuWpl; //check that deltaR is in [0,4]
+
+  return std::vector<float>{dRjpsi,dRmuWmi_new,dRmuWpl_new};
+}
+
 void AddTH1(TH1F* h, TH1F* h2){ //add h2 to h, even with different binnings /complexity ~nb*nb2
   int nb = h->GetNbinsX();
   int nb2 = h2->GetNbinsX();
@@ -106,4 +126,16 @@ vector<double> DoubleSidedRMS(vector<float> v, int firstit, int lastit, double m
   res.push_back(sqrt(resHi/(nHi-1)));
 
   return res;
+}
+
+double UncorrelatedError(double corrfact, double errMain, double errOther){
+  double correrr2 = errMain*errOther* 2*fabs(corrfact) / (1+pow(errOther/errMain,2));
+  cout<<"rho, sigmaMain, sigmaOther, fraction of correlated error (squared, simple) = "<<corrfact<<" "<<errMain<<" "<<errOther<<" "<<correrr2/pow(errMain,2)<<" "<<sqrt(correrr2)/errMain<<endl;
+  return sqrt(pow(errMain,2) - correrr2);
+}
+
+int _nMCclos=2;
+float MCclosurePTw(float pt, int itoy){
+  if (itoy==0) return pow(pt/11. , 1.7);
+  else return pow(pt/11. , -1.7);
 }

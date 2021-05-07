@@ -37,7 +37,7 @@ Double_t fctfitratio(Double_t *x, Double_t *par)
   else return A*pow(pt, -n);
 }
 
-void GetNormalization(bool ispp = true, bool isPrompt = false){
+void GetNormalization(bool ispp = true, bool isPrompt = false, bool alt = false){
 
   auto h_test = new TH1D();
   h_test->SetDefaultSumw2(true);
@@ -259,9 +259,14 @@ void GetNormalization(bool ispp = true, bool isPrompt = false){
       //fratio->SetParLimits(2,0,0.06);
     }
     else{
-      fratio->SetParameters(0.,20,0.04);
-      fratio->FixParameter(0,1.05);
-      fratio->FixParameter(1,1.5);
+      fratio->SetParameters(alt?0.5:0.,20,0.04);
+      if(alt){
+	fratio->SetParLimits(0,0.1,1.4);
+	fratio->SetParLimits(1,10.8,15);
+      }else {
+	fratio->FixParameter(0,1.05);
+	fratio->FixParameter(1,1.5);
+      }
       //fratio->SetParLimits(2,0,0.06);
     }
   }
@@ -274,8 +279,8 @@ void GetNormalization(bool ispp = true, bool isPrompt = false){
   ROOT::Math::MinimizerOptions::SetDefaultPrecision(1e-5);
   dataMCratio->Fit("ffitratio","V","",binLimits[0],binLimits[nbins]);
   fratio->Draw("same");
-  fratio->Write("SF"+(TString)(ispp?"pp":"PbPb"));
+  fratio->Write("SF"+(TString)(ispp?"pp":"PbPb")+(TString)(alt?"alt":""));
   fout->Close();
 
-  c1->SaveAs((TString)(isPrompt?"Prompt":"NonPrompt")+"JpsiXS_dataMCcomp_"+(TString)(ispp?"pp":"PbPb")+".pdf");
+  c1->SaveAs((TString)(isPrompt?"Prompt":"NonPrompt")+"JpsiXS_dataMCcomp_"+(TString)(ispp?"pp":"PbPb")+(TString)(alt?"alt":"")+".pdf");
 }

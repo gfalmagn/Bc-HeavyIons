@@ -116,23 +116,22 @@ int MakePositive(TH1F* h, bool regularize=false, int forceReg=-1){
   return reg;
 }
 
-void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDTweights, bool BDTuncorrFromM, int kinBin, bool scaleSystBDTintegrated=false, bool regulLowStatShapes=false, bool addAccEff=true, int massBinning=0, int varyBDTbin=0){
+void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDTweights, bool BDTuncorrFromM, int kinBin, bool scaleSystBDTintegrated=false, bool regulLowStatShapes=false, bool addAccEff=true, int massBinning=0, int varyBDTbin=0, int centBin=0){
 
-  cout<<"***************\n   Make histograms for options _"<<(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(scaleSystBDTintegrated?"_scaleSystBDTintegrated":"")+(TString)(regulLowStatShapes?"_regulLowStatShapes":"")+(TString)((massBinning!=0)?("_MbinsVar"+(TString)to_string(massBinning)):"")+(TString)((varyBDTbin!=0)?("_BDTbins"+(TString)((varyBDTbin==1)?"Up":"Down")):"")<<" , kinematic bin #"<<kinBin<<endl;
+  cout<<"***************\n   Make histograms for options _"<<(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)(scaleSystBDTintegrated?"_scaleSystBDTintegrated":"")+(TString)(regulLowStatShapes?"_regulLowStatShapes":"")+(TString)((massBinning!=0)?("_MbinsVar"+(TString)to_string(massBinning)):"")+(TString)((varyBDTbin!=0)?("_BDTbins"+(TString)((varyBDTbin==1)?"Up":"Down")):"")<<" , kinematic bin #"<<kinBin<<" , centrality bin #"<<centBin<<endl;
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
 
-  auto acceffFile = TFile::Open(addAccEff?"../efficiency/AcceptanceEfficiencyMap.root":"","READ");
-  TH2Poly* hp_acceff = (TH2Poly*)(addAccEff?(  acceffFile->Get("hp_acceff_"+(TString)(ispp?"pp":"PbPb")+(TString)(secondStep?"_2ndStep":""))  ):(new TH2Poly()));
+  TFile* acceffFile = new TFile("../efficiency/AcceptanceEfficiencyMap.root","READ");
+  TH2Poly* hp_acceff = (TH2Poly*)(addAccEff?(  acceffFile->Get("hp_acceff_"+(TString)((centBin==0)?"":("centBin"+(TString)to_string(centBin)+"_"))+(TString)(ispp?"pp":"PbPb")+(TString)(secondStep?"_2ndStep":""))  ):(new TH2Poly()));
   hp_acceff->SetDirectory(0);
-  TH2Poly* hpcoarse_inBDT23 = (TH2Poly*)(addAccEff?(  acceffFile->Get("hpcoarse_inBDT23_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)((kinBin==0)?"_integratePtBins":"")+(TString)(secondStep?"_2ndStep":""))  ):(new TH2Poly()));
+  TH2Poly* hpcoarse_inBDT23 = (TH2Poly*)(addAccEff?(  acceffFile->Get("hpcoarse_inBDT23_"+(TString)((centBin==0)?"":("centBin"+(TString)to_string(centBin)+"_"))+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)((kinBin==0)?"_integratePtBins":"")+(TString)(secondStep?"_2ndStep":""))  ):(new TH2Poly()));
   hpcoarse_inBDT23->SetDirectory(0);
-  TH2Poly* hpcoarse_inBDT3 = (TH2Poly*)(addAccEff?(  acceffFile->Get("hpcoarse_inBDT3_"+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)((kinBin==0)?"_integratePtBins":"")+(TString)(secondStep?"_2ndStep":""))  ):(new TH2Poly()));
+  TH2Poly* hpcoarse_inBDT3 = (TH2Poly*)(addAccEff?(  acceffFile->Get("hpcoarse_inBDT3_"+(TString)((centBin==0)?"":("centBin"+(TString)to_string(centBin)+"_"))+(TString)(ispp?"pp":"PbPb")+(TString)(BDTuncorrFromM?"_BDTuncorrFromM":"")+(TString)((kinBin==0)?"_integratePtBins":"")+(TString)(secondStep?"_2ndStep":""))  ):(new TH2Poly()));
   hpcoarse_inBDT3->SetDirectory(0);
-  acceffFile->Close();
 
-  auto fullFile = TFile::Open("../BDT/BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root");
+  TFile* fullFile = new TFile("../BDT/BDT_InputTree_"+(TString)(ispp?"pp":"PbPb")+".root","READ");
 
   const int nCuts = BDTcut.size()-1;
   int ntrees = 8;
@@ -181,11 +180,8 @@ void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDT
   float BDTprob[ntrees];
   UInt_t eventNb[ntrees];
 
-  //what fitting strategy
   int nbin = 32; //for other histos than Bc_M
-  int nbinM = 25;
-  vector<float> CRbinwRatio;
-  for(int k=0;k<=2;k++) CRbinwRatio.push_back( ((_mBcMax-_mBcMin)/_nbinMSR(ispp)[k]) * (_nbinMCR(ispp)[k]/(_mMax-_mBcMax)) );
+  int nbinM = 25; //for QQ_M
 
   //*******************************************
   //process names, pretty names of histos (designating actual content)
@@ -200,7 +196,7 @@ void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDT
 					"flipJpsi","flipJpsi_FlipJorMCUp","flipJpsi_FlipJorMCDown","flipJpsi_UncorrNPJUp","flipJpsi_UncorrNPJDown", //14-18
 					"FakeJpsi_JpsiSBUp","FakeJpsi_JpsiSBDown"}//19-20
       );
-  int JMCcontent[5] = { (ispp?1:0), (ispp?1:0), (ispp?1:0), (ispp?2:1), 0}; //{nominal,nominal+flipJSameSideUp,nominal+flipJSameSideDown,systUp,systDown} //points to index of JMCname
+  int JMCcontent[5] = { (ispp?1:0), (ispp?1:0), (ispp?1:0), (ispp?2:1), (ispp?0:1)}; //{nominal,nominal+flipJSameSideUp,nominal+flipJSameSideDown,systUp,systDown} //points to index of JMCname
   TString JMCname[6] = {"MC b#to J/#psi","MC non-prompt J/#psi","full J/#psi MC","MC non-prompt J/#psi, enhanced bToJpsi","MC non-prompt J/#psi, reduced bToJpsi","MC J/#psi prompt + loosely correlated"}; //0 = only bToJpsi, 1 = NonPrompt Jpsi, 2 = prompt+nonprompt Jpsi, 3 = NonPrompt Jpsi with 3x bToJpsi, 4 = NonPrompt Jpsi with 0.33x bToJpsi, 5 = prompt + !bToJpsi
   vector<TString> prettyName = ispp?(
 				     (vector<TString>){"WrongSign","J/#psi sidebands","High mass control","signal region","MC signal expectation",
@@ -254,34 +250,33 @@ void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDT
 
   //Prepare output for each dataset (signal and backgrounds)
   for(int i=0; i<nProc; i++){
-    h_BDT.push_back( new TH1F( "BDT_"+procName[i], "BDT_"+prettyName[i], nbin, -0.9, 0.9 ) );
+    h_BDT.push_back( new TH1F( "BDT_"+procName[i], "BDT_"+prettyName[i], nbin, BDTuncorrFromM?(-3.5):(-0.9), BDTuncorrFromM?5.5:0.9 ) );
     for(int k=0;k<nCuts;k++){
       //mass binning can change with systematics
-      int kForMbin = (massBinning==1)?(nCuts-1):((massBinning==2)?0:k);
-      int nmbins =  _nbinM(ispp)[kForMbin]; 
+      int nmbins = _nbinM(ispp, massBinning)[k]; 
       float mbins[nmbins+1];
       for(int mb=0;mb<=nmbins;mb++) 
-	mbins[mb] = _Mbinning(ispp,kForMbin)[mb];
+	mbins[mb] = _Mbinning(ispp,k,massBinning)[mb];
 
       //Initialise histos
-      h_bdt[i][k] = new TH1F( "BDT_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "BDT "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", 48, -0.9,0.9 );
-      h_BcM[i][k] = new TH1F( "BcM_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nmbins, mbins );
+      h_bdt[i][k] = new TH1F( "BDT_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "BDT "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", 48, -0.9,0.9 );
+      h_BcM[i][k] = new TH1F( "BcM_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nmbins, mbins );
       h_MeanInvAccEff[i][k] = new TH1F( "MeanInvAccEff_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), 
-					"Mean 1/#alpha#times#varepsilon "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nmbins, mbins );
+					"Mean 1/#alpha#times#varepsilon "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nmbins, mbins );
       h_AccEffWeights[i][k] = new TH1F( "AccEffWeights_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), 
-					"1/#alpha#times#varepsilon weights "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nlogbins,logbins );
+					"1/#alpha#times#varepsilon weights "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nlogbins,logbins );
       h_MeanInvAccEff_BDT23[i][k] = new TH1F( "MeanInvAccEff_BDT23_"+procName[i]+"_BDT"+(TString)(to_string(k+1)),
-					      "Mean 1/#alpha#times#varepsilon "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"], with efficiency of being in BDT bins 2-3", nmbins, mbins );
+					      "Mean 1/#alpha#times#varepsilon "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"], with efficiency of being in BDT bins 2-3", nmbins, mbins );
       h_MeanInvAccEff_BDT3[i][k] = new TH1F( "MeanInvAccEff_BDT3_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), 
-					     "Mean 1/#alpha#times#varepsilon "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"], with efficiency of being in BDT bin 3", nmbins, mbins );
+					     "Mean 1/#alpha#times#varepsilon "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"], with efficiency of being in BDT bin 3", nmbins, mbins );
       h_CorrYieldsVsAccEffWeights[i][k] = new TH1F( "CorrYieldsVsAccEffWeights_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), 
-						    "Corrected yields VS 1/#alpha#times#varepsilon weights "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nlogbins,logbins );
-      h_BcPt[i][k] = new TH1F( "BcPt_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} p_{T} "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", 50, 0, 30 );
-      h_QQM[i][k] = new TH1F( "QQM_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "J/#psi mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nbinM, 2.6,3.6 );
+						    "Corrected yields VS 1/#alpha#times#varepsilon weights "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nlogbins,logbins );
+      h_BcPt[i][k] = new TH1F( "BcPt_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} p_{T} "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", 50, 0, 30 );
+      h_QQM[i][k] = new TH1F( "QQM_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "J/#psi mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nbinM, 2.6,3.6 );
       if(!ispp){
-	h_BcM_centUp[i][k] = new TH1F( "BcM_centUp_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nmbins, mbins );
-	h_BcM_centDown[i][k] = new TH1F( "BcM_centDown_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nmbins, mbins );
-	h_BcM_blindYields[i][k] = new TH1F( "BcM_blindYields_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nmbins, mbins );
+	h_BcM_centUp[i][k] = new TH1F( "BcM_centUp_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nmbins, mbins );
+	h_BcM_centDown[i][k] = new TH1F( "BcM_centDown_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nmbins, mbins );
+	h_BcM_blindYields[i][k] = new TH1F( "BcM_blindYields_"+procName[i]+"_BDT"+(TString)(to_string(k+1)), "B_{c} mass "+prettyName[i]+", BDT #in ["+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k])+","+(TString)(_BDTcut_s(ispp,kinBin,centBin,secondStep,BDTuncorrFromM,varyBDTbin)[k+1])+"]", nmbins, mbins );
       }
     }
   }
@@ -289,7 +284,7 @@ void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDT
   //*******************************************
   //Fetch the BDT weights to be applied to the summed sig+bkg templates
   TFile* BDTweightF = new TFile("../BDT/weighting/BDTdistrWeights_"+(TString)(ispp?"pp":"PbPb")+".root","READ");
-  TH1F* BDTweights = (TH1F*) BDTweightF->Get("BDT_RatioDataToSummedTemplates_"+(TString)(secondStep?"2ndStepUseFinalFit_":"")+(TString)(ispp?"pp":"PbPb")+"_kinBin"+(TString)to_string(kinBin));;
+  TH1F* BDTweights = (TH1F*) BDTweightF->Get("BDT_RatioDataToSummedTemplates_"+(TString)(secondStep?"2ndStepUseFinalFit_":"")+(TString)(ispp?"pp":"PbPb")+(TString)((centBin>0)?("_centBin"+(TString)to_string(centBin)):("_kinBin"+(TString)to_string(kinBin))));;
   
   // //*******************************************
   // //Fetch the BDT weights to be applied to flipJpsi
@@ -312,12 +307,9 @@ void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDT
   //*******************************************
   //Fetch BDT correction = f(M) to be subtracted from BDT, to uncorrelate it from mass
   TFile* f_BDTuncorrel = new TFile("../BDT/BDTuncorrFromM_"+(TString)(ispp?"pp":"PbPb")+".root","READ");
-  TH1F* h_correctBDT = BDTuncorrFromM?( (TH1F*) f_BDTuncorrel->Get("avBDTvsM_bkg_KinBin"+(TString)to_string(kinBin)+(TString)(secondStep?"_2ndStep":"")) ):NULL; //make the BDT of the expected background (postfit) uncorrelated with mass
-  if(kinBin==0 && BDTuncorrFromM) {
-    for(int b=2;b<=_NanaBins;b++)
-      h_correctBDT->Add((TH1F*) f_BDTuncorrel->Get("avBDTvsM_bkg_KinBin"+(TString)to_string(b)+(TString)(secondStep?"_2ndStep":"")));
-    h_correctBDT->Scale(1/_NanaBins); //average of correction functions of all bins 
-  }
+  TString s_Bin = (centBin==0)?((kinBin==0)?"_integrated":("_KinBin"+(TString)to_string(kinBin))):("_CentBin"+(TString)to_string(centBin));
+  TH1F* h_correctBDT = BDTuncorrFromM?( (TH1F*) f_BDTuncorrel->Get("avBDTvsM_bkg"+s_Bin+(TString)(secondStep?"_2ndStep":"")) ):NULL; //make the BDT of the expected background (postfit) uncorrelated with mass 
+  TH1F* h_correctrmsBDT = BDTuncorrFromM?( (TH1F*) f_BDTuncorrel->Get("rmsBDTvsM_bkg"+s_Bin+(TString)(secondStep?"_2ndStep":"")) ):NULL;
 
   //*******************************************
   //For the signal region and the tmva output, fill the histos for BDT and Bc_M
@@ -406,7 +398,9 @@ void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDT
 	int iproc = iProc[l];
 	//weight
 	float w = weight[iT];
-	float bdtcorr = BDTuncorrFromM?( h_correctBDT->GetBinContent(h_correctBDT->FindBin(Bc_M[iT])) ):0;
+	float bdtcorr = BDTuncorrFromM?( h_correctBDT->Interpolate(Bc_M[iT]) ):0.;
+	float bdtcorrrms = BDTuncorrFromM?( h_correctrmsBDT->Interpolate(Bc_M[iT]) ):1.;
+
 	if(iT!=3 && applyBDTweights)
 	  w *= BDTweights->GetBinContent(BDTweights->FindBin(BDTv[iT]));
 
@@ -447,17 +441,15 @@ void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDT
 	h_BDT[iproc]->Fill( BDTv[iT] , w);
 
 	for(int k=0;k<nCuts;k++){
-	  if(BDTv[iT]-bdtcorr > BDTcut[k] && BDTv[iT]-bdtcorr < BDTcut[k+1]){
-	    int kForMbin = (massBinning==1)?(nCuts-1):((massBinning==2)?0:k);
-	    if(Bc_M[iT]>_mBcMax) w *= CRbinwRatio[kForMbin]; //compensate for larger bins in the high mass CR
+	  if((BDTv[iT]-bdtcorr)/bdtcorrrms > BDTcut[k] && (BDTv[iT]-bdtcorr)/bdtcorrrms < BDTcut[k+1]){
 
-	    if(!ispp && ((float)hiBin_Up[iT] >= 2*_Centmin[0] && (float)hiBin_Up[iT] < 2*_Centmax[0]))
+	    if(!ispp && ((float)hiBin_Up[iT] >= 2*_Centmin[centBin] && (float)hiBin_Up[iT] < 2*_Centmax[centBin]))
 	      h_BcM_centUp[iproc][k]->Fill(Bc_M[iT], w ); 
-	    if(!ispp && ((float)hiBin_Down[iT] >= 2*_Centmin[0] && (float)hiBin_Down[iT] < 2*_Centmax[0]))
+	    if(!ispp && ((float)hiBin_Down[iT] >= 2*_Centmin[centBin] && (float)hiBin_Down[iT] < 2*_Centmax[centBin]))
 	      h_BcM_centDown[iproc][k]->Fill(Bc_M[iT], w ); 
 
-	    if(ispp || ((float)hiBin[iT] >= 2*_Centmin[0] && (float)hiBin[iT] < 2*_Centmax[0])) {
-	      h_bdt[iproc][k]->Fill(BDTv[iT]-bdtcorr, w ); 
+	    if(ispp || ((float)hiBin[iT] >= 2*_Centmin[centBin] && (float)hiBin[iT] < 2*_Centmax[centBin])) {
+	      h_bdt[iproc][k]->Fill((BDTv[iT]-bdtcorr)/bdtcorrrms, w ); 
 	      h_BcM[iproc][k]->Fill(Bc_M[iT], w ); 
 	      h_BcPt[iproc][k]->Fill(Bc_Pt[iT], w ); 
 	      h_QQM[iproc][k]->Fill(QQ_M[iT], w );
@@ -476,7 +468,7 @@ void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDT
 
 	      if(!ispp) {
 		if(iproc==3){ 
-		  if(w>0 && w<1.1){ //blind all events in signal region
+		  if(w>0 && w<1.05){ //blind all events in signal region
 		    if((j%4)!=0) w = 0;
 		  }
 		  else //already blinded data sig region events
@@ -497,7 +489,7 @@ void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDT
   }
   //END loop on trees
 
-  //Getting integrals of processes, integrated over BDT bins
+  //Getting integrals of processes in mass signal region, integrated over BDT bins
   vector<float> integ(nProc,0);
   if(scaleSystBDTintegrated){
     for(int i=0; i<nProc; i++){
@@ -508,7 +500,7 @@ void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDT
 
   //********************************************************
   //Recording mass histos intended for combine
-  //********************************************************
+  //******************************************************** 
   TFile *f = new TFile("InputForCombine_"
 		       +(TString)(ispp?"pp":"PbPb")
 		       +(TString)(secondStep?"_2ndStep":"")
@@ -517,13 +509,13 @@ void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDT
 		       +(TString)(regulLowStatShapes?"_regulLowStatShapes":"")
 		       +(TString)((massBinning!=0)?("_MbinsVar"+(TString)to_string(massBinning)):"")
 		       +(TString)((varyBDTbin!=0)?("_BDTbins"+(TString)((varyBDTbin==1)?"Up":"Down")):"")
-		       +".root", (kinBin<2)?"recreate":"update");  
+		       +".root", (kinBin==1)?"recreate":"update");  
   TDirectory *dir1[nCuts];
   TDirectory *dir2[nProc];
   for(int k=0;k<nCuts;k++){
     
     f->cd();
-    dir1[k] = f->mkdir("BDT"+(TString)(to_string(k+1))+(TString)((kinBin>0)?("Kin"+to_string(kinBin)):""));
+    dir1[k] = f->mkdir("BDT"+(TString)(to_string(k+1))+(TString)((kinBin>0)?("Kin"+to_string(kinBin)):"")+(TString)((centBin>0)?("Cent"+to_string(centBin)):""));
     for(int i=0; i<nProc; i++){
       dir1[k]->cd();
       dir2[k] = dir1[k]->mkdir(procName[i]);
@@ -575,7 +567,7 @@ void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDT
 	h_MeanInvAccEff_BDT3[i][k]->Write("BcM_AccEffWeighted_BDTeff3");
 	h_AccEffWeights[i][k]->Write("AccEffWeights");
 	h_CorrYieldsVsAccEffWeights[i][k]->Write("CorrYieldsVsAccEffWeights");
-	
+
 	h_AccEffCorr[i][k] = (TH1F*)h_MeanInvAccEff[i][k]->Clone("AccEffCorr_"+procName[i]+"_BDT"+(TString)(to_string(k+1)));
 	h_AccEffCorr[i][k]->Divide(h_BcM[i][k]);
 	for(int B=0;B<h_BcM[i][k]->GetNbinsX();B++){
@@ -611,7 +603,7 @@ void application(vector<float> BDTcut, bool ispp, bool secondStep, bool applyBDT
 
 }
 
-void HistsForCombine(bool ispp = true, bool secondStep=false, bool applyBDTweights=false){
+void HistsForCombine(bool ispp = true, bool secondStep=false, bool applyBDTweights=false, bool runBDTuncorr=true){
 
   if(!secondStep) applyBDTweights = false;
 
@@ -622,16 +614,37 @@ void HistsForCombine(bool ispp = true, bool secondStep=false, bool applyBDTweigh
   int massBinning = 0;
   int BDTbinning = 0;
   //  application( _BDTcuts(ispp,0,BDTuncorrFromM) , ispp, BDTuncorrFromM, 0); //integrated bin
+
+  //kinBin BEFORE CentBin
   for(int b=1;b<=_NanaBins;b++){
     BDTuncorrFromM=false;
-    application( _BDTcuts(ispp,b,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, massBinning, BDTbinning); //run bin1 before bin2
-    application( _BDTcuts(ispp,b,secondStep,BDTuncorrFromM,-1) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, massBinning, -1); //BDT binning
-    application( _BDTcuts(ispp,b,secondStep,BDTuncorrFromM, 1) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, massBinning, +1);
-    application( _BDTcuts(ispp,b,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, 1,           BDTbinning); //mass binning
-    application( _BDTcuts(ispp,b,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, 2,           BDTbinning);
-    application( _BDTcuts(ispp,b,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, true,                   true,               addAccEff, massBinning, BDTbinning); //scale systematic shape variations with BDT-integrated yields
-    application( _BDTcuts(ispp,b,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, scaleSystBDTintegrated, true,               addAccEff, massBinning, BDTbinning); //regularise low-stats shapes 
-    BDTuncorrFromM=true;
-    application( _BDTcuts(ispp,b,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, massBinning, BDTbinning); //uncorrelate BDT variable from M
+    application( _BDTcuts(ispp,b,0,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, massBinning, BDTbinning); //run bin1 before bin2
+    application( _BDTcuts(ispp,b,0,secondStep,BDTuncorrFromM,-1) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, massBinning, -1); //BDT binning
+    application( _BDTcuts(ispp,b,0,secondStep,BDTuncorrFromM, 1) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, massBinning, +1);
+    application( _BDTcuts(ispp,b,0,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, 1,           BDTbinning); //mass binning
+    application( _BDTcuts(ispp,b,0,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, 2,           BDTbinning);
+    application( _BDTcuts(ispp,b,0,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, true,                   true,               addAccEff, massBinning, BDTbinning); //scale systematic shape variations with BDT-integrated yields
+    application( _BDTcuts(ispp,b,0,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, scaleSystBDTintegrated, true,               addAccEff, massBinning, BDTbinning); //regularise low-stats shapes 
+    if(runBDTuncorr){
+      BDTuncorrFromM=true;
+      application( _BDTcuts(ispp,b,0,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, b, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, massBinning, BDTbinning); //uncorrelate BDT variable from M
+    }
   }
+
+  for(int b=0;b<=_NcentBins;b++){
+    if(ispp && b>0) break; //centrality bins only for PbPb. Integrated pp here with b==0
+    BDTuncorrFromM=false;
+    application( _BDTcuts(ispp,0,b,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, 0, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, massBinning, BDTbinning, b); //run bin1 before bin2
+    application( _BDTcuts(ispp,0,b,secondStep,BDTuncorrFromM,-1) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, 0, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, massBinning, -1, b); //BDT binning
+    application( _BDTcuts(ispp,0,b,secondStep,BDTuncorrFromM, 1) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, 0, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, massBinning, +1, b);
+    application( _BDTcuts(ispp,0,b,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, 0, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, 1,           BDTbinning, b); //mass binning
+    application( _BDTcuts(ispp,0,b,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, 0, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, 2,           BDTbinning, b);
+    application( _BDTcuts(ispp,0,b,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, 0, true,                   true,               addAccEff, massBinning, BDTbinning, b); //scale systematic shape variations with BDT-integrated yields
+    application( _BDTcuts(ispp,0,b,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, 0, scaleSystBDTintegrated, true,               addAccEff, massBinning, BDTbinning, b); //regularise low-stats shapes 
+    if(runBDTuncorr){
+      BDTuncorrFromM=true;
+      application( _BDTcuts(ispp,0,b,secondStep,BDTuncorrFromM, 0) , ispp, secondStep,applyBDTweights, BDTuncorrFromM, 0, scaleSystBDTintegrated, regulLowStatShapes, addAccEff, massBinning, BDTbinning, b); //uncorrelate BDT variable from M
+    }
+  }
+
 }

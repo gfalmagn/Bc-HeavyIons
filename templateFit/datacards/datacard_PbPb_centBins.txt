@@ -8,15 +8,15 @@ shapes FakeJpsi   * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM$
 shapes NPJpsi     * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM$BLIND $CHANNEL/$PROCESS_$SYSTEMATIC/BcM$BLIND
 shapes flipJpsi   * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM$BLIND $CHANNEL/$PROCESS_$SYSTEMATIC/BcM$BLIND
 ---------------
-bin		     BDT1Kin1  BDT2Kin1  BDT3Kin1  BDT1Kin2  BDT2Kin2  BDT3Kin2
+bin		     BDT1Cent1 BDT2Cent1 BDT3Cent1 BDT1Cent2 BDT2Cent2 BDT3Cent2
 observation 	     -1        -1	 -1    	   -1	     -1	       -1
 ------------------------------
-bin		     BDT1Kin1   BDT1Kin1   BDT1Kin1   BDT1Kin1   BDT2Kin1   BDT2Kin1   BDT2Kin1   BDT2Kin1   BDT3Kin1   BDT3Kin1   BDT3Kin1   BDT3Kin1   BDT1Kin2   BDT1Kin2   BDT1Kin2   BDT1Kin2   BDT2Kin2   BDT2Kin2   BDT2Kin2   BDT2Kin2   BDT3Kin2   BDT3Kin2   BDT3Kin2   BDT3Kin2  
+bin		     BDT1Cent1  BDT1Cent1  BDT1Cent1  BDT1Cent1  BDT2Cent1  BDT2Cent1  BDT2Cent1  BDT2Cent1  BDT3Cent1  BDT3Cent1  BDT3Cent1  BDT3Cent1  BDT1Cent2  BDT1Cent2  BDT1Cent2  BDT1Cent2  BDT2Cent2  BDT2Cent2  BDT2Cent2  BDT2Cent2  BDT3Cent2  BDT3Cent2  BDT3Cent2  BDT3Cent2 
 process       	     BcSig      FakeJpsi   NPJpsi     flipJpsi   BcSig      FakeJpsi   NPJpsi     flipJpsi   BcSig      FakeJpsi   NPJpsi     flipJpsi   BcSig      FakeJpsi   NPJpsi     flipJpsi   BcSig      FakeJpsi   NPJpsi     flipJpsi   BcSig      FakeJpsi   NPJpsi     flipJpsi   
 process        	     0          1	   2	      3          0          1	       2	  3	     0          1	   2	      3	 	 0          1	       2	  3	     0          1	   2	      3	 	 0          1	       2	  3	 
 rate           	     -1         -1         -1         -1         -1         -1         -1         -1         -1         -1         -1         -1	 -1         -1         -1         -1	     -1         -1         -1         -1	 -1         -1         -1         -1	 
 --------------------------------
-#lumi          lnN    1.026	-	   1.026      -		 1.026      -          1.026      -          1.026      -          1.026      -          1.026      -          1.026      -          1.026      -          1.026      -          1.026      -          1.026      -          
+#lumi          lnN    1.023	-          1.023      -		 1.023      -          1.023      -          1.023      -          1.023      -          1.038      -          1.038      -          1.038      -          1.038      -          1.038      -          1.038      -          
 FlipJorMC     shape  -          -          - 	      1.	 -          -          - 	  1.	     -          -          - 	      1. 	 -          -          - 	  1.	     -          -          - 	      1.	 -          -          -  	  1.
 #UncorrNPJ     shape  -          -          0.25       -          -          -          0.25       -          -          -          0.25       -          -          -          0.25       - 	     -          -          0.25       - 	 -          -          0.25       - 	     
 JpsiSB        shape  -          0.5        -          -          -          0.5        -          -          -          0.5        -          -          -          0.5        -          -	     -          0.5        -          -	     	 -          0.5        -          -	     

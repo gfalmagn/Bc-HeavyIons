@@ -30,10 +30,10 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
   gStyle->SetOptStat(0);
 
   vector<int> tToDraw{4,1,5,(ispp?8:6)};
-  vector<TString> legends{"signal MC","J/#psi sidebands","NonPrompt J/#psi MC",(TString)(ispp?"flipped J/#psi":"Prompt J/#psi MC")};
+  vector<TString> legends{"signal MC","J/#psi sidebands","NonPrompt J/#psi MC",(TString)(ispp?"pivoted J/#psi":"Prompt J/#psi MC")};
   if(!ispp){
     tToDraw.push_back(8);
-    legends.push_back("flipped J/#psi");
+    legends.push_back("pivoted J/#psi");
   }
   Color_t cols[] = {kCyan, kMagenta+1, kGreen, kRed-2, kBlue, kOrange-7, kOrange, kGreen+4, kGreen+1};
 
@@ -89,6 +89,7 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
   leg2->SetTextSize(0.038);
   leg2->SetHeader("ROC "+(TString)h[tToDraw[0]]->GetXaxis()->GetTitle());
   vector<TGraph*> ROC;
+  vector<float> ROCint;
 
   const int npt = h[tToDraw[0]]->GetNbinsX()+3; //signalMC (iT==4) should be first of tToDraw
   double effSig[npt];
@@ -120,6 +121,9 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
     // for(int b=0;b<npt;b++)
     //  cout<<"b, effsig, rejbkg = "<<b<<" "<<effSig[b]<<" "<<rejBkg[b]<<endl;
     ROC.push_back(new TGraph(npt,effSig,rejBkg) );
+    TF1 ftmp("ftmp"+legends[k],[&](double *x, double *){ return ROC[k-1]->Eval(x[0]); },0.,1.,0);
+    ROCint.push_back( ftmp.Integral(0.,1.) );
+    ftmp.Delete();
   }    
 
   //DRAW
@@ -134,7 +138,7 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
     ROC[i]->GetHistogram()->SetMinimum(0.);
     ROC[i]->SetTitle("ROC curve ("+(TString)(lowerCut?"lower cut":"upper cut")+");signal efficiency;background rejection");
 
-    leg2->AddEntry(ROC[i],legends[i+1],"lp");
+    leg2->AddEntry(ROC[i],legends[i+1]+Form(" (int=%.2f)",ROCint[i]),"lp");
     ROC[i]->Draw((i==0)?"APL":"PLsame");
   }
   leg2->Draw("same");
@@ -152,7 +156,7 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
 
 
 
-void drawVariables(bool ispp=true, bool secondStep=true){
+void drawVariables(bool ispp=true, bool secondStep=true, bool fidCuts=true){
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -175,8 +179,14 @@ void drawVariables(bool ispp=true, bool secondStep=true){
   float dR_sum[ntrees];
   float dR_jpsiOverMuW[ntrees];
   float dR_jpsiMuW[ntrees];
-  float MuonDxySignif_sum[ntrees], log_MuonDxySignif_sum[ntrees];
+  float MuonDxySignif_sum[ntrees];
   float MuonDzSignif_sum[ntrees];
+  float MuonDxyzSignif_sum[ntrees];
+  float MuonDxySignif_min[ntrees];
+  float MuonDzSignif_min[ntrees];
+  float MuonDxyzSignif_min[ntrees];
+  float muW_dxyzSignif[ntrees];
+  float muW_dxySignif[ntrees];
   float muonsGlbInLooseAcc[ntrees];
   float muonsInTightAcc[ntrees];
   bool muW_isGlb[ntrees];
@@ -190,6 +200,7 @@ void drawVariables(bool ispp=true, bool secondStep=true){
   bool mupl_inTightAcc[ntrees];
   float QQmuW_ptImbal[ntrees];
   float Bc_M[ntrees];
+  float Bc_Y[ntrees];
   float Bc_Pt[ntrees];
   float QQ_M[ntrees];
   float QQ2_M[ntrees];
@@ -203,7 +214,7 @@ void drawVariables(bool ispp=true, bool secondStep=true){
 
   TString treeName[] = {"bkgWRONGSIGN","bkgBCMASS","bkgTRUEJPSI","sigRegion","signal_MC","bToJpsi_MC","PromptJpsi_MC","dimuonTrk","flipJpsi","CorrbToJpsi_MC","prefitBkg"};
   TString prettyName[] = {"WRONGSIGN","J/Psi sidebands","High mass control","signal region","MC signal expectation",
-			  "MC NonPromptJpsi","MC PromptJpsi","dimuon+track (misID)","flipped J/Psi","correlated NonPrompt MC","prefit full background"};
+			  "MC NonPromptJpsi","MC PromptJpsi","dimuon+track (misID)","pivoted J/Psi","correlated NonPrompt MC","prefit full background"};
   vector<TTree*> T;
   for(int itree=0;itree<ntrees;itree++){
     T.push_back((TTree*)fullFile->Get(treeName[itree]));
@@ -223,13 +234,19 @@ void drawVariables(bool ispp=true, bool secondStep=true){
   vector<TH1F*> h_dRJpsiOverMuW;
   vector<TH1F*> h_SumDxyMu;
   vector<TH1F*> h_SumDzMu;
+  vector<TH1F*> h_SumDxyzMu;
+  vector<TH1F*> h_MinDxyMu;
+  vector<TH1F*> h_MinDzMu;
+  vector<TH1F*> h_MinDxyzMu;
+  vector<TH1F*> h_muWDxySig;
+  vector<TH1F*> h_muWDxyzSig;
   vector<TH1F*> h_BDT;
   vector<TH1F*> h_AllDimuDeltaR;
 
-  int nbins = 41;
-  vector<TString> varName = {"VtxProb","QQVtxProb","alpha","alpha3D","TauSignif","TauSignif3D","mcorr","dca","QQMuWImbal","SumDeltaR","dRJpsiOverMuW","SumDxyMu","SumDzMu","BDT","AllDimuDeltaR"};
-  vector<bool> lowercut = {1,1,0,0,1,1,0,0,0,0,1,1,1,1,0};
-  vector<bool> leftLeg = {0,0,0,0,0,0,0,0,0,0,0,0,0,1,0};
+  int nbins = 31;
+  vector<TString> varName = {"VtxProb","QQVtxProb","alpha","alpha3D","TauSignif","TauSignif3D","mcorr","dca","QQMuWImbal","SumDeltaR","dRJpsiOverMuW","SumDxyMu","SumDzMu","SumDxyzMu","MinDxyMu","MinDzMu","MinDxyzMu","muWDxySig","muWDxyzSig","BDT","AllDimuDeltaR"};
+  vector<bool> lowercut = {1,1,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0};
+  vector<bool> leftLeg = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0};
   for(int iT=0; iT<(int)ntrees+1; iT++){ //order is important
     h_VProb.push_back(new TH1F("h_"+varName[0]+"_"+(TString)to_string(iT),"Trimuon vertex probability;VtxProb(#mu#mu#mu);norm to 1",nbins,_vtxProb_cut,1));
     h_QQVProb.push_back(new TH1F("h_"+varName[1]+"_"+(TString)to_string(iT),"J/#psi vertex probability;VtxProb(J/#psi);norm to 1",nbins,_QQvtxProb_cut,1));
@@ -238,18 +255,24 @@ void drawVariables(bool ispp=true, bool secondStep=true){
     h_TauSignif.push_back(new TH1F("h_"+varName[4]+"_"+(TString)to_string(iT),"2D lifetime significance;#tau/#sigma_{#tau} ;norm to 1",nbins,_ctauSignif_cut,15));
     h_Tau3DSignif.push_back(new TH1F("h_"+varName[5]+"_"+(TString)to_string(iT),"3D lifetime significance;#tau_{3D}/#sigma_{#tau_{3D}} ;norm to 1",nbins,_ctauSignif3D_cut,15));
     h_mcorr.push_back(new TH1F("h_"+varName[6]+"_"+(TString)to_string(iT),"Corrected mass;m_{corr} [GeV];norm to 1",nbins,3.5,_BcCorrM_cut(ispp)));
-    h_dca.push_back(new TH1F("h_"+varName[8]+"_"+(TString)to_string(iT),"Dimuon distance of closest approach;dca(J/#psi) [mm];norm to 1",nbins,0,min(0.22,(double)_QQdca_cut)));
-    h_QQMuWImbal.push_back(new TH1F("h_"+varName[9]+"_"+(TString)to_string(iT),"p_{T} imbalance between J/#psi and #mu_{W};#left|#frac{p_{T}(J/#psi)-p_{T}(#mu_{W})}{p_{T}(J/#psi)+p_{T}(#mu_{W})}#right|;norm to 1",nbins,0,1.2));
-    h_SumDeltaR.push_back(new TH1F("h_"+varName[10]+"_"+(TString)to_string(iT),"Sum of the three dimuon #DeltaR's;sum(#DeltaR(#mu_{i}#mu_{j}));norm to 1",nbins,0,7));
-    h_dRJpsiOverMuW.push_back(new TH1F("h_"+varName[11]+"_"+(TString)to_string(iT),"Ratio of J/#psi #DeltaR to other #DeltaR's;#DeltaR(J/#psi)/(#DeltaR_{2} + #DeltaR_{3});norm to 1",nbins,0.1,1));
-    h_SumDxyMu.push_back(new TH1F("h_"+varName[12]+"_"+(TString)to_string(iT),"Sum of significances of muon 2D displacement to PV;sum(d_{xy}(#mu)/#sigma);norm to 1",nbins,0,40));
-    h_SumDzMu.push_back(new TH1F("h_"+varName[13]+"_"+(TString)to_string(iT),"Sum of significances of muon z displacement to PV;sum(d_{z}(#mu)/#sigma);norm to 1",nbins,0,40));
-    h_BDT.push_back(new TH1F("h_"+varName[14]+"_"+(TString)to_string(iT),"BDT;BDT;norm to 1",nbins,_BDTcuts(ispp,0,secondStep)[0]-0.2,_BDTcuts(ispp,0,secondStep)[_BDTcuts(ispp,0,secondStep).size()-1]+0.02));
-    h_AllDimuDeltaR.push_back(new TH1F("h_"+varName[15]+"_"+(TString)to_string(iT),"#DeltaR of all dimuon pairs of trimuon;#DeltaR(#mu_{i}#mu_{j});norm to 1",nbins,0,3.25));
+    h_dca.push_back(new TH1F("h_"+varName[7]+"_"+(TString)to_string(iT),"Dimuon distance of closest approach;dca(J/#psi) [mm];norm to 1",nbins,0,min(0.22,(double)_QQdca_cut)));
+    h_QQMuWImbal.push_back(new TH1F("h_"+varName[8]+"_"+(TString)to_string(iT),"p_{T} imbalance between J/#psi and #mu_{W};#left|#frac{p_{T}(J/#psi)-p_{T}(#mu_{W})}{p_{T}(J/#psi)+p_{T}(#mu_{W})}#right|;norm to 1",nbins,0,1.2));
+    h_SumDeltaR.push_back(new TH1F("h_"+varName[9]+"_"+(TString)to_string(iT),"Sum of the three dimuon #DeltaR's;sum(#DeltaR(#mu_{i}#mu_{j}));norm to 1",nbins,0,_dRsum_cut));
+    h_dRJpsiOverMuW.push_back(new TH1F("h_"+varName[10]+"_"+(TString)to_string(iT),"Ratio of J/#psi #DeltaR to other #DeltaR's;#DeltaR(J/#psi)/(#DeltaR_{2} + #DeltaR_{3});norm to 1",nbins,0.1,1));
+    h_SumDxyMu.push_back(new TH1F("h_"+varName[11]+"_"+(TString)to_string(iT),"Sum of significances of muon 2D displacement to PV;sum(d_{xy}(#mu)/#sigma);norm to 1",nbins,0,40));
+    h_SumDzMu.push_back(new TH1F("h_"+varName[12]+"_"+(TString)to_string(iT),"Sum of significances of muon z displacement to PV;sum(d_{z}(#mu)/#sigma);norm to 1",nbins,0,40));
+    h_SumDxyzMu.push_back(new TH1F("h_"+varName[13]+"_"+(TString)to_string(iT),"Sum of significances of muon 3D displacement to PV;sum(d_{3D}(#mu)/#sigma);norm to 1",nbins,0,40));
+    h_MinDxyMu.push_back(new TH1F("h_"+varName[14]+"_"+(TString)to_string(iT),"Min of significances of muon 2D displacement to PV;min(d_{xy}(#mu)/#sigma);norm to 1",nbins,0,8));
+    h_MinDzMu.push_back(new TH1F("h_"+varName[15]+"_"+(TString)to_string(iT),"Min of significances of muon z displacement to PV;min(d_{z}(#mu)/#sigma);norm to 1",nbins,0,8));
+    h_MinDxyzMu.push_back(new TH1F("h_"+varName[16]+"_"+(TString)to_string(iT),"Min of significances of muon 3D displacement to PV;min(d_{3D}(#mu)/#sigma);norm to 1",nbins,0,10));
+    h_muWDxySig.push_back(new TH1F("h_"+varName[17]+"_"+(TString)to_string(iT),"Significance of 2D displacement to PV for non-J/#psi muon;d_{xy}(#mu_{W})/#sigma;norm to 1",nbins,0,16));
+    h_muWDxyzSig.push_back(new TH1F("h_"+varName[18]+"_"+(TString)to_string(iT),"Significance of 3D displacement to PV for non-J/#psi muon;d_{3D}(#mu_{W})/#sigma;norm to 1",nbins,0,18));
+    h_BDT.push_back(new TH1F("h_"+varName[19]+"_"+(TString)to_string(iT),"BDT;BDT;norm to 1",nbins,_BDTcuts(ispp,0,0,secondStep)[0]-0.4,_BDTcuts(ispp,0,0,secondStep)[_BDTcuts(ispp,0,0,secondStep).size()-1]+0.02));
+    h_AllDimuDeltaR.push_back(new TH1F("h_"+varName[20]+"_"+(TString)to_string(iT),"#DeltaR of all dimuon pairs of trimuon;#DeltaR(#mu_{i}#mu_{j});norm to 1",nbins,0,3.25));
   }
   int nSpeHist = 1;
 
-  vector<vector<TH1F*> > hist{h_VProb,h_QQVProb,h_alpha,h_alpha3D,h_TauSignif,h_Tau3DSignif,h_mcorr,h_dca,h_QQMuWImbal,h_SumDeltaR,h_dRJpsiOverMuW,h_SumDxyMu,h_SumDzMu,h_BDT,h_AllDimuDeltaR};
+  vector<vector<TH1F*> > hist{h_VProb,h_QQVProb,h_alpha,h_alpha3D,h_TauSignif,h_Tau3DSignif,h_mcorr,h_dca,h_QQMuWImbal,h_SumDeltaR,h_dRJpsiOverMuW,h_SumDxyMu,h_SumDzMu,h_SumDxyzMu,h_MinDxyMu,h_MinDzMu,h_MinDxyzMu,h_muWDxySig,h_muWDxyzSig,h_BDT,h_AllDimuDeltaR};
 
   for(int iT=0; iT<(int)ntrees; iT++){
     if(iT==7) continue;
@@ -269,19 +292,26 @@ void drawVariables(bool ispp=true, bool secondStep=true){
     T[iT]->SetBranchAddress("mumi_isGlb", &mumi_isGlb[iT]);
     T[iT]->SetBranchAddress("mumi_inLooseAcc", &mumi_inLooseAcc[iT]);
     T[iT]->SetBranchAddress("mumi_inTightAcc", &mumi_inTightAcc[iT]);
-    T[iT]->SetBranchAddress("Bc_CorrM_shiftedM", &Bc_CorrM[iT]);
+    T[iT]->SetBranchAddress("Bc_CorrM", &Bc_CorrM[iT]);
     T[iT]->SetBranchAddress("QQmuW_ptImbal", &QQmuW_ptImbal[iT]);
     T[iT]->SetBranchAddress("Bc_ctauSignif", &Bc_ctauSignif[iT]);
     T[iT]->SetBranchAddress("Bc_ctauSignif3D", &Bc_ctauSignif3D[iT]);
     T[iT]->SetBranchAddress("dR_jpsi", &dR_jpsi[iT]);
     T[iT]->SetBranchAddress("dR_muWmi", &dR_muWmi[iT]);
     T[iT]->SetBranchAddress("dR_muWpl", &dR_muWpl[iT]);
-    T[iT]->SetBranchAddress("dR_sum_shiftedM", &dR_sum[iT]);
-    T[iT]->SetBranchAddress("dR_jpsiOverMuW_shiftedM", &dR_jpsiOverMuW[iT]);
-    T[iT]->SetBranchAddress("dR_jpsiMuW_shiftedM", &dR_jpsiMuW[iT]);
+    T[iT]->SetBranchAddress("dR_sum", &dR_sum[iT]);
+    T[iT]->SetBranchAddress("dR_jpsiOverMuW", &dR_jpsiOverMuW[iT]);
+    T[iT]->SetBranchAddress("dR_jpsiMuW", &dR_jpsiMuW[iT]);
     T[iT]->SetBranchAddress("MuonDxySignif_sum", &MuonDxySignif_sum[iT]);
     T[iT]->SetBranchAddress("MuonDzSignif_sum", &MuonDzSignif_sum[iT]);
+    T[iT]->SetBranchAddress("MuonDxyzSignif_sum", &MuonDxyzSignif_sum[iT]);
+    T[iT]->SetBranchAddress("MuonDxySignif_min", &MuonDxySignif_min[iT]);
+    T[iT]->SetBranchAddress("MuonDzSignif_min", &MuonDzSignif_min[iT]);
+    T[iT]->SetBranchAddress("MuonDxyzSignif_min", &MuonDxyzSignif_min[iT]);
+    T[iT]->SetBranchAddress("muW_dxySignif", &muW_dxySignif[iT]);
+    T[iT]->SetBranchAddress("muW_dxyzSignif", &muW_dxyzSignif[iT]);
     T[iT]->SetBranchAddress("Bc_M", &Bc_M[iT]);
+    T[iT]->SetBranchAddress("Bc_Y", &Bc_Y[iT]);
     T[iT]->SetBranchAddress("Bc_Pt", &Bc_Pt[iT]);
     T[iT]->SetBranchAddress("QQ_M", &QQ_M[iT]);
     T[iT]->SetBranchAddress("muW_isJpsiBro", &muW_isJpsiBro[iT]);
@@ -293,9 +323,11 @@ void drawVariables(bool ispp=true, bool secondStep=true){
 
     //BEGIN event loop on the analyzed tree
     for(int j=0; j<T[iT]->GetEntries(); j++){//T[iT]->GetEntries()
-
+      
       T[iT]->GetEntry(j);
-      vector<float> v{Bc_VtxProb[iT],QQ_VtxProb[iT],Bc_alpha[iT],Bc_alpha3D[iT],Bc_ctauSignif[iT],Bc_ctauSignif3D[iT],Bc_CorrM[iT],QQ_dca[iT],QQmuW_ptImbal[iT],dR_sum[iT],dR_jpsiOverMuW[iT],MuonDxySignif_sum[iT],MuonDzSignif_sum[iT],BDT[iT]};
+      if(fidCuts && !inFidCuts(0,Bc_Pt[iT],Bc_Y[iT])) continue;
+
+      vector<float> v{Bc_VtxProb[iT],QQ_VtxProb[iT],Bc_alpha[iT],Bc_alpha3D[iT],Bc_ctauSignif[iT],Bc_ctauSignif3D[iT],Bc_CorrM[iT],QQ_dca[iT],QQmuW_ptImbal[iT],dR_sum[iT],dR_jpsiOverMuW[iT],MuonDxySignif_sum[iT],MuonDzSignif_sum[iT],MuonDxyzSignif_sum[iT],MuonDxySignif_min[iT],MuonDzSignif_min[iT],MuonDxyzSignif_min[iT],muW_dxySignif[iT],muW_dxyzSignif[iT],BDT[iT]};
 
       int iT2 = (iT==5 && muW_isJpsiBro[iT])?ntrees:iT;
       for(int ih=0;ih<hist.size()-nSpeHist;ih++){

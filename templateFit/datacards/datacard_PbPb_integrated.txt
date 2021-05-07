@@ -1,0 +1,32 @@
+imax 3
+jmax 3
+kmax 3
+---------------
+shapes data_obs   * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM$BLIND 
+shapes BcSig      * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM$BLIND 
+shapes FakeJpsi   * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM$BLIND $CHANNEL/$PROCESS_$SYSTEMATIC/BcM$BLIND
+shapes NPJpsi     * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM$BLIND $CHANNEL/$PROCESS_$SYSTEMATIC/BcM$BLIND
+shapes flipJpsi   * InputForCombine_PbPb$METAFITSYST.root $CHANNEL/$PROCESS/BcM$BLIND $CHANNEL/$PROCESS_$SYSTEMATIC/BcM$BLIND
+---------------
+bin		     BDT1      BDT2      BDT3    
+observation 	     -1        -1	 -1    	 
+------------------------------
+bin		     BDT1       BDT1       BDT1       BDT1       BDT2       BDT2       BDT2       BDT2       BDT3       BDT3       BDT3       BDT3       
+process       	     BcSig      FakeJpsi   NPJpsi     flipJpsi   BcSig      FakeJpsi   NPJpsi     flipJpsi   BcSig      FakeJpsi   NPJpsi     flipJpsi   
+process        	     0          1	   2	      3          0          1	       2	  3	     0          1	   2	      3	 	 
+rate           	     -1         -1         -1         -1         -1         -1         -1         -1         -1         -1         -1         -1	 
+--------------------------------
+#lumi          lnN    1.026	-          1.026      -		 1.026      -          1.026      -          1.026      -          1.026      -          
+FlipJorMC     shape  -          -          - 	      1.	 -          -          - 	  1.	     -          -          - 	      1. 	 
+#UncorrNPJ     shape  -          -          0.25       -          -          -          0.25       -          -          -          0.25       -          
+JpsiSB        shape  -          0.5        -          -          -          0.5        -          -          -          0.5        -          -          
+misID	      lnN    -		-      	   1.4        -		 -	    -          1.4        -	     -		-     	   1.4        -		 
+
+#here, for PromptOrFlipJ and bJpsiFrac, remove the second order effect of applying different BDT weightings for the varied shapes
+
+misIDinit  		rateParam * NPJpsi   2.2 [2.1999,2.2001]
+#highMassControl	rateParam * flipJpsi 1.
+#misID			param 2.2 1.
+#highMassControl	param 1. 0.5
+
+* autoMCStats 10 #Poisson threshold on typical number of events in binomial

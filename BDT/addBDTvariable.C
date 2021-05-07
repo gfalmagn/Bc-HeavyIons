@@ -44,13 +44,16 @@ void addBDTvariable(bool ispp=true, bool secondStep=false, bool withTM=false){
   float Bc_ctauSignif3D[ntrees], Bc_log_ctauSignif3D[ntrees];
   float Bc_alpha[ntrees];
   float Bc_alpha3D[ntrees];
-  float Bc_VtxProb[ntrees], Bc_log1min_VtxProb[ntrees];
-  float QQ_VtxProb[ntrees], QQ_log1min_VtxProb[ntrees];
+  float Bc_VtxProb[ntrees], Bc_log_VtxProb[ntrees];
+  float QQ_VtxProb[ntrees], QQ_log_VtxProb[ntrees];
   float QQ_dca[ntrees], QQ_log_dca[ntrees];
   float dR_sum[ntrees];
   float dR_jpsiOverMuW[ntrees];
   float dR_jpsiMuW[ntrees];
   float MuonDxySignif_sum[ntrees], log_MuonDxySignif_sum[ntrees];
+  float MuonDxyzSignif_sum[ntrees], log_MuonDxyzSignif_sum[ntrees];
+  float MuonDxyzSignif_min[ntrees], log_MuonDxyzSignif_min[ntrees];
+  float muW_dxyzSignif[ntrees], log_muW_dxyzSignif[ntrees];
   float MuonDzSignif_sum[ntrees];
   float muonsGlbInLooseAcc[ntrees];
   float muonsInTightAcc[ntrees];
@@ -115,22 +118,25 @@ void addBDTvariable(bool ispp=true, bool secondStep=false, bool withTM=false){
       reader1[iT].push_back(new TMVA::Reader( "Color:!Silent" ));
 
       //Declare the used variables -- must be the same as in training
-      if(useVarCorrWMass) reader1[iT][b-1]->AddVariable("Bc_CorrM_shiftedM", &Bc_CorrM[iT]);
+      if(useVarCorrWMass) reader1[iT][b-1]->AddVariable("Bc_CorrM", &Bc_CorrM[iT]);
       reader1[iT][b-1]->AddSpectator("Bc_ctauSignif", &Bc_ctauSignif[iT]);
-      reader1[iT][b-1]->AddVariable("Bc_log_ctauSignif3D := TMath::Log(Bc_ctauSignif3D+1e-8)", &Bc_log_ctauSignif3D[iT]);
-      reader1[iT][b-1]->AddSpectator("Bc_alpha", &Bc_alpha[iT]);
+      reader1[iT][b-1]->AddVariable("Bc_log_ctauSignif3D := TMath::Log(Bc_ctauSignif3D)", &Bc_log_ctauSignif3D[iT]);
+      reader1[iT][b-1]->AddVariable("Bc_alpha", &Bc_alpha[iT]);
       if(withTM) reader1[iT][b-1]->AddVariable("Bc_alpha3D", &Bc_alpha3D[iT]);
-      reader1[iT][b-1]->AddVariable("Bc_log1min_VtxProb := TMath::Log(1-Bc_VtxProb+1e-6)", &Bc_log1min_VtxProb[iT]);
-      reader1[iT][b-1]->AddSpectator("QQ_log1min_VtxProb := TMath::Log(1-QQ_VtxProb+1e-6)", &QQ_log1min_VtxProb[iT]);
-      if(withTM) reader1[iT][b-1]->AddVariable("QQ_log_dca := TMath::Log(QQ_dca+1e-8)", &QQ_log_dca[iT]);
+      else reader1[iT][b-1]->AddSpectator("Bc_alpha3D", &Bc_alpha3D[iT]);
+      reader1[iT][b-1]->AddSpectator("log_MuonDxyzSignif_sum := TMath::Log(MuonDxyzSignif_sum+1e-2)",&log_MuonDxyzSignif_sum[iT]);
+      reader1[iT][b-1]->AddSpectator("log_MuonDxyzSignif_min := TMath::Log(MuonDxyzSignif_min+1e-2)",&log_MuonDxyzSignif_min[iT]);
+      reader1[iT][b-1]->AddVariable("log_muW_dxyzSignif := TMath::Log(muW_dxyzSignif+1e-2)",&log_muW_dxyzSignif[iT]);
+      reader1[iT][b-1]->AddVariable("Bc_log_VtxProb := TMath::Log(Bc_VtxProb)", &Bc_log_VtxProb[iT]);
+      reader1[iT][b-1]->AddSpectator("QQ_log_VtxProb := TMath::Log(QQ_VtxProb)", &QQ_log_VtxProb[iT]);
+      if(withTM) reader1[iT][b-1]->AddVariable("QQ_log_dca := TMath::Log(QQ_dca)", &QQ_log_dca[iT]);
       if(useVarCorrWMass) {
-	reader1[iT][b-1]->AddVariable("dR_sum_shiftedM", &dR_sum[iT]);
-	reader1[iT][b-1]->AddVariable("dR_jpsiOverMuW_shiftedM", &dR_jpsiOverMuW[iT]);
-	reader1[iT][b-1]->AddSpectator("dR_jpsiMuW_shiftedM", &dR_jpsiMuW[iT]);
+	reader1[iT][b-1]->AddVariable("dR_sum", &dR_sum[iT]);
+	reader1[iT][b-1]->AddVariable("dR_jpsiOverMuW", &dR_jpsiOverMuW[iT]);
+	reader1[iT][b-1]->AddSpectator("dR_jpsiMuW", &dR_jpsiMuW[iT]);
       }
-      reader1[iT][b-1]->AddSpectator("MuonDzSignif_sum", &MuonDzSignif_sum[iT]);
       if(withTM) {
-	reader1[iT][b-1]->AddVariable("log_MuonDxySignif_sum := TMath::Log(MuonDxySignif_sum+1e-8)", &log_MuonDxySignif_sum[iT]);
+	reader1[iT][b-1]->AddVariable("log_MuonDxySignif_sum := TMath::Log(MuonDxySignif_sum+1e-2)", &log_MuonDxySignif_sum[iT]);
 	reader1[iT][b-1]->AddVariable("muonsGlbInLooseAcc := (muW_isGlb && muW_inLooseAcc) + (mumi_isGlb && mumi_inLooseAcc) + (mupl_isGlb && mupl_inLooseAcc)",&muonsGlbInLooseAcc[iT]);
 	reader1[iT][b-1]->AddVariable("muonsInTightAcc := muW_inTightAcc + mumi_inTightAcc + mupl_inTightAcc",&muonsInTightAcc[iT]);
       }
@@ -151,22 +157,25 @@ void addBDTvariable(bool ispp=true, bool secondStep=false, bool withTM=false){
       reader2[iT].push_back(new TMVA::Reader( "Color:!Silent" ));
 
       //Declare the used variables -- must be the same as in training
-      if(useVarCorrWMass) reader2[iT][b-1]->AddVariable("Bc_CorrM_shiftedM", &Bc_CorrM[iT]);
+      if(useVarCorrWMass) reader2[iT][b-1]->AddVariable("Bc_CorrM", &Bc_CorrM[iT]);
       reader2[iT][b-1]->AddSpectator("Bc_ctauSignif", &Bc_ctauSignif[iT]);
-      reader2[iT][b-1]->AddVariable("Bc_log_ctauSignif3D := TMath::Log(Bc_ctauSignif3D+1e-8)", &Bc_log_ctauSignif3D[iT]);
-      reader2[iT][b-1]->AddSpectator("Bc_alpha", &Bc_alpha[iT]);
+      reader2[iT][b-1]->AddVariable("Bc_log_ctauSignif3D := TMath::Log(Bc_ctauSignif3D)", &Bc_log_ctauSignif3D[iT]);
+      reader2[iT][b-1]->AddVariable("Bc_alpha", &Bc_alpha[iT]);
       if(withTM) reader2[iT][b-1]->AddVariable("Bc_alpha3D", &Bc_alpha3D[iT]);
-      reader2[iT][b-1]->AddVariable("Bc_log1min_VtxProb := TMath::Log(1-Bc_VtxProb+1e-6)", &Bc_log1min_VtxProb[iT]);
-      reader2[iT][b-1]->AddSpectator("QQ_log1min_VtxProb := TMath::Log(1-QQ_VtxProb+1e-6)", &QQ_log1min_VtxProb[iT]);
-      if(withTM) reader2[iT][b-1]->AddVariable("QQ_log_dca := TMath::Log(QQ_dca+1e-8)", &QQ_log_dca[iT]);
+      else reader2[iT][b-1]->AddSpectator("Bc_alpha3D", &Bc_alpha3D[iT]);
+      reader2[iT][b-1]->AddSpectator("log_MuonDxyzSignif_sum := TMath::Log(MuonDxyzSignif_sum+1e-2)",&log_MuonDxyzSignif_sum[iT]);
+      reader2[iT][b-1]->AddSpectator("log_MuonDxyzSignif_min := TMath::Log(MuonDxyzSignif_min+1e-2)",&log_MuonDxyzSignif_min[iT]);
+      reader2[iT][b-1]->AddVariable("log_muW_dxyzSignif := TMath::Log(muW_dxyzSignif+1e-2)",&log_muW_dxyzSignif[iT]);
+      reader2[iT][b-1]->AddVariable("Bc_log_VtxProb := TMath::Log(Bc_VtxProb)", &Bc_log_VtxProb[iT]);
+      reader2[iT][b-1]->AddSpectator("QQ_log_VtxProb := TMath::Log(QQ_VtxProb)", &QQ_log_VtxProb[iT]);
+      if(withTM) reader2[iT][b-1]->AddVariable("QQ_log_dca := TMath::Log(QQ_dca)", &QQ_log_dca[iT]);
       if(useVarCorrWMass) {
-	reader2[iT][b-1]->AddVariable("dR_sum_shiftedM", &dR_sum[iT]);
-	reader2[iT][b-1]->AddVariable("dR_jpsiOverMuW_shiftedM", &dR_jpsiOverMuW[iT]);
-	reader2[iT][b-1]->AddSpectator("dR_jpsiMuW_shiftedM", &dR_jpsiMuW[iT]);
+	reader2[iT][b-1]->AddVariable("dR_sum", &dR_sum[iT]);
+	reader2[iT][b-1]->AddVariable("dR_jpsiOverMuW", &dR_jpsiOverMuW[iT]);
+	reader2[iT][b-1]->AddSpectator("dR_jpsiMuW", &dR_jpsiMuW[iT]);
       }
-      reader2[iT][b-1]->AddSpectator("MuonDzSignif_sum", &MuonDzSignif_sum[iT]);
       if(withTM) {
-	reader2[iT][b-1]->AddVariable("log_MuonDxySignif_sum := TMath::Log(MuonDxySignif_sum+1e-8)", &log_MuonDxySignif_sum[iT]);
+	reader2[iT][b-1]->AddVariable("log_MuonDxySignif_sum := TMath::Log(MuonDxySignif_sum+1e-2)", &log_MuonDxySignif_sum[iT]);
 	reader2[iT][b-1]->AddVariable("muonsGlbInLooseAcc := (muW_isGlb && muW_inLooseAcc) + (mumi_isGlb && mumi_inLooseAcc) + (mupl_isGlb && mupl_inLooseAcc)",&muonsGlbInLooseAcc[iT]);
 	reader2[iT][b-1]->AddVariable("muonsInTightAcc := muW_inTightAcc + mumi_inTightAcc + mupl_inTightAcc",&muonsInTightAcc[iT]);
       }
@@ -200,15 +209,18 @@ void addBDTvariable(bool ispp=true, bool secondStep=false, bool withTM=false){
     T[iT]->SetBranchAddress("mumi_inLooseAcc", &mumi_inLooseAcc[iT]);
     T[iT]->SetBranchAddress("mumi_inTightAcc", &mumi_inTightAcc[iT]);
 
-    T[iT]->SetBranchAddress("Bc_CorrM_shiftedM", &Bc_CorrM[iT]);
+    T[iT]->SetBranchAddress("Bc_CorrM", &Bc_CorrM[iT]);
     T[iT]->SetBranchAddress("QQmuW_ptImbal", &QQmuW_ptImbal[iT]);
     T[iT]->SetBranchAddress("Bc_ctauSignif", &Bc_ctauSignif[iT]);
     T[iT]->SetBranchAddress("Bc_ctauSignif3D", &Bc_ctauSignif3D[iT]);
-    T[iT]->SetBranchAddress("dR_sum_shiftedM", &dR_sum[iT]);
-    T[iT]->SetBranchAddress("dR_jpsiOverMuW_shiftedM", &dR_jpsiOverMuW[iT]);
-    T[iT]->SetBranchAddress("dR_jpsiMuW_shiftedM", &dR_jpsiMuW[iT]);
+    T[iT]->SetBranchAddress("dR_sum", &dR_sum[iT]);
+    T[iT]->SetBranchAddress("dR_jpsiOverMuW", &dR_jpsiOverMuW[iT]);
+    T[iT]->SetBranchAddress("dR_jpsiMuW", &dR_jpsiMuW[iT]);
+    T[iT]->SetBranchAddress("MuonDxyzSignif_min", &MuonDxyzSignif_min[iT]);
+    T[iT]->SetBranchAddress("MuonDxyzSignif_sum", &MuonDxyzSignif_sum[iT]);
     T[iT]->SetBranchAddress("MuonDxySignif_sum", &MuonDxySignif_sum[iT]);
     T[iT]->SetBranchAddress("MuonDzSignif_sum", &MuonDzSignif_sum[iT]);
+    T[iT]->SetBranchAddress("muW_dxyzSignif", &muW_dxyzSignif[iT]);
     T[iT]->SetBranchAddress("Bc_M", &Bc_M[iT]);
     T[iT]->SetBranchAddress("Bc_Pt", &Bc_Pt[iT]);
     T[iT]->SetBranchAddress("QQ_M", &QQ_M[iT]);
@@ -228,14 +240,17 @@ void addBDTvariable(bool ispp=true, bool secondStep=false, bool withTM=false){
 
       muonsInTightAcc[iT] = muW_inTightAcc[iT] + mumi_inTightAcc[iT] + mupl_inTightAcc[iT];
       muonsGlbInLooseAcc[iT] = (muW_isGlb[iT] && muW_inLooseAcc[iT]) + (mumi_isGlb[iT] && mumi_inLooseAcc[iT]) + (mupl_isGlb[iT] && mupl_inLooseAcc[iT]);
-      Bc_log1min_VtxProb[iT] = TMath::Log(1-Bc_VtxProb[iT]+1e-6);
-      QQ_log1min_VtxProb[iT] = TMath::Log(1-QQ_VtxProb[iT]+1e-6);
-      QQ_log_dca[iT] = TMath::Log(QQ_dca[iT]+1e-8);
-      Bc_log_ctauSignif3D[iT] = TMath::Log(Bc_ctauSignif3D[iT]+1e-8);
-      log_MuonDxySignif_sum[iT] = TMath::Log(MuonDxySignif_sum[iT]+1e-8);
+      Bc_log_VtxProb[iT] = TMath::Log(Bc_VtxProb[iT]);
+      QQ_log_VtxProb[iT] = TMath::Log(QQ_VtxProb[iT]);
+      QQ_log_dca[iT] = TMath::Log(QQ_dca[iT]);
+      Bc_log_ctauSignif3D[iT] = TMath::Log(Bc_ctauSignif3D[iT]);
+      log_MuonDxySignif_sum[iT] = TMath::Log(MuonDxySignif_sum[iT]+1e-2);
+      log_MuonDxyzSignif_sum[iT] = TMath::Log(MuonDxyzSignif_sum[iT]+1e-2);
+      log_MuonDxyzSignif_min[iT] = TMath::Log(MuonDxyzSignif_min[iT]+1e-2);
+      log_muW_dxyzSignif[iT] = TMath::Log(muW_dxyzSignif[iT]+1e-2);
 
       int kinBin = -1;
-      if(Bc_Pt[iT]<_BcPtmax[1]) kinBin = 0; //different bin numbering convetion here, start from 0
+      if(Bc_Pt[iT]<_BcPtmax[1]) kinBin = 0; //different bin numbering convention here, start from 0
       else kinBin = 1;
       if(kinBin==-1) continue;
 

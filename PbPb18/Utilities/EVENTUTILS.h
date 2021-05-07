@@ -14,13 +14,13 @@ Double_t findNcoll(int hiBin) {
   return Ncoll[hiBin];
 };
 
-double EVENTUTILS(){
+double EVENTUTILS(int start=0, int end=200){
   double res=0;
-  int nbins = 40;
-  for (int bin=0;bin<nbins;bin++){
+  //  int nbins = 40;
+  for (int bin=start;bin<end;bin++){
     res += findNcoll(bin);
   }
-  return res/nbins;
+  return res/(end-start);
 }
 
 const Int_t nBinsHI = 200; // table of bin edges
