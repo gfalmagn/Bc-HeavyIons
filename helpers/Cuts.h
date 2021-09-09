@@ -32,6 +32,7 @@ float _QQvtxProb_cutTight = 0.02;
 float _QQdca_cut = 10.0; //basically no cuts
 float _dRsum_cut = 4.5;//7.5;//5.3;
 float _BcCorrM_cut(bool ispp=true){return ispp?20:20;}//20:18 //no explicit floating point here, for subsequent automatic tables
+float _lowBDT_cutfraction = 0.001;
 //END Pre-selection
 
 //Jpsi mass peak and sidebands regions

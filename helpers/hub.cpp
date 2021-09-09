@@ -14,7 +14,7 @@ public:
   vector<float> Corr; //correlation matrix is linearised
   void fillErr(bool relOnly=false);
   void print(TString name);
-  void scale(vector<float> norm);
+  void scale(vector<float> norm, bool multiply);
 
   vector<vector<float> > TripleErr(){
     return vector<vector<float> >{Err,ErrLo,ErrHi};
@@ -37,12 +37,19 @@ public:
 
 };
 
-void Result::scale(vector<float> norm){
+void Result::scale(vector<float> norm, bool multiply=false){
   for(int b=0;b<=_NanaBins;b++){
-    Val[b] /= norm[b];
-    Err[b] /= norm[b];
-    ErrLo[b] /= norm[b];
-    ErrHi[b] /= norm[b];
+    if(multiply){
+      Val[b] *= norm[b];
+      Err[b] *= norm[b];
+      ErrLo[b] *= norm[b];
+      ErrHi[b] *= norm[b];
+    } else{
+      Val[b] /= norm[b];
+      Err[b] /= norm[b];
+      ErrLo[b] /= norm[b];
+      ErrHi[b] /= norm[b];
+    }
   }
 }
 
@@ -193,7 +200,7 @@ private:
 public:
   Result pp_pt, PbPb_pt, RAA_pt; 
   Result PbPb_cent, RAA_cent; 
-  void NormsAndRAA(vector<float> normpp, vector<float> normPbPb, vector<float> normPbPbcent);
+  void NormsAndRAA(vector<float> normpp, vector<float> normPbPb, vector<float> normPbPbcent, bool keepCorrYields);
 
   Source() {
     pp_pt = Result();
@@ -220,7 +227,7 @@ public:
 
 };
 
-void Source::NormsAndRAA(vector<float> normpp, vector<float> normPbPb, vector<float> normPbPbcent){
+void Source::NormsAndRAA(vector<float> normpp, vector<float> normPbPb, vector<float> normPbPbcent, bool keepCorrYields=false){
 
   //normalise by luminosity or NMB*TAA, and bin widths
   pp_pt.scale(normpp);
@@ -238,17 +245,24 @@ void Source::NormsAndRAA(vector<float> normpp, vector<float> normPbPb, vector<fl
 	RAA_cent.RelErr[b] = quadSum(PbPb_cent.RelErr[b], pp_pt.RelErr[0] );
     }
     if(RAA_pt.ErrLo[b]==-1 && RAA_pt.RelErrLo[b]==-1){
-      if(PbPb_pt.RelErrLo[b]!=-1 && pp_pt.RelErrLo[b]!=-1)
-	RAA_pt.RelErrLo[b] = quadSum(PbPb_pt.RelErrLo[b], pp_pt.RelErrLo[b] );
-      if(PbPb_cent.RelErrLo[b]!=-1 && pp_pt.RelErrLo[0]!=-1)
-	RAA_cent.RelErrLo[b] = quadSum(PbPb_cent.RelErrLo[b], pp_pt.RelErrLo[0] );
+      if(PbPb_pt.RelErrLo[b]!=-1 && pp_pt.RelErrHi[b]!=-1)
+	RAA_pt.RelErrLo[b] = quadSum(PbPb_pt.RelErrLo[b], pp_pt.RelErrHi[b] );
+      if(PbPb_cent.RelErrLo[b]!=-1 && pp_pt.RelErrHi[0]!=-1)
+	RAA_cent.RelErrLo[b] = quadSum(PbPb_cent.RelErrLo[b], pp_pt.RelErrHi[0] );
     }
     if(RAA_pt.ErrHi[b]==-1 && RAA_pt.RelErrHi[b]==-1){
-      if(PbPb_pt.RelErrHi[b]!=-1 && pp_pt.RelErrHi[b]!=-1)
-	RAA_pt.RelErrHi[b] = quadSum(PbPb_pt.RelErrHi[b], pp_pt.RelErrHi[b] );
-      if(PbPb_cent.RelErrHi[b]!=-1 && pp_pt.RelErrHi[0]!=-1)
-	RAA_cent.RelErrHi[b] = quadSum(PbPb_cent.RelErrHi[b], pp_pt.RelErrHi[0] );
+      if(PbPb_pt.RelErrHi[b]!=-1 && pp_pt.RelErrLo[b]!=-1)
+	RAA_pt.RelErrHi[b] = quadSum(PbPb_pt.RelErrHi[b], pp_pt.RelErrLo[b] );
+      if(PbPb_cent.RelErrHi[b]!=-1 && pp_pt.RelErrLo[0]!=-1)
+	RAA_cent.RelErrHi[b] = quadSum(PbPb_cent.RelErrHi[b], pp_pt.RelErrLo[0] );
     }
+  }
+
+  //with keepCorrYields, remove normalisation for pp and PbPb corrected yields
+  if(keepCorrYields){
+    pp_pt.scale(normpp,true);
+    PbPb_pt.scale(normPbPb,true);
+    PbPb_cent.scale(normPbPbcent,true);
   }
 
   //to fill absolute errors
@@ -269,6 +283,7 @@ private:
 public:
   Source Ycorr, fit, fitY, metafit, BcTau, AccEff, TnP, Full, Lumi;
   vector<Result> Ycorr_MCclos,Ycorr_MCclos_step1,Ycorr_MCclos_step2,Ycorr_MCclos_step3;
+  vector<float> YieldsPostfit_pp,YieldsPostfit_PbPb,YieldsPostfit_PbPbcent;
   vector<float> x_LW_pp,x_LW_PbPb, pTBinWidth, YBinWidth, centBinWidth, pTLims, centLims;
   vector<float> norm_pp, norm_PbPb, norm_PbPb_cent;
   vector<vector<TH1F*> > pTbias_step1,pTbias_step2;
@@ -284,6 +299,7 @@ public:
   vector<vector<float> > eff_oneBinned_2ndStep;
   vector<vector<float> > eff_oneBinned_cent_2ndStep;
   vector<vector<vector<float> > > corrYr_varied; //corrected yields varied by all uncertainties except AccEff and BcTau //(2, vector<vector<float> >(_NanaBins+1, vector<float>(_biasNmeth*(_biasNtoys+1), 0) )) 
+  //  vector<vector<vector<float> > > corrY_varied; //observed yields varied by all uncertainties except AccEff and BcTau //(2, vector<vector<float> >(_biasNmeth*(_biasNtoys+1), vector<float>(4, 0) (x1,x2,y1,y2) )) 
 
   void SetFit(bool corrRAA=true);
   void SetFullErr(bool corrRAA=true);
@@ -296,7 +312,7 @@ public:
   void SetpTbias(bool allVarIn1stStep=false);
   void SetMCclosure();
   void SetAccEff();
-  void ScaleByLumi();
+  void ScaleByLumi(bool keepCorrYields=false);
 
   Hub(bool step2=false, bool step3=false, TString metafitSys="", TString extSys="") {
     secondStep = step2;
@@ -309,7 +325,7 @@ public:
       pTLims.push_back((b==0)?_BcPtmin[1]:_BcPtmax[b]);
       centLims.push_back((b==0)?_Centmin[1]:_Centmax[b]);
       pTBinWidth.push_back(_BcPtmax[b]-_BcPtmin[b]);
-      YBinWidth.push_back(_BcYmax[b]-_BcYmin[b]);
+      YBinWidth.push_back(2*(_BcYmax[b]-_BcYmin[b]));
       centBinWidth.push_back(_Centmax[b]-_Centmin[b]);
 
       if(b>0){
@@ -359,15 +375,16 @@ public:
   }
 };
 
-void Hub::ScaleByLumi(){
-  Ycorr.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent);
-  fitY.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent);
-  metafit.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent);
-  AccEff.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent);
-  Full.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent);
-  TnP.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent);
-  BcTau.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent);
-  Lumi.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent);
+void Hub::ScaleByLumi(bool keepCorrYields=false){
+  Ycorr.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent, keepCorrYields);
+  fit.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent, true);
+  fitY.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent, keepCorrYields);
+  metafit.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent, keepCorrYields);
+  AccEff.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent, keepCorrYields);
+  Full.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent, keepCorrYields);
+  TnP.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent, keepCorrYields);
+  BcTau.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent, keepCorrYields);
+  Lumi.NormsAndRAA(norm_pp,norm_PbPb,norm_PbPb_cent, keepCorrYields);
 }
 
 void Hub::SetFit(bool corrRAA=true){
@@ -383,6 +400,9 @@ void Hub::SetFit(bool corrRAA=true){
   vector<float> *r1r2Corr_PbPbcent;
   vector<float> *r1r2Corr_RAA;
   vector<float> *r1r2Corr_RAAcent;
+  vector<vector<vector<float> > > *Ypostfit_pp;
+  vector<vector<vector<float> > > *Ypostfit_PbPb;
+  vector<vector<vector<float> > > *Ypostfit_PbPbcent;
 
   f_yields->GetObject("rsig_pp"+metaSyst+extSyst,rsig_pp);
   f_yields->GetObject("rsig_relerr_pp"+metaSyst+extSyst,rrelerr_pp);
@@ -393,6 +413,9 @@ void Hub::SetFit(bool corrRAA=true){
   f_yields->GetObject("rsig_centralityDep_PbPb"+metaSyst+extSyst,rsig_PbPbcent);
   f_yields->GetObject("rsig_relerr_centralityDep_PbPb"+metaSyst+extSyst,rrelerr_PbPbcent);
   f_yields->GetObject("r1r2Correlation_centralityDep_PbPb"+metaSyst+extSyst, r1r2Corr_PbPbcent);
+  f_yields->GetObject("Yields_postfit_pp"+metaSyst+extSyst,Ypostfit_pp);
+  f_yields->GetObject("Yields_postfit_PbPb"+metaSyst+extSyst,Ypostfit_PbPb);
+  f_yields->GetObject("Yields_postfit_centralityDep_PbPb"+metaSyst+extSyst,Ypostfit_PbPbcent);
 
   fit.pp_pt = Result(*rsig_pp);
   fit.PbPb_pt = Result(*rsig_PbPb);
@@ -405,6 +428,10 @@ void Hub::SetFit(bool corrRAA=true){
     fit.PbPb_pt.RelErrHi[b] = (*rrelerr_PbPb)[b][2];      
     fit.PbPb_cent.RelErrLo[b] = (*rrelerr_PbPbcent)[b][1];
     fit.PbPb_cent.RelErrHi[b] = (*rrelerr_PbPbcent)[b][2];      
+
+    YieldsPostfit_pp.push_back( (*Ypostfit_pp)[0][b][0] );   
+    YieldsPostfit_PbPb.push_back( (*Ypostfit_PbPb)[0][b][0] );    
+    YieldsPostfit_PbPbcent.push_back( (*Ypostfit_PbPbcent)[0][b][0] ); 
   }
 
   //correlations
@@ -508,27 +535,37 @@ void Hub::SetMetafit(){
   metafit.fillErrS(true); //relOnly if the central value is not defined
 }
 
-void Hub::SetAccEffFinal(bool corrRAA=true){
+void Hub::SetAccEffFinal(bool corrRAA=false){
   //*** ACCEPTANCE and EFFICIENCY error
   AccEff.pp_pt = Result(Ycorr.pp_pt.Val);
   AccEff.PbPb_pt = Result(Ycorr.PbPb_pt.Val);
   AccEff.PbPb_cent = Result(Ycorr.PbPb_cent.Val);
+  AccEff.RAA_pt = Result(Ycorr.RAA_pt.Val);
+  AccEff.RAA_cent = Result(Ycorr.RAA_cent.Val);
 
   vector<vector<double> > *InvAccEff_pp;
   vector<vector<double> > *InvAccEff_PbPb;
   vector<vector<double> > *InvAccEff_PbPbcent;
+  vector<vector<double> > *InvAccEff_RAA;
+  vector<vector<double> > *InvAccEff_RAAcent;
   vector<float> *AEcorr12_pp;
   vector<float> *AEcorr12_PbPb;
   vector<float> *AEcorr12_PbPbcent;
+  vector<float> *AEcorr12_RAA;
+  vector<float> *AEcorr12_RAAcent;
   vector<float> *AcceffSystCorr_RAA;
   vector<float> *AcceffSystCorr_RAAcent;
 
   f_acceffToys->GetObject("InvAccEffFromCorrMC_LinearisedCorrelationFactor_pp"+(TString)(secondStep?"_2ndStep":""), AEcorr12_pp);
   f_acceffToys->GetObject("InvAccEffFromCorrMC_LinearisedCorrelationFactor_PbPb"+(TString)(secondStep?"_2ndStep":""), AEcorr12_PbPb);
   f_acceffToys->GetObject("InvAccEffFromCorrMC_LinearisedCorrelationFactor_PbPb_inCentBins"+(TString)(secondStep?"_2ndStep":""), AEcorr12_PbPbcent);
+  f_acceffToys->GetObject("InvAccEffFromCorrMC_LinearisedCorrelationFactor_RAA"+(TString)(secondStep?"_2ndStep":""), AEcorr12_RAA);
+  f_acceffToys->GetObject("InvAccEffFromCorrMC_LinearisedCorrelationFactor_RAA_inCentBins"+(TString)(secondStep?"_2ndStep":""), AEcorr12_RAAcent);
   f_acceffToys->GetObject("InvAccEffFromCorrMC_withSystErr_pp"+(TString)(secondStep?"_2ndStep":""), InvAccEff_pp);
   f_acceffToys->GetObject("InvAccEffFromCorrMC_withSystErr_PbPb"+(TString)(secondStep?"_2ndStep":""), InvAccEff_PbPb);
   f_acceffToys->GetObject("InvAccEffFromCorrMC_withSystErr_PbPb_inCentBins"+(TString)(secondStep?"_2ndStep":""), InvAccEff_PbPbcent);
+  f_acceffToys->GetObject("InvAccEffFromCorrMC_withSystErr_RAA"+(TString)(secondStep?"_2ndStep":""), InvAccEff_RAA);
+  f_acceffToys->GetObject("InvAccEffFromCorrMC_withSystErr_RAA_inCentBins"+(TString)(secondStep?"_2ndStep":""), InvAccEff_RAAcent);
 
   for(int b=0;b<=_NanaBins;b++){
     AccEff.pp_pt.RelErr[b] = (*InvAccEff_pp)[b][1] / (*InvAccEff_pp)[b][0];
@@ -540,11 +577,19 @@ void Hub::SetAccEffFinal(bool corrRAA=true){
     AccEff.PbPb_cent.RelErr[b] = (*InvAccEff_PbPbcent)[b][1] / (*InvAccEff_PbPbcent)[b][0];
     AccEff.PbPb_cent.RelErrLo[b] = (*InvAccEff_PbPbcent)[b][2] / (*InvAccEff_PbPbcent)[b][0];
     AccEff.PbPb_cent.RelErrHi[b] = (*InvAccEff_PbPbcent)[b][3] / (*InvAccEff_PbPbcent)[b][0];
+    AccEff.RAA_pt.RelErr[b] = (*InvAccEff_RAA)[b][1] / (*InvAccEff_RAA)[b][0];
+    AccEff.RAA_pt.RelErrLo[b] = (*InvAccEff_RAA)[b][2] / (*InvAccEff_RAA)[b][0];
+    AccEff.RAA_pt.RelErrHi[b] = (*InvAccEff_RAA)[b][3] / (*InvAccEff_RAA)[b][0];
+    AccEff.RAA_cent.RelErr[b] = (*InvAccEff_RAAcent)[b][1] / (*InvAccEff_RAAcent)[b][0];
+    AccEff.RAA_cent.RelErrLo[b] = (*InvAccEff_RAAcent)[b][2] / (*InvAccEff_RAAcent)[b][0];
+    AccEff.RAA_cent.RelErrHi[b] = (*InvAccEff_RAAcent)[b][3] / (*InvAccEff_RAAcent)[b][0];
   }
 
   AccEff.pp_pt.Corr = (*AEcorr12_pp);
   AccEff.PbPb_pt.Corr = (*AEcorr12_PbPb);
   AccEff.PbPb_cent.Corr = (*AEcorr12_PbPbcent);
+  AccEff.RAA_pt.Corr = (*AEcorr12_RAA);
+  AccEff.RAA_cent.Corr = (*AEcorr12_RAAcent);
 
   if(corrRAA){
     f_yields3->GetObject("AcceffSyst_Correlation_RAA", AcceffSystCorr_RAA);
@@ -556,7 +601,7 @@ void Hub::SetAccEffFinal(bool corrRAA=true){
   AccEff.fillErrS();
 }
 
-void Hub::SetFullErr(bool corrRAA=true){
+void Hub::SetFullErr(bool corrRAA=false){
   //*** FULL error, excluding BcTau and Lumi
   Full.pp_pt = Result(Ycorr.pp_pt.Val);
   Full.PbPb_pt = Result(Ycorr.PbPb_pt.Val);
@@ -564,18 +609,22 @@ void Hub::SetFullErr(bool corrRAA=true){
 
   vector<vector<double> > *yFull_pp;
   vector<vector<double> > *yFull_PbPb;
+  vector<vector<double> > *yFull_RAA;
   vector<vector<double> > *yFull_PbPbcent;
   vector<float> *fullcorr12_pp;
   vector<float> *fullcorr12_PbPb;
+  vector<float> *fullcorr12_RAA;
   vector<float> *fullcorr12_PbPbcent;
   vector<float> *FullCorr_RAA;
   vector<float> *FullCorr_RAAcent;
 
   f_acceffToys->GetObject("CorrYieldsFromCorrMC_LinearisedCorrelationFactor_pp"+(TString)(secondStep?"_2ndStep":""), fullcorr12_pp);
   f_acceffToys->GetObject("CorrYieldsFromCorrMC_LinearisedCorrelationFactor_PbPb"+(TString)(secondStep?"_2ndStep":""), fullcorr12_PbPb);
+  f_acceffToys->GetObject("CorrYieldsFromCorrMC_LinearisedCorrelationFactor_RAA"+(TString)(secondStep?"_2ndStep":""), fullcorr12_RAA);
   f_acceffToys->GetObject("CorrYieldsFromCorrMC_LinearisedCorrelationFactor_PbPb_inCentBins"+(TString)(secondStep?"_2ndStep":""), fullcorr12_PbPbcent);
   f_acceffToys->GetObject("CorrYieldsFromCorrMC_withSystErr_pp"+(TString)(secondStep?"_2ndStep":""), yFull_pp);
   f_acceffToys->GetObject("CorrYieldsFromCorrMC_withSystErr_PbPb"+(TString)(secondStep?"_2ndStep":""), yFull_PbPb);
+  f_acceffToys->GetObject("CorrYieldsFromCorrMC_withSystErr_RAA"+(TString)(secondStep?"_2ndStep":""), yFull_RAA);
   f_acceffToys->GetObject("CorrYieldsFromCorrMC_withSystErr_PbPb_inCentBins"+(TString)(secondStep?"_2ndStep":""), yFull_PbPbcent);
 
   for(int b=0;b<=_NanaBins;b++){
@@ -585,6 +634,9 @@ void Hub::SetFullErr(bool corrRAA=true){
     Full.PbPb_pt.RelErr[b] = (*yFull_PbPb)[b][1] / (*yFull_PbPb)[b][0];
     Full.PbPb_pt.RelErrLo[b] = (*yFull_PbPb)[b][2] / (*yFull_PbPb)[b][0];
     Full.PbPb_pt.RelErrHi[b] = (*yFull_PbPb)[b][3] / (*yFull_PbPb)[b][0];
+    Full.RAA_pt.RelErr[b] = (*yFull_RAA)[b][1] / (*yFull_RAA)[b][0];
+    Full.RAA_pt.RelErrLo[b] = (*yFull_RAA)[b][2] / (*yFull_RAA)[b][0];
+    Full.RAA_pt.RelErrHi[b] = (*yFull_RAA)[b][3] / (*yFull_RAA)[b][0];
     Full.PbPb_cent.RelErr[b] = (*yFull_PbPbcent)[b][1] / (*yFull_PbPbcent)[b][0];
     Full.PbPb_cent.RelErrLo[b] = (*yFull_PbPbcent)[b][2] / (*yFull_PbPbcent)[b][0];
     Full.PbPb_cent.RelErrHi[b] = (*yFull_PbPbcent)[b][3] / (*yFull_PbPbcent)[b][0];
@@ -592,6 +644,7 @@ void Hub::SetFullErr(bool corrRAA=true){
 
   Full.pp_pt.Corr = (*fullcorr12_pp);
   Full.PbPb_pt.Corr = (*fullcorr12_PbPb);
+  Full.RAA_pt.Corr = (*fullcorr12_RAA);
   Full.PbPb_cent.Corr = (*fullcorr12_PbPbcent);
 
   if(corrRAA){
@@ -660,10 +713,13 @@ void Hub::SetAccEff(){
     }
   }
 
-  //Grab variations of corrected yields associated to each pT bias
+  //Grab variations of corrected and observed yields associated to each pT bias
   vector<vector<vector<float> > > *corrYr_varied_tmp;  
   f_pTbias->GetObject("VariedCorrYields_ratioToNominal"+(TString)(secondStep?"_2ndStep":""),corrYr_varied_tmp);
   corrYr_varied = (*corrYr_varied_tmp);
+  // vector<vector<vector<float> > > *corrY_varied_tmp;  
+  // f_pTbias->GetObject("VariedCorrYields"+(TString)(secondStep?"_2ndStep":""),corrY_varied_tmp);
+  // corrY_varied = (*corrY_varied_tmp);
 }
 
 void Hub::SetTnP(){
@@ -888,6 +944,7 @@ void hub(){
   hu.Full.RAA_pt.print("Full except BcTau, pt dep RAA");
   hu.Full.RAA_cent.print("Full except BcTau, cent dep RAA");
 
+  cout<<"normpp (without dividing by pT,y bin widths = "<<hu.norm_pp[0]<<endl;
   // Result t = Result(vector<float>{7,8,7});
   // t.Corr = vector<float>{0.4};
   // t.Err = vector<float>{2,3,2};

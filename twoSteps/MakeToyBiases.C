@@ -171,7 +171,27 @@ double PowerToLogIntegral(double *x, double *p) {
   //   cout<<"parHiLim[0],parLoLim[0],parHiLim[1],parLoLim[1] = "<<p[5]<<" "<<p[6]<<" "<<p[7]<<" "<<p[8]<<endl;
   // }
   return res * parlimsPen;
+}
 
+double KaplanIntegral(double *x, double *p) {
+  TF1* integrand = new TF1("integrand","[0] / (1+ (x/[1])**2 )**[2]",_BcPtmin[0],_BcPtmax[0]);
+  int fix = (int)(p[4]+0.01);
+  integrand->SetParameter(0,(fix==0)?p[0]:x[0]);
+  integrand->SetParameter(1,(fix==1)?p[0]:x[(fix==2)?1:0]);
+  integrand->SetParameter(2,(fix==2)?p[0]:x[1]);
+
+  double res = integrand->Integral(p[1],p[2]) - p[3];
+  integrand->Delete();
+  double parlimsPen = TMath::Max(1., (x[0]-p[5]) * 1e3/fabs(p[5])) //implementing limit parHiLim[0]
+                    * TMath::Max(1., (-x[0]+p[6]) * 1e3/fabs(p[6])) //implementing limit parLoLim[0]
+                    * TMath::Max(1., (x[1]-p[7]) * 1e3/fabs(p[7])) //implementing limit parHiLim[1]
+                    * TMath::Max(1., (-x[1]+p[8]) * 1e3/fabs(p[8])); //implementing limit parLoLim[1]
+  // if(parlimsPen-1 > 1e-6) {cout<<"Give penalty to limit parameters = "<<parlimsPen<<". PowerToLogIntegral evaluated at x0,x1 = "<<x[0]<<" "<<x[1]<<endl; 
+  //   cout<<"separate penalties for parHiLim[0],parLoLim[0],parHiLim[1],parLoLim[1] = "<<TMath::Max(1., (x[0]-p[5]) * 1e3/fabs(p[5]))<<" "<<TMath::Max(1., (-x[0]+p[6]) * 1e3/fabs(p[6]))<<" "<<TMath::Max(1., (x[1]-p[7]) * 1e3/fabs(p[7]))<<" "<<TMath::Max(1., (-x[1]+p[8]) * 1e3/fabs(p[8]))<<endl;
+  //   cout<<"fixed par = "<<p[0]<<endl;
+  //   cout<<"parHiLim[0],parLoLim[0],parHiLim[1],parLoLim[1] = "<<p[5]<<" "<<p[6]<<" "<<p[7]<<" "<<p[8]<<endl;
+  // }
+  return res * parlimsPen;
 }
 
 int FindParamsPowerToLog(double *pars, double *y, vector<double> xbins, double fix, double fixedPar, double *parLoLim, double *parHiLim, int verbose=1){
@@ -181,6 +201,37 @@ int FindParamsPowerToLog(double *pars, double *y, vector<double> xbins, double f
   //Parameters [0]-[4]: 3 bin limits , then 2 y values
   TF1 * f1 = new TF1("f1",PowerToLogIntegral,0,100,9); //0,100 are dummy borns
   TF1 * f2 = new TF1("f2",PowerToLogIntegral,0,100,9); //0,100 are dummy borns
+  f1->SetParameters(fixedPar, xbins[0], xbins[1], y[0], fix, parHiLim[0], parLoLim[0], parHiLim[1], parLoLim[1]);
+  f2->SetParameters(fixedPar, xbins[1], xbins[2], y[1], fix, parHiLim[0], parLoLim[0], parHiLim[1], parLoLim[1]);
+
+  // wrap the functions
+  ROOT::Math::WrappedMultiTF1 g1(*f1,2);
+  ROOT::Math::WrappedMultiTF1 g2(*f2,2);
+  r.AddFunction(g1);
+  r.AddFunction(g2);
+
+  // std::streambuf* cout_sbuf = std::cout.rdbuf(); // save original sbuf
+  // if(verbose==0){
+  //   std::ofstream   fout("/dev/null");
+  //   std::cout.rdbuf(fout.rdbuf()); // redirect 'cout' to a 'fout'
+  // }
+  r.Solve(pars,1000,1e-4,1e-6);
+  //  if(verbose==0) std::cout.rdbuf(cout_sbuf); // restore the original stream buffer
+  f1->Delete();
+  f2->Delete();
+
+  const double *x = r.X();
+  for(int i=0;i<xbins.size()-1;i++) pars[i] = x[i];
+  return r.Status();
+}
+
+int FindParamsKaplan(double *pars, double *y, vector<double> xbins, double fix, double fixedPar, double *parLoLim, double *parHiLim, int verbose=1){
+  ROOT::Math::MultiRootFinder r(0);
+  r.SetPrintLevel(verbose);
+
+  //Parameters [0]-[4]: 3 bin limits , then 2 y values
+  TF1 * f1 = new TF1("f1",KaplanIntegral,0,100,9); //0,100 are dummy borns
+  TF1 * f2 = new TF1("f2",KaplanIntegral,0,100,9); //0,100 are dummy borns
   f1->SetParameters(fixedPar, xbins[0], xbins[1], y[0], fix, parHiLim[0], parLoLim[0], parHiLim[1], parLoLim[1]);
   f2->SetParameters(fixedPar, xbins[1], xbins[2], y[1], fix, parHiLim[0], parLoLim[0], parHiLim[1], parLoLim[1]);
 
@@ -611,9 +662,10 @@ void MakeToyBiases(bool secondStep=false, bool plotOnly=false, int MCclos=-1){
 	    bias[col][v]->SetParameters(pars[0],pars[1]);
 
 	  }
-	  if(m==1 || m==2){ //x^{n+m*log(x)} (quadratic in log-log scale)
 
-	    double fix = 3-m;
+	  if(m==1 || m==3){ //x^{n+m*log(x)} (quadratic in log-log scale)
+
+	    double fix = (m==1)?2:1;
 	    double fixedPar;
 	    
 	    if(v==m){ 
@@ -638,7 +690,7 @@ void MakeToyBiases(bool secondStep=false, bool plotOnly=false, int MCclos=-1){
 	      double parHiLimsMC[] = {1e8, (m==1)?4.:(-0.01)};
 	      int status = FindParamsPowerToLog(parsMC, yMC, pTlims, fix, fixedPar, parLowLimsMC, parHiLimsMC, 1);
 	      if(status!=0) cout<<"ROOT FINDING FAILED in nominal MC !! status "<<status<<" (power to log). y1, y2 = "<<y1<<" "<<y2<<endl;
-	      mcfit[col][m][1]->SetParameters(parsMC[0],(m==1)?parsMC[1]:fixedPar,(m==2)?parsMC[1]:fixedPar);
+	      mcfit[col][m][1]->SetParameters(parsMC[0],(m==1)?parsMC[1]:fixedPar,(m==3)?parsMC[1]:fixedPar);
 	    }
 	    else if(v==_biasNmeth+m*_biasNtoys) {
 	      cout<<"Toys for method "<<m<<endl;
@@ -646,16 +698,17 @@ void MakeToyBiases(bool secondStep=false, bool plotOnly=false, int MCclos=-1){
 	    }
 
 	    //basic function for biasing in a given variation
+	    if(v==m) cout<<"Fit on 2 data points"<<endl;
 	    bias[col][v] = (TF1*) ((v==m)?mcfit[col][m][0]:bias[col][m])->Clone("bias_var"+(TString)(to_string(v)));
-	    color[v] = (v==m)?(kViolet+1):(kViolet-4);
-	    if(m==2) color[v] = (v==m)?(kRed+2):(kOrange+6);
+	    color[v] = (v==m)?(kMagenta+1):(kMagenta-4);
+	    if(m==1) color[v] = (v==m)?(kRed+2):(kOrange+6);
 	    
 	    //"fit" the central value, from the integral on each bin range
 	    double pars[] = {(double)(bias[col][v]->GetParameter(0)), (double)(bias[col][v]->GetParameter(m))}; //parameter number m is varied
 	    double y[] = {y1*H.pTBinWidth[1], y2*H.pTBinWidth[2]};
 	    double parLowLims[] = {pars[0]*1e-2, pars[1]-2};
 	    double parHiLims[] = {pars[0]*1e2, pars[1]+2};
-	    int status = FindParamsPowerToLog(pars, y, pTlims, fix, fixedPar, parLowLims, parHiLims, (MCclos==-1)?0:1);
+	    int status = FindParamsPowerToLog(pars, y, pTlims, fix, fixedPar, parLowLims, parHiLims, (MCclos==-1 && v!=m)?0:1);
 	    if (status!=0) {
 	      cout<<"ROOT FINDING FAILED !! (power to log). RETRYING now (SUCCESS IF NO NEWS). y1, y2 = "<<y1<<" "<<y2<<endl;
 	      pars[0] = (double)(((m==1)?0.2:0.5)*bias[col][m]->GetParameter(0)); pars[1] = (double)(((m==1)?2.5:1.4)*bias[col][m]->GetParameter(1));
@@ -669,7 +722,67 @@ void MakeToyBiases(bool secondStep=false, bool plotOnly=false, int MCclos=-1){
 		  goto failedVar;}
 	      }
 	    }
-	    bias[col][v]->SetParameters(pars[0],(m==1)?pars[1]:fixedPar,(m==2)?pars[1]:fixedPar);
+	    bias[col][v]->SetParameters(pars[0],(m==1)?pars[1]:fixedPar,(m==3)?pars[1]:fixedPar);
+
+	  }
+
+	  if(m==2){//Kaplan spectrum pow(1+pow(x/[0],2), -[1]) with [0] ~ 3-4 GeV and [1] ~ 5-6
+
+	    double fix = 1;
+	    double fixedPar;
+	    
+	    if(v==m){ 
+	      cout<<"method "<<m<<endl;
+	      cout<<"MC fit"<<endl;
+	      //Exactly fit the MC //only needed once for the powerToLog function
+	      mcfit[col][m][0] = new TF1("MC_fit_meth"+(TString)to_string(m), "[0] / (1+ (x/[1])**2 )**[2]",_BcPtmin[0],_BcPtmax[0]);
+	      mcfit[col][m][0]->SetParameter(1, 3);
+	      mcfit[col][m][0]->SetParameter(0, 1e4);//y1*pow(x1, -bias[col][v]->GetParameter(1)));
+	      mcfit[col][m][0]->SetParameter(2, 5);
+	      h_pTMC_cont[col]->Fit("MC_fit_meth"+(TString)(to_string(m)));
+	      
+	      //"fit" the MC from the values of the integral on each bin range
+	      cout<<"MC integral fit"<<endl;
+	      mcfit[col][m][1] = (TF1*)mcfit[col][m][0]->Clone("MC_fitWithBinIntegral_meth"+(TString)(to_string(m)));
+	      fixedPar = (double)(mcfit[col][m][1]->GetParameter(fix));
+	      double parsMC[] = {(double)(mcfit[col][m][1]->GetParameter(0)), (double)(mcfit[col][m][1]->GetParameter(3-fix))}; //parameter #m is varied
+	      double parLowLimsMC[] = {1e1, (fix==1)?0.1:0.3};
+	      double parHiLimsMC[] = {1e10, (fix==1)?10.:13.};
+	      int status = FindParamsKaplan(parsMC, yMC, pTlims, fix, fixedPar, parLowLimsMC, parHiLimsMC, 1);
+	      if(status!=0) cout<<"ROOT FINDING FAILED in nominal MC !! status "<<status<<" (power to log). y1, y2 = "<<y1<<" "<<y2<<endl;
+	      mcfit[col][m][1]->SetParameters(parsMC[0],(fix==2)?parsMC[1]:fixedPar,(fix==1)?parsMC[1]:fixedPar);
+	    }
+	    else if(v==_biasNmeth+m*_biasNtoys) {
+	      cout<<"Toys for method "<<m<<endl;
+	      fixedPar = (double)(mcfit[col][m][1]->GetParameter(fix));
+	    }
+
+	    //basic function for biasing in a given variation
+	    if(v==m) cout<<"Fit on 2 data points"<<endl;
+	    bias[col][v] = (TF1*) ((v==m)?mcfit[col][m][0]:bias[col][m])->Clone("bias_var"+(TString)(to_string(v)));
+	    color[v] = (v==m)?(kViolet+1):(kViolet-4);
+	    if(m==3) color[v] = (v==m)?(kRed+2):(kOrange+6);
+	    
+	    //"fit" the central value, from the integral on each bin range
+	    double pars[] = {(double)(bias[col][v]->GetParameter(0)), (double)(bias[col][v]->GetParameter(3-fix))}; //parameter number m is varied
+	    double y[] = {y1*H.pTBinWidth[1], y2*H.pTBinWidth[2]};
+	    double parLowLims[] = {pars[0]*1e-3, max(0.2,pars[1]-4)};
+	    double parHiLims[] = {pars[0]*1e3, pars[1]+4};
+	    int status = FindParamsKaplan(pars, y, pTlims, fix, fixedPar, parLowLims, parHiLims, (MCclos==-1 && v!=m)?0:1);
+	    if (status!=0) {
+	      cout<<"ROOT FINDING FAILED !! (power to log). RETRYING now (SUCCESS IF NO NEWS). y1, y2 = "<<y1<<" "<<y2<<endl;
+	      pars[0] = (double)(((m==1)?0.2:0.5)*bias[col][m]->GetParameter(0)); pars[1] = (double)(((m==1)?2.5:1.4)*bias[col][m]->GetParameter(1));
+	      parLowLims[0] = (bias[col][m]->GetParameter(0))*1e-4; parLowLims[1] = max(0.2, bias[col][m]->GetParameter(1) - 2);
+	      parHiLims[0] = (bias[col][m]->GetParameter(0))*1e4; parHiLims[1] = bias[col][m]->GetParameter(1) + 3;
+	      int status2 = FindParamsKaplan(pars, y, pTlims, fix, fixedPar, parLowLims, parHiLims, 3);
+	      if(status2!=0){
+		cout<<"FAILED AGAIN !! Giving up, resetting the variation"<<endl;
+		if(v<_biasNmeth) {
+		  bias[col][v]->Delete();
+		  goto failedVar;}
+	      }
+	    }
+	    bias[col][v]->SetParameters(pars[0],(fix==2)?pars[1]:fixedPar,(fix==1)?pars[1]:fixedPar);
 
 	  }
 	  // else if(m==1){ //exp(-x)*x
@@ -694,8 +807,8 @@ void MakeToyBiases(bool secondStep=false, bool plotOnly=false, int MCclos=-1){
 	  // }
 
 	  if(v==m){
-	    cout<<"values in 2 bins MC = "<<yMC[0]/H.pTBinWidth[1]<<" "<<yMC[1]/H.pTBinWidth[2]<<endl;
-	    cout<<"integral/pTBinWidth of new function (MC \"fit\") on the first and 2nd bin = "<<mcfit[col][m][1]->Integral(pTlims[0],pTlims[1])/H.pTBinWidth[1]<<" "<<mcfit[col][m][1]->Integral(pTlims[1],pTlims[2])/H.pTBinWidth[2]<<endl;
+	    //cout<<"values in 2 bins MC = "<<yMC[0]/H.pTBinWidth[1]<<" "<<yMC[1]/H.pTBinWidth[2]<<endl;
+	    //cout<<"integral/pTBinWidth of new function (MC \"fit\") on the first and 2nd bin = "<<mcfit[col][m][1]->Integral(pTlims[0],pTlims[1])/H.pTBinWidth[1]<<" "<<mcfit[col][m][1]->Integral(pTlims[1],pTlims[2])/H.pTBinWidth[2]<<endl;
 
 	    mcfit[col][m][0]->SetLineColor(color[v]);
 	    mcfit[col][m][1]->SetLineColor(color[v]);
@@ -733,7 +846,6 @@ void MakeToyBiases(bool secondStep=false, bool plotOnly=false, int MCclos=-1){
     nomi->SetFillStyle(1001);
     nomi->SetFillColor(kCyan);
     nomi->SetFillColorAlpha(kCyan,0.3);//opacity 1=opaque
-    cout<<"nomi Y SetRangeUser("<<0.1*min(y[0],y[1]) <<" "<<10*max(y[0],y[1])<<")"<<endl;
     nomi->GetHistogram()->GetYaxis()->SetRangeUser(((MCclos==-1)?0.1:0.07)*min(y[0],y[1]) , ((MCclos==-1)?10:13)*max(y[0],y[1]));
     nomi->GetHistogram()->GetXaxis()->SetRangeUser(_BcPtmin[0],_BcPtmax[0]);
 
@@ -791,7 +903,7 @@ void MakeToyBiases(bool secondStep=false, bool plotOnly=false, int MCclos=-1){
     h_pTMC[col]->Draw("hist][same");
     for(int m=0;m<_biasNmeth;m++){
       if(MCclos>-1 && m!=_nomMethVar) continue;
-      if(m!=1) mcfit[col][m][0]->Draw("same");
+      if(m==2) mcfit[col][m][0]->Draw("same"); //Exact fit of the MC, with continuous spectrum
       mcfit[col][m][1]->Draw("same");
     }
 
@@ -831,8 +943,8 @@ void MakeToyBiases(bool secondStep=false, bool plotOnly=false, int MCclos=-1){
 
     TLegend *leg3 = new TLegend(0.79,0.48,1.,0.59);
     leg3->SetTextSize(0.045);
-    //if(MCclos>-1) leg3->AddEntry(mcfit[col][1][1], "MC fit (free par.)");
-    //leg3->AddEntry(bias[col][1], "nominal");
+    leg3->AddEntry(mcfit[col][1][1], "MC fit (free par.)");
+    leg3->AddEntry(bias[col][1], "nominal");
     if(!nominalOnly) leg3->AddEntry(bias[col][_biasNmeth+_biasNtoys], "variations");
     leg3->SetBorderSize(0);
     leg3->Draw("same");
@@ -846,6 +958,7 @@ void MakeToyBiases(bool secondStep=false, bool plotOnly=false, int MCclos=-1){
     leg4->SetBorderSize(0);
     if(MCclos==-1) {
       leg4->Draw("same");
+      fctname.SetTextSize(0.042);
       fctname.DrawLatex(0.63,0.39, _biasMethName[2]);
     }
 
@@ -888,6 +1001,7 @@ void MakeToyBiases(bool secondStep=false, bool plotOnly=false, int MCclos=-1){
       outfile->WriteObject(&x_LW_MC,"x_LW_signalMC_pTspectrum"+(TString)(secondStep?"_2ndStep":""));
       outfile->WriteObject(&x_LW_2ndstep,"x_LW_correctedpTspectrum"+(TString)(secondStep?"_2ndStep":""));
       outfile->WriteObject(&y_ratioToBest,"VariedCorrYields_ratioToNominal"+(TString)(secondStep?"_2ndStep":""));
+      outfile->WriteObject(&dipoints,"VariedCorrYields"+(TString)(secondStep?"_2ndStep":""));
       for(int col=0;col<2;col++){//pp or PbPb
 	for(int v=0;v<_biasNmeth*(_biasNtoys+1);v++){  
 	  bias_r[col][v]->Write("pTbias_"+(TString)((col==0)?"pp":"PbPb")+"_var"+(TString)to_string(v)+(TString)(secondStep?"_2ndStep":""));

@@ -73,22 +73,26 @@ double getBias(TH1F* h, double pt){
     return h->GetBinContent( 1 + (int)(n * (pt-_BcPtmin[0])/(_BcPtmax[0]-_BcPtmin[0])) );
 }
 
-double MaxVec(vector<float> v, float lastitem, int maxsize  = 1e9){
+double MaxVec(vector<float> v, float lastitem, int maxsize  = 1e9, vector<float> v2 = vector<float>(0)){
   float res = -1e20;
   if (lastitem>res) res = lastitem;
   for(int i=0;i<(int)v.size()-1;i++){
     if(i>=maxsize) break;
-    if(v[i]>res) res = v[i];
+    double denom = 1.;
+    if (v2.size()!=0) denom = v2[i];
+    if(v[i]/denom > res) res = v[i]/denom;
   }
   return res;
 }
 
-double MinVec(vector<float> v, float lastitem, int maxsize = 1e9){
+double MinVec(vector<float> v, float lastitem, int maxsize = 1e9, vector<float> v2 = vector<float>(0)){
   float res = 1e20;
   if (lastitem<res) res = lastitem;
   for(int i=0;i<(int)v.size()-1;i++){
     if(i>=maxsize) break;
-    if(v[i]<res) res = v[i];
+    double denom = 1.;
+    if (v2.size()!=0) denom = v2[i];
+    if(v[i]/denom < res) res = v[i]/denom;
   }
   return res;
 }
@@ -130,7 +134,7 @@ vector<double> DoubleSidedRMS(vector<float> v, int firstit, int lastit, double m
 
 double UncorrelatedError(double corrfact, double errMain, double errOther){
   double correrr2 = errMain*errOther* 2*fabs(corrfact) / (1+pow(errOther/errMain,2));
-  cout<<"rho, sigmaMain, sigmaOther, fraction of correlated error (squared, simple) = "<<corrfact<<" "<<errMain<<" "<<errOther<<" "<<correrr2/pow(errMain,2)<<" "<<sqrt(correrr2)/errMain<<endl;
+  //cout<<"rho, sigmaMain, sigmaOther, fraction of correlated error (squared, simple) = "<<corrfact<<" "<<errMain<<" "<<errOther<<" "<<correrr2/pow(errMain,2)<<" "<<sqrt(correrr2)/errMain<<endl;
   return sqrt(pow(errMain,2) - correrr2);
 }
 

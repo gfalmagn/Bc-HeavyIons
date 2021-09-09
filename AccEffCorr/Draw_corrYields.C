@@ -215,7 +215,7 @@ void corrYields(bool ispp=true, bool secondStep=true, bool thirdStep=false, bool
   vector<vector<float> > y_fitErr(nbins, vector<float>(3));
   vector<float> y_TnPrelErr(nbins);
 
-  for(int b=0;b<nbins;b++){
+  for(int b=0;b<nbins;b++){ //nbins=2+1 (with integrated at position 0)
     y_nom[b] =  thirdStep?y_3steps[b]:(secondStep?y_2steps[b]:y_oneBinned[b]);
 
     cout<<"b, y  = "<<b<<" "<<y_nom[b]<<endl;

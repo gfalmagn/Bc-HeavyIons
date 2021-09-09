@@ -103,13 +103,21 @@ void BDTweight(bool ispp=true, bool step2=true, bool step3=false, bool inCentBin
 	//drawing stuff
 	h_bdt[i][b][k]->SetLineWidth(3);
 	h_bdt[i][b][k]->GetXaxis()->SetRangeUser(_BDTcuts(ispp,inCentBins?0:b , inCentBins?b:0,step2)[0]-0.05,_BDTcuts(ispp,inCentBins?0:b , inCentBins?b:0,step2)[_nChan(ispp)]+0.05);
-	h_bdt[i][b][k]->GetXaxis()->SetTitleSize(0.06);
-	h_bdt[i][b][k]->GetYaxis()->SetTitleSize(0.06);
+	h_bdt[i][b][k]->GetXaxis()->SetTitleSize(0.075);
+	h_bdt[i][b][k]->GetYaxis()->SetTitleSize(0.075);
+	h_bdt[i][b][k]->GetXaxis()->SetTitleOffset(0.85);
+	h_bdt[i][b][k]->GetYaxis()->SetTitleOffset(0.7);
+	h_bdt[i][b][k]->GetXaxis()->SetLabelSize(0.061);
+	h_bdt[i][b][k]->GetYaxis()->SetLabelSize(0.061);
 	if(i==1){
 	  h_bdtSum[b][k]->SetLineWidth(3);
 	  h_bdtSum[b][k]->GetXaxis()->SetRangeUser(_BDTcuts(ispp,inCentBins?0:b , inCentBins?b:0,step2)[0]-0.05,_BDTcuts(ispp,inCentBins?0:b , inCentBins?b:0,step2)[_nChan(ispp)]+0.05);
-	  h_bdtSum[b][k]->GetXaxis()->SetTitleSize(0.06);
-	  h_bdtSum[b][k]->GetYaxis()->SetTitleSize(0.06);
+ 	  h_bdtSum[b][k]->GetXaxis()->SetTitleSize(0.075);
+	  h_bdtSum[b][k]->GetYaxis()->SetTitleSize(0.075);
+	  h_bdtSum[b][k]->GetXaxis()->SetTitleOffset(0.85);
+	  h_bdtSum[b][k]->GetYaxis()->SetTitleOffset(0.7);
+ 	  h_bdtSum[b][k]->GetXaxis()->SetLabelSize(0.061);
+	  h_bdtSum[b][k]->GetYaxis()->SetLabelSize(0.061);
 	}
       }
     }
@@ -175,7 +183,7 @@ void BDTweight(bool ispp=true, bool step2=true, bool step3=false, bool inCentBin
     c2->cd(1)->SetPad(0.,0.5,1.,1.);//upper pad
     c2->cd(1)->SetLeftMargin(0.13);
     c2->cd(1)->SetRightMargin(0.04);
-    c2->cd(1)->SetTopMargin(0.04);
+    c2->cd(1)->SetTopMargin(0.08);
     c2->cd(1)->SetBottomMargin(0.);
 
     c2->cd(2)->SetPad(0.,0.,1.,0.5);//lower pad
@@ -187,30 +195,43 @@ void BDTweight(bool ispp=true, bool step2=true, bool step3=false, bool inCentBin
 
     c2->cd(1);
     h_BDTData[b]->SetTitle(";BDT;postfit yield;");
+    h_BDTData[b]->GetYaxis()->SetRangeUser(0.01, 1.2*h_BDTData[b]->GetMaximum());
     h_BDTData[b]->Draw("");
     h_BDTSum[b]->SetLineColor(kRed);
     h_BDTSum[b]->Draw("same");
 
-    TLegend* leg = new TLegend((ispp && b==2)?0.15:0.6,0.7,(ispp && b==2)?0.45:0.9,0.9);
+    TLatex CMStag;
+    CMStag.SetNDC();
+    CMStag.SetTextFont(42);
+    CMStag.SetTextSize(0.065);
+    CMStag.DrawLatex(0.75,0.62,"#font[61]{CMS}");
+    CMStag.DrawLatex(0.75,0.54,"#font[52]{Preliminary}");
+    TLatex lumitag;
+    lumitag.SetNDC();
+    lumitag.SetTextFont(42);
+    lumitag.SetTextSize(0.063);
+    lumitag.DrawLatex(ispp?0.66:0.62,0.935, Form(ispp?"pp (%.0f pb^{-1}), 5.02 TeV":"PbPb (%.2f nb^{-1}), 5.02 TeV",ispp?L_pp:(L_PbPb*1e3)));
+
+    TLegend* leg = new TLegend(0.64,0.72,0.9,0.9);
     leg->SetBorderSize(0);
     leg->SetFillStyle(0);
     leg->SetTextSize(0.06);
     leg->AddEntry(h_BDTData[b], "data","l");
-    leg->AddEntry(h_BDTSum[b], "sum of postfit templates","l");
+    leg->AddEntry(h_BDTSum[b], "#Sigma postfit templates","l");
     leg->Draw("same");
     
     c2->cd(2);
     h_BDTratio[b] = (TH1F*)h_BDTData[b]->Clone("BDT_RatioDataToSummedTemplates");
     h_BDTratio[b]->Divide(h_BDTSum[b]);
-    h_BDTratio[b]->GetYaxis()->SetTitle("data/(sum postfit templates)");
-    h_BDTratio[b]->GetYaxis()->SetRangeUser(0,2);
+    h_BDTratio[b]->GetYaxis()->SetTitle("data / (#Sigma postfit templates)");
+    h_BDTratio[b]->GetYaxis()->SetRangeUser(0,1.99);
     h_BDTratio[b]->SetLineColor(kOrange+4);
     h_BDTratio[b]->Draw("");
 
     TLine one = TLine();
     one.SetLineStyle(7);
     one.SetLineColor(kGray+2);
-    one.DrawLine(_BDTcuts(ispp,inCentBins?0:b , inCentBins?b:0,step2)[0]-0.05, 1 ,_BDTcuts(ispp,inCentBins?0:b , inCentBins?b:0,step2)[_nChan(ispp)]+0.05, 1);
+    one.DrawLine(_BDTcuts(ispp,inCentBins?0:b , inCentBins?b:0,step2)[0]-((b==1)?0.15:0.05), 1 ,_BDTcuts(ispp,inCentBins?0:b , inCentBins?b:0,step2)[_nChan(ispp)]+(ispp?0.1:0.06), 1);
 
     c2->SaveAs("figs/BDTdistr_dataComparisonToSummedTemplates_"+(TString)(step2?(step3?"3rdStep_":(useFutureFit?"2ndStepUseFinalFit_":"2ndStep_")):"")+(TString)(ispp?"pp":"PbPb")+(TString)(inCentBins?"_centBin":"_kinBin")+(TString)to_string(b)+".pdf");
 
@@ -233,7 +254,7 @@ void BDTweight(bool ispp=true, bool step2=true, bool step3=false, bool inCentBin
 void BDTweighting(bool step2=true, bool step3=false){
 
   cout<<endl<<"BDT comparison for pp"<<endl<<endl;
-  BDTweight(true,step2,step3);
+  BDTweight(true,step2,step3,false);
   cout<<endl<<"BDT comparison for PbPb"<<endl<<endl;
   BDTweight(false,step2,step3,false);
   cout<<endl<<"BDT comparison for PbPb centrality bins"<<endl<<endl;

@@ -162,4 +162,8 @@
   * `rt -b "drawVariables.C(true/false,true)"' (ignore warnings about integral tolerance)
 - Check dimuon mass for Jpsi choice weight:
   * `cd ~/JpsiMass/`
-  * `rt "drawJpsiMass.C(true/false)"`
+  * `rt -b "drawJpsiMass.C(true/false)"`
+
+## HepData tables
+  * `python CtoHepdata.py'
+  * `python ResultsToHEPDataFormat.py'

@@ -75,13 +75,13 @@ corrTnPerr = float(re.findall("\d+\.\d*" , (re.findall("_corrTnPerr = \d+\.\d*;"
 
 #Final results table
 fo = open("ResultsTable.tex", "w")
-precis = [1,3,1,1,3,0,0,0,2,2,2,2,2]
+precis = [2,3,1,1,3,0,0,0,2,2,2,2,2]
 ptrange = '${:.0f}<\\pt<{:.0f}\\GeV$'
 centrange = 'centrality ${:.0f}\\textnormal{{-}}{:.0f}$\\%'
 quantities = ['\\multirow{{2}}{{*}}{{$BF \\times \\frac{{\\textrm{{d}}\\sigma_{{\\pp}}}}{{\\textrm{{d}}p_{{T}}\\textrm{{d}}y}}$ [pb/\\GeV]}}',
               '$BF \\times \\sigma_{{\\pp}}$ [pb]',
-              '\\multirow{{2}}{{*}}{{$BF \\times \\frac{{1}}{{N_{{MB}}^{{\\mathcal{{C}}}} T_{{\\PbPb}}^{{\\mathcal{{C}}}}}} \\frac{{\\textrm{{d}}N_{{\\PbPb}}^{{corr}}}}{{\\textrm{{d}}p_{{T}} \\textrm{{d}}y}}$ [pb/\\GeV]}}',
-              '\\multirow{{3}}{{*}}{{$BF \\times \\frac{{1}}{{N_{{MB}}^{{\\mathcal{{C}}}} T_{{\\PbPb}}^{{\\mathcal{{C}}}}}} N_{{\\PbPb}}^{{corr}}(\\mathcal{{C}})$ [pb/$\\mathcal{{C}}$]}}',
+              '\\multirow{{2}}{{*}}{{$BF \\times \\frac{{1}}{{N_{{\\rm MB}}^{{\\mathcal{{C}}}} T_{{\\PbPb}}^{{\\mathcal{{C}}}}}} \\frac{{\\textrm{{d}}N_{{\\PbPb}}^{{\\rm B_c}}}}{{\\textrm{{d}}p_{{T}} \\textrm{{d}}y}}$ [pb/\\GeV]}}',
+              '\\multirow{{3}}{{*}}{{$BF \\times \\frac{{1}}{{N_{{\\rm MB}}^{{\\mathcal{{C}}}} T_{{\\PbPb}}^{{\\mathcal{{C}}}}}} N_{{\\PbPb}}^{{\\rm B_c}}(\\mathcal{{C}})$ [pb/$\\mathcal{{C}}$]}}',
               '\\multirow{{2}}{{*}}{{\\RAA(\\pt)}}', 
               '\\multirow{{2}}{{*}}{{$\\RAA(\\mathcal{{C}})$}}',
               '\\RAA','']
@@ -121,6 +121,53 @@ for i in range(0,13):
         fo.write((systemstr[i]+" & "+binstr[i]+" & "+quantities[quantidx[i]]+" & "+valsPrin+" & "+corrstr[i]+"\\\\\n").format(rangm[1], rangM[1], vals[i], valsEHi[i], valsELo[i], prec=precis[i] ))
 
 fo.close()                                                                                                                                                                                                                                 
+
+#Final results table, paper version
+fo6 = open("ResultsTable_paper.tex", "w")
+precis = [2,3,1,3,0,0,2,2,2,2]
+ptrange = '${:.0f}<\\pt<{:.0f}\\GeV$'
+centrange = 'centrality ${:.0f}\\textnormal{{-}}{:.0f}$\\%'
+quantities = ['\\multirow{{2}}{{*}}{{$BF \\times \\frac{{\\textrm{{d}}\\sigma_{{\\pp}}}}{{\\textrm{{d}}p_{{T}}\\textrm{{d}}y}}$ [pb/\\GeV]}}',
+              '$BF \\times \\sigma_{{\\pp}}$ [pb]',
+              '\\multirow{{2}}{{*}}{{$BF \\times \\frac{{1}}{{N_{{\\rm MB}}^{{\\mathcal{{C}}}} T_{{\\PbPb}}^{{\\mathcal{{C}}}}}} \\frac{{\\textrm{{d}}N_{{\\PbPb}}^{{\\rm B_c}}}}{{\\textrm{{d}}p_{{T}} \\textrm{{d}}y}}$ [pb/\\GeV]}}',
+              '\\multirow{{2}}{{*}}{{$BF \\times \\frac{{1}}{{N_{{\\rm MB}}^{{\\mathcal{{C}}}} T_{{\\PbPb}}^{{\\mathcal{{C}}}}}} N_{{\\PbPb}}^{{\\rm B_c}}(\\mathcal{{C}})$ [pb/$\\mathcal{{C}}$]}}',
+              '\\multirow{{2}}{{*}}{{\\RAA(\\pt)}}', 
+              '\\multirow{{2}}{{*}}{{$\\RAA(\\mathcal{{C}})$}}',
+              '\\RAA','']
+quantidx = [0,7,2,7,3,7,4,7,5,7]
+systemstr = ["\\multirow{{2}}{{*}}{{\\pp}}","","\\multirow{{4}}{{*}}{{\\PbPb}}","","","","\\multirow{{4}}{{*}}{{\\Large$\\frac{{\\PbPb}}{{\\pp}}$}}","","",""]
+binstr = [ptrange,ptrange,ptrange,ptrange,centrange,centrange,ptrange,ptrange,centrange,centrange]
+corrstr = ["\\multirow{{2}}{{*}}{{{:.2f}}}",'',"\\multirow{{2}}{{*}}{{{:.2f}}}",'',"\\multirow{{2}}{{*}}{{{:.2f}}}",'',"\\multirow{{2}}{{*}}{{{:.2f}}}",'',"\\multirow{{2}}{{*}}{{{:.2f}}}",'']
+vals    = [XSRAA[0][0][0] , XSRAA[0][0][1], XSRAA[1][0][0] , XSRAA[1][0][1], XSRAAcent[1][0][0] , XSRAAcent[1][0][1], XSRAA[2][0][0] , XSRAA[2][0][1], XSRAAcent[2][0][0] , XSRAAcent[2][0][1] ]
+valsEHi = [XSRAA[0][2][0] , XSRAA[0][2][1], XSRAA[1][2][0] , XSRAA[1][2][1], XSRAAcent[1][2][0] , XSRAAcent[1][2][1], XSRAA[2][2][0] , XSRAA[2][2][1], XSRAAcent[2][2][0] , XSRAAcent[2][2][1] ]
+valsELo = [XSRAA[0][1][0] , XSRAA[0][1][1], XSRAA[1][1][0] , XSRAA[1][1][1], XSRAAcent[1][1][0] , XSRAAcent[1][1][1], XSRAA[2][1][0] , XSRAA[2][1][1], XSRAAcent[2][1][0] , XSRAAcent[2][1][1] ]
+corrval = [rhotot[0][0] ,0, rhotot[1][0] ,0, rhotot_cent[1][0] ,0, rhotot[2][0] ,0, rhotot_cent[2][0] ,0]
+valsPrint = '${:.{prec}f}^{{+{:.{prec}f}}}_{{-{:.{prec}f}}}$'
+valsPrintBf = '\\textbf{{${:.{prec}f}^{{+{:.{prec}f}}}_{{-{:.{prec}f}}}$}}'
+
+for i in range(0,10):
+    rangm = []
+    rangM = []
+    if(binstr[i]==ptrange):
+        rangm = ptMin
+        rangM = ptMax
+    if(binstr[i]==centrange):
+        rangm = centMin
+        rangM = centMax
+    valsPrin = valsPrint if (i<6) else valsPrintBf
+
+    if(i!=0):
+        if(systemstr[i]!=''):
+            fo6.write("\\hline\n")
+        if(corrstr[i]!='' and corrstr[i]!='$-$'):
+            fo6.write("\\cline{2-5}\n")
+
+    if(corrstr[i]!='' and corrstr[i]!='$-$'):
+        fo6.write((systemstr[i]+" & "+binstr[i]+" & "+quantities[quantidx[i]]+" & "+valsPrin+" & "+corrstr[i]+"\\\\\n").format(rangm[0], rangM[0], vals[i], valsEHi[i], valsELo[i], corrval[i], prec=precis[i] ))
+    else:
+        fo6.write((systemstr[i]+" & "+binstr[i]+" & "+quantities[quantidx[i]]+" & "+valsPrin+" & "+corrstr[i]+"\\\\\n").format(rangm[1], rangM[1], vals[i], valsEHi[i], valsELo[i], prec=precis[i] ))
+
+fo6.close()                                                                                                                                                                                                                                 
 
 #Correlation table
 fdef = open("../helpers/Definitions.h", 'r')

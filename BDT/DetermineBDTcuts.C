@@ -77,7 +77,7 @@ vector<float> DetermineCuts(bool ispp=true, bool BDTuncorrFromM=false, int kinBi
   for(int b=1; b<=h_BDT->GetNbinsX();b++){
     //    if(h_BDT->GetBinContent(b)>0 && res.size()==0) res.push_back(h_BDT->GetBinLowEdge(max(b-3,1)));
     ncur += h_BDT->GetBinContent(b);
-    if(ncur/ntot>0.001 && res.size()==0) res.push_back(h_BDT->GetBinLowEdge(b));
+    if(ncur/ntot>_lowBDT_cutfraction && res.size()==0) res.push_back(h_BDT->GetBinLowEdge(b));
     if(_withTM && ncur/ntot>0.05 && res.size()==1) res.push_back(h_BDT->GetBinLowEdge(b));
     if(ncur/ntot>efflim1 && res.size()==(_withTM?2:1)) res.push_back(h_BDT->GetBinLowEdge(b));
     if(ncur/ntot>efflim2 && res.size()==(_withTM?3:2)) res.push_back(h_BDT->GetBinLowEdge(b));

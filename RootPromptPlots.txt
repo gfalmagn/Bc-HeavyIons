@@ -35,3 +35,31 @@ myTree->Draw("Gen_3mu_4mom.M()","Gen_3mu_4mom.Pt()>11 && fabs(Gen_3mu_4mom.Rapid
 myTree->Draw("(Reco_3mu_QQ1_idx>-1 && ((fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M())<3.096+0.08  && fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M())>3.096-0.1 && fabs(Reco_mu_4mom[Reco_3mu_mupl_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_mumi_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_muW_idx].Eta())<1.5) || (fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M())<3.096+0.11  && fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M())>3.096-0.15 && !(fabs(Reco_mu_4mom[Reco_3mu_mupl_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_mumi_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_muW_idx].Eta())<1.5))) )      ||      (Reco_3mu_QQ2_idx>-1 && ((fabs(Reco_QQ_4mom[Reco_3mu_QQ2_idx].M())<3.096+0.08  && fabs(Reco_QQ_4mom[Reco_3mu_QQ2_idx].M())>3.096-0.1 && fabs(Reco_mu_4mom[Reco_3mu_mupl_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_mumi_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_muW_idx].Eta())<1.5) || (fabs(Reco_QQ_4mom[Reco_3mu_QQ2_idx].M())<3.096+0.11  && fabs(Reco_QQ_4mom[Reco_3mu_QQ2_idx].M())>3.096-0.15 && !(fabs(Reco_mu_4mom[Reco_3mu_mupl_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_mumi_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_muW_idx].Eta())<1.5))) ) ","(Reco_3mu_QQ1_idx>-1 || Reco_3mu_QQ2_idx>-1) && Reco_QQ_VtxProb[(Reco_3mu_QQ1_idx>-1)?Reco_3mu_QQ1_idx:Reco_3mu_QQ2_idx]>0.005 && fabs(Reco_3mu_charge)==1 && Reco_3mu_VtxProb>0.01 && Reco_3mu_cosAlpha>0.83 && Reco_3mu_cosAlpha3D>0.94 && Reco_3mu_ctau3D/Reco_3mu_ctauErr3D>1.5 && Reco_3mu_ctau/Reco_3mu_ctauErr>1.5 && Reco_QQ_dca[(Reco_3mu_QQ1_idx>-1)?Reco_3mu_QQ1_idx:Reco_3mu_QQ2_idx]<0.3 && Reco_3mu_CorrM<20 && fabs(Reco_3mu_muW_dz_muonlessVtx)<0.6 && fabs(Reco_3mu_mumi_dz_muonlessVtx)<0.6 && fabs(Reco_3mu_mupl_dz_muonlessVtx)<0.6 && (HLTriggers&8)>0 && (Reco_mu_SelectionType[Reco_3mu_muW_idx]&2)>0 && (Reco_mu_SelectionType[Reco_3mu_mupl_idx]&2)>0 && (Reco_mu_SelectionType[Reco_3mu_mumi_idx]&2)>0 && looseAcc(Reco_mu_4mom[Reco_3mu_muW_idx].Pt(),Reco_mu_4mom[Reco_3mu_muW_idx].Eta()) && looseAcc(Reco_mu_4mom[Reco_3mu_mumi_idx].Pt(),Reco_mu_4mom[Reco_3mu_mumi_idx].Eta()) && looseAcc(Reco_mu_4mom[Reco_3mu_mupl_idx].Pt(),Reco_mu_4mom[Reco_3mu_mupl_idx].Eta()) && Reco_3mu_whichGen>-1")
 
 myTree->Draw("(Reco_3mu_QQ1_idx>-1 && ((fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M())<3.096+0.08  && fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M())>3.096-0.1 && fabs(Reco_mu_4mom[Reco_3mu_mupl_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_mumi_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_muW_idx].Eta())<1.5) || (fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M())<3.096+0.11  && fabs(Reco_QQ_4mom[Reco_3mu_QQ1_idx].M())>3.096-0.15 && !(fabs(Reco_mu_4mom[Reco_3mu_mupl_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_mumi_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_muW_idx].Eta())<1.5))) )      ||      (Reco_3mu_QQ2_idx>-1 && ((fabs(Reco_QQ_4mom[Reco_3mu_QQ2_idx].M())<3.096+0.08  && fabs(Reco_QQ_4mom[Reco_3mu_QQ2_idx].M())>3.096-0.1 && fabs(Reco_mu_4mom[Reco_3mu_mupl_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_mumi_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_muW_idx].Eta())<1.5) || (fabs(Reco_QQ_4mom[Reco_3mu_QQ2_idx].M())<3.096+0.11  && fabs(Reco_QQ_4mom[Reco_3mu_QQ2_idx].M())>3.096-0.15 && !(fabs(Reco_mu_4mom[Reco_3mu_mupl_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_mumi_idx].Eta())<1.5 && fabs(Reco_mu_4mom[Reco_3mu_muW_idx].Eta())<1.5))) ) ","(Reco_3mu_QQ1_idx>-1 || Reco_3mu_QQ2_idx>-1) && Reco_QQ_VtxProb[(Reco_3mu_QQ1_idx>-1)?Reco_3mu_QQ1_idx:Reco_3mu_QQ2_idx]>0.005 && fabs(Reco_3mu_charge)==1 && Reco_3mu_VtxProb>0.01 && Reco_3mu_cosAlpha>0.88 && Reco_3mu_cosAlpha3D>0.97 && Reco_3mu_ctau3D/Reco_3mu_ctauErr3D>1.5 && Reco_3mu_ctau/Reco_3mu_ctauErr>1.5 && Reco_QQ_dca[(Reco_3mu_QQ1_idx>-1)?Reco_3mu_QQ1_idx:Reco_3mu_QQ2_idx]<0.3 && Reco_3mu_CorrM<18 && fabs(Reco_mu_dz[Reco_3mu_mumi_idx])<0.6 && fabs(Reco_mu_dz[Reco_3mu_mupl_idx])<0.6 && fabs(Reco_mu_dz[Reco_3mu_muW_idx])<0.6 && (HLTriggers&4096)>0 && (Reco_mu_SelectionType[Reco_3mu_muW_idx]&2)>0 && (Reco_mu_SelectionType[Reco_3mu_mupl_idx]&2)>0 && (Reco_mu_SelectionType[Reco_3mu_mumi_idx]&2)>0 && looseAcc(Reco_mu_4mom[Reco_3mu_muW_idx].Pt(),Reco_mu_4mom[Reco_3mu_muW_idx].Eta()) && looseAcc(Reco_mu_4mom[Reco_3mu_mumi_idx].Pt(),Reco_mu_4mom[Reco_3mu_mumi_idx].Eta()) && looseAcc(Reco_mu_4mom[Reco_3mu_mupl_idx].Pt(),Reco_mu_4mom[Reco_3mu_mupl_idx].Eta()) && Reco_3mu_whichGen>-1")
+
+## Trimuon generated mass
+rt /data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/acceptance/BcToJpsiMuNu_BCVEGPY_PYTHIA8_pp5TeV_RunIIpp5Spring18DR-00093_acceptance_14092020_ONIATREE_3640k.root
+gStyle->SetOptStat(0)
+myTree->Draw("Gen_3mu_4mom.M()>>h","Gen_3mu_4mom.Pt()>6 && Gen_3mu_4mom.Pt()<35 && (Gen_3mu_4mom.Pt()>11 || fabs(Gen_3mu_4mom.Rapidity())>1.3) && fabs(Gen_3mu_4mom.Rapidity())<2.3 ")
+h->SetTitle("")
+h->GetYaxis()->SetTitle("N")
+h->GetXaxis()->SetTitle("generated trimuon mass [GeV]")
+h->SetLineWidth(2)
+h->GetYaxis()->SetTitleOffset(0.5)
+float ym = 1.15*h->GetMaximum()
+h->GetYaxis()->SetRangeUser(0,ym)
+TLatex CMStag;
+CMStag.SetNDC();
+CMStag.SetTextSize(0.042);
+CMStag.SetTextFont(42);
+CMStag.DrawLatex(0.13,0.815,"#font[52]{Simulation Preliminary}");
+CMStag.DrawLatex(0.13,0.86,"#font[61]{CMS}");
+
+##To check the number of events with 2 selected candidates. This version excludes the candidates with a Jpsi choice ambiguity, but does not increase much the number of doubles if the signal region and dimuon SB are looked at separately
+sigRegion->Draw("eventNb>>H(10000000,0,700000000)","Bc_Pt>6 && Bc_Pt<35 && fabs(Bc_Y)<2.3 && (Bc_Pt>11 || fabs(Bc_Y)>1.3) && BDT2>-0.55")
+bkgBCMASS->Draw("eventNb>>Hb(10000000,0,700000000)","Bc_Pt>6 && Bc_Pt<35 && fabs(Bc_Y)<2.3 && (Bc_Pt>11 || fabs(Bc_Y)>1.3) && BDT2>-0.55")
+int ndouble=0; for (int i=0;i<H->GetNbinsX();i++){if(H->GetBinContent(i)>1){ cout<<H->GetBinCenter(i)<<endl;ndouble+=1;}}; cout<<"number of doubles = "<<ndouble<<endl;
+ndouble=0; for (int i=0;i<Hb->GetNbinsX();i++){if(Hb->GetBinContent(i)>1){ cout<<Hb->GetBinCenter(i)<<endl;ndouble+=1;}}; cout<<"number of doubles = "<<ndouble<<endl;
+##Checking when considering SR and SB at the same time
+TH1F Hall = H->Clone("Hall")
+Hall3->Add(Hb)
+ndouble=0; for (int i=0;i<Hall->GetNbinsX();i++){if(Hall->GetBinContent(i)>1){ cout<<Hall->GetBinCenter(i)<<endl;ndouble+=1;}}; cout<<"number of doubles = "<<ndouble<<endl;

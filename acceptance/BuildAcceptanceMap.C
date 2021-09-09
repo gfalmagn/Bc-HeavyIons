@@ -9,15 +9,14 @@
 #include "TStyle.h"
 #include "Math/PdfFuncMathCore.h"
 #include "Math/PdfFuncMathMore.h"
-#include "../helpers/Definitions.h"
-#include "../helpers/Cuts.h"
-#include "../helpers/Tools.h"
+#include "../helpers/hub.cpp"
 #include "../helpers/SgMuonAcceptanceCuts.h"
 #include "../helpers/AccEff2DBinning.h"
 
 void BuildAcceptanceMap(bool runAEtoys=true, bool secondStep=false, bool runMCclos=false, bool withTM = false){
 
   if(runAEtoys && !secondStep) cout<<"!!!!! WARNING, you should set runAEtoys=true only with secondStep !"<<endl;
+  Hub H = Hub(secondStep,runAEtoys);
 
   auto h_test = new TH1F();
   h_test->SetDefaultSumw2(true);
@@ -49,7 +48,7 @@ void BuildAcceptanceMap(bool runAEtoys=true, bool secondStep=false, bool runMCcl
 
   //**************************************************************  
   //Create Tree 
-  TFile *file = TFile::Open("/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/acceptance/BcToJpsiMuNu_BCVEGPY_PYTHIA8_pp5TeV_RunIIpp5Spring18DR-00093_acceptance_14092020_ONIATREE_3640k.root");///data_CMS/cms/falmagne/tuples/Bc_GenOnly/BcToJpsiMuNu_BCVEGPY_PYTHIA8_GenOnly_11052020_ONIATREE.root
+  TFile *file = TFile::Open("/data_CMS/cms/falmagne/tuples/pp17/Bc/TripleMu/acceptance/BcToJpsiMuNu_BCVEGPY_PYTHIA8_pp5TeV_RunIIpp5Spring18DR-00093_acceptance_14092020_ONIATREE_3640k.root");///data_CMS/cms/falmagne/tuples/Bc_GenOnly/BOAcToJpsiMuNu_BCVEGPY_PYTHIA8_GenOnly_11052020_ONIATREE.root
   TTree* T = (TTree*)file->Get("hionia/myTree");
   int nentries = T->GetEntries();
   std::cout<<"nevents = "<<nentries<<"\n";
@@ -259,6 +258,9 @@ void BuildAcceptanceMap(bool runAEtoys=true, bool secondStep=false, bool runMCcl
     }
   }
 
+  ofstream MCXS;
+  MCXS.open("AprioriXSfromMC.txt");
+
   vector<TH1F*> h_acceptance;
   vector<TH2Poly*> hp_acceptance;
   for(int col=0;col<2;col++){
@@ -365,9 +367,11 @@ void BuildAcceptanceMap(bool runAEtoys=true, bool secondStep=false, bool runMCcl
       c2->SaveAs("figs/AcceptanceMap_tunedBins"+(TString)(withTM?"_withTrackerMu":"")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep_":"_2ndStep_")+(TString)((col==0)?"pp":"PbPb")):"")+".png");
     }
 
-    cout<<"pp/PbPb, bin, nall, n_fiducial, n_accepted, acceptance = "<<col<<" all "<<nall[col]<<" "<<gen_oneBinned[col][0]<<" "<<accepted_oneBinned[col][0]<<" "<<accepted_oneBinned[col][0]/gen_oneBinned[col][0]<<endl;
-    cout<<"pp/PbPb, bin, nall, n_fiducial, n_accepted, acceptance = "<<col<<" 1 "<<nall[col]<<" "<<gen_oneBinned[col][1]<<" "<<accepted_oneBinned[col][1]<<" "<<accepted_oneBinned[col][1]/gen_oneBinned[col][1]<<endl;
-    cout<<"pp/PbPb, bin, nall, n_fiducial, n_accepted, acceptance = "<<col<<" 2 "<<nall[col]<<" "<<gen_oneBinned[col][2]<<" "<<accepted_oneBinned[col][2]<<" "<<accepted_oneBinned[col][2]/gen_oneBinned[col][2]<<endl;
+    for(int b=0;b<=_NanaBins;b++){
+      cout<<"pp/PbPb, bin, nall, n_fiducial, n_accepted, acceptance = "<<col<<" all "<<nall[col]<<" "<<gen_oneBinned[col][b]<<" "<<accepted_oneBinned[col][b]<<" "<<accepted_oneBinned[col][b]/gen_oneBinned[col][b]<<endl;
+      MCXS<<"pp/PbPb, bin, nall, n_fiducial, n_accepted, acceptance, XS in this bin = "<<col<<" all "<<nall[col]<<" "<<gen_oneBinned[col][b]<<" "<<accepted_oneBinned[col][b]<<" "<<accepted_oneBinned[col][b]/gen_oneBinned[col][b]<<" "<<gen_oneBinned[col][b]/((col==0)?H.norm_pp:H.norm_PbPb)[b]<<endl;
+    }
+
   }
   if(!secondStep) hp_acceptance.push_back(hp_acceptance[0]);
 

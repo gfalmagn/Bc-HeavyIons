@@ -1,5 +1,3 @@
-#ifndef DEFINITIONS_H 
-#define DEFINITIONS_H 
 #include "Definitions.h"
 
 std::vector<float> _BDTcuts(bool ispp, int kinBin=0, int centBin=0, bool secondStep=false, bool BDTuncorrFromM=false, int varyBDTbin=0){
@@ -401,4 +399,3 @@ std::vector<float> _BDTcuts(bool ispp, int kinBin=0, int centBin=0, bool secondS
   }
   return std::vector<float>{};
 }
-#endif

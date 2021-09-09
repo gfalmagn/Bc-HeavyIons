@@ -21,12 +21,13 @@ const float TAA_090 = 6.27e-9; //pb-1 //6.27+-0.14 mb-1 (2.2%), HIN-19-007-pas-v
 const float TAA_020 = 18.79e-9; //pb-1 //18.79+-0.36 mb-1 (2.3%), from PbPb/Utilities/EVENTUTILS.h for central value and HIN-19-007-pas-v5 & https://twiki.cern.ch/twiki/bin/viewauth/CMS/Glauber5TeVPbPbNewParameters for uncertainty
 const float TAA_2090 = 2.70e-9; //pb-1 //2.700+-0.098 mb-1 (3.8%), from PbPb/Utilities/EVENTUTILS.h for central value and HIN-19-007-pas-v5 & https://twiki.cern.ch/twiki/bin/viewauth/CMS/Glauber5TeVPbPbNewParameters for uncertainty
 const float Ncoll_MB = 382;
+vector<float> _NpartCentBins = {126.0, 309.9, 73.5};
 
 //Some XS MC scalings
 //1.21 comes from a deficit of events in the full pp signal MC. Obtained comparing the accepted events in a fiducial bin, in the acceptance VS in the full signal MC. To be checked again when the signal MC oniatree is rerun.
 std::map<bool, float> _scaleMCsig = {{ true,  L_pp * 2.54e3 * 0.668 / (3000000/1.21)}, // Lumi_pp[pb-1] (from https://twiki.cern.ch/twiki/bin/viewauth/CMS/TWikiLUM) * (XS_Bc_pp * BF((J/psi -> mu mu) mu nu))[pb] * (XS(5.02 TeV) / XS(7 TeV)) / nevents(uncut MC sample)
 				    { false, L_PbPb * 2.54e3 * 0.668 * (7656 / 67.6) / 4200000} }; //Lumi_PbPb[pb-1] (from https://hypernews.cern.ch/HyperNews/CMS/get/luminosity/948.html) * (XS_Bc_pp * BF((J/psi -> mu mu) mu nu))[pb] * (XS(5.02 TeV) / XS(7 TeV)) * ( XS^geom_PbPb / XS_Nucleon-Nucleon ) / nevents(uncut MC sample)
-//weighted by Ncoll(centrality of given event) later, with an average Ncoll_MB = 382. The value of XS^geom was set to A^2 * XS_NN / Ncoll_MB, where XS_NN is taken from Glauber MC d'Enterria PRC 97.054910
+//weighted by Ncoll(centrality of given event) later, with an average Ncoll_MB(0-90%) = 382. The value of XS^geom was set to A^2 * XS_NN / Ncoll_MB, where XS_NN is taken from Glauber MC d'Enterria PRC 97.054910
 //Assuming R_AA(Bc)=1
 std::map<bool, float> _scaleMCsigAcc = {{ true, L_pp * 2.54e3 * 0.668 / 3637400 }, { false, L_PbPb * 2.54e3 * 0.668 * (382 * 7656 / 67.6) / 3637400 } }; //here, mutliply PbPb by mean Ncoll already
 
@@ -42,7 +43,7 @@ float _lumiErr_PbPb020 = 0.023;
 float _lumiErr_PbPb2090 = 0.038;
 
 int _biasNmeth = 3;
-std::vector<TString> _biasMethName = {"p_{T}^{n}","p_{T}^{n+m#timesln(p_{T})} (fix m)","p_{T}^{n+m#timesln(p_{T})} (fix n)"};//"linear"
+std::vector<TString> _biasMethName = {"p_{T}^{-n}","p_{T}^{-n+m#timesln(p_{T})} (fix m)","#left(1+#left(#frac{p_{T}}{a}#right)^{2}#right)^{-n} (fix a)"};//"p_{T}^{n+m#timesln(p_{T})} (fix n)","linear"
 int _biasNtoys = 500;
 int _nomMethVar = 1; //index of the fitting method kept for the nominal biasing of the pT distro of signal MC
 

@@ -12,6 +12,7 @@
 #include "TClonesArray.h"
 #include "TStyle.h"
 #include "TLegend.h"
+#include "TLatex.h"
 #include "TPaletteAxis.h"
 #include "Math/PdfFuncMathCore.h"
 #include "Math/PdfFuncMathMore.h"
@@ -60,7 +61,7 @@ double asymTrimuEff(double l1, double l2, double l3, double h1, double h2, doubl
   return res;
 }
 
-void drawEffMap(TH2Poly* hpEff, TH2Poly* hpSel, TH2Poly* hpAcc, TLine* l1, TLine* l2, TLine* l3, TLine* l4, TLine* l5, bool ispp, TString nameSuf, float zmin, float zmax){
+void drawEffMap(TH2Poly* hpEff, TH2Poly* hpSel, TH2Poly* hpAcc, TLine* l1, TLine* l2, TLine* l3, TLine* l4, TLine* l5, TLine* l6, bool ispp, TString nameSuf, float zmin, float zmax){
 
   TCanvas *c2 = new TCanvas("c2","c2",3000,1500);
   c2->Divide(2,1);
@@ -68,21 +69,21 @@ void drawEffMap(TH2Poly* hpEff, TH2Poly* hpSel, TH2Poly* hpAcc, TLine* l1, TLine
   c2->cd(1);
   //  gPad->SetLogz();
   //hpSel->GetZaxis()->SetRangeUser(1,200);
-  hpSel->GetXaxis()->SetTitle("|y^{vis}(B_{c})|");
-  hpSel->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
+  hpSel->GetXaxis()->SetTitle("|y^{#mu#mu#mu}(B_{c})|");
+  hpSel->GetYaxis()->SetTitle("p_{T}^{#mu#mu#mu}(B_{c})");
   hpSel->SetTitle("Selected B_{c}'s");
   hpSel->Draw("COLZ0");
-  l1->Draw("same"); l2->Draw("same"); l3->Draw("same"); l4->Draw("same"); l5->Draw("same");
+  l1->Draw("same"); l2->Draw("same"); l3->Draw("same"); l4->Draw("same"); l5->Draw("same"); l6->Draw("same");
 
   c2->cd(2)->SetRightMargin(0.15);
   //gPad->SetLogz();
   hpEff->Divide(hpAcc);
   hpEff->GetZaxis()->SetRangeUser(zmin,zmax);
-  hpEff->GetXaxis()->SetTitle("|y^{vis}(B_{c})|");
-  hpEff->GetYaxis()->SetTitle("p_{T}^{vis}(B_{c})");
+  hpEff->GetXaxis()->SetTitle("|y^{#mu#mu#mu}(B_{c})|");
+  hpEff->GetYaxis()->SetTitle("p_{T}^{#mu#mu#mu}(B_{c})");
   hpEff->SetTitle("Efficiency "+nameSuf);
   hpEff->Draw("COLZ0");
-  l1->Draw("same"); l2->Draw("same"); l3->Draw("same"); l4->Draw("same"); l5->Draw("same");
+  l1->Draw("same"); l2->Draw("same"); l3->Draw("same"); l4->Draw("same"); l5->Draw("same"); l6->Draw("same");
 
   c2->SaveAs("figs/EfficiencyMap_tunedBins"+(TString)(_withTM?"_withTrackerMu":"")+nameSuf+(TString)(ispp?"_pp":"_PbPb")+".pdf");
   c2->SaveAs("figs/EfficiencyMap_tunedBins"+(TString)(_withTM?"_withTrackerMu":"")+nameSuf+(TString)(ispp?"_pp":"_PbPb")+".png");
@@ -1125,11 +1126,13 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool secondStep=false, b
   TLine *line3 = new TLine(_BcYmin[1],_BcPtmin[1],_BcYmax[1],_BcPtmin[1]);
   TLine *line4 = new TLine(_BcYmax[1],_BcPtmin[0],_BcYmax[1],_BcPtmax[0]);
   TLine *line5 = new TLine(_BcYmin[1],_BcPtmax[1],_BcYmax[1],_BcPtmax[1]);
+  TLine *line6 = new TLine(_BcYmin[0],_BcPtmax[0],_BcYmax[0],_BcPtmax[0]);
   line1->SetLineWidth(4);  line1->SetLineColor(kBlack);
   line2->SetLineWidth(4);  line2->SetLineColor(kBlack);
   line3->SetLineWidth(4);  line3->SetLineColor(kBlack);
   line4->SetLineWidth(4);  line4->SetLineColor(kBlack);
   line5->SetLineWidth(3); line5->SetLineStyle(2); line5->SetLineColor(kBlack);
+  line6->SetLineWidth(4);  line6->SetLineColor(kBlack);
 
   gStyle->SetPalette(kLightTemperature);
   gStyle->SetOptStat(0);
@@ -1148,25 +1151,25 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool secondStep=false, b
 
       hp_efficiency[centb] = (TH2Poly*)hp_sel[centb]->Clone("hp_efficiency"+(TString)((centb==0)?"":("_centBin"+(TString)to_string(centb))));
       if(!integratePtBins && !BDTuncorrFromM) {
-	drawEffMap(hp_efficiency[centb], hp_sel[centb], hp_acc[centb], line1, line2, line3, line4, line5, ispp, ""+(TString)((centb==0)?"":("_centBin"+(TString)to_string(centb)))+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""), 0,0.45);
+	drawEffMap(hp_efficiency[centb], hp_sel[centb], hp_acc[centb], line1, line2, line3, line4, line5, line6, ispp, ""+(TString)((centb==0)?"":("_centBin"+(TString)to_string(centb)))+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""), 0,0.45);
       }
 
       hp_efficiency_noSF[centb] = (TH2Poly*)hp_sel_noSF[centb]->Clone("hp_efficiency_noSF"+(TString)((centb==0)?"":("_centBin"+(TString)to_string(centb))));
       if(!integratePtBins && !BDTuncorrFromM){
 	hp_efficiency_noSF[centb]->Divide(hp_efficiency[centb]);
-	drawEffMap(hp_efficiency_noSF[centb], hp_sel_noSF[centb], hp_acc[centb], line1, line2, line3, line4, line5, ispp, "_noSF_DivideNominal"+(TString)((centb==0)?"":("_centBin"+(TString)to_string(centb)))+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""), ispp?0.84:0.83,ispp?1.16:1.17);
+	drawEffMap(hp_efficiency_noSF[centb], hp_sel_noSF[centb], hp_acc[centb], line1, line2, line3, line4, line5, line6, ispp, "_noSF_DivideNominal"+(TString)((centb==0)?"":("_centBin"+(TString)to_string(centb)))+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""), ispp?0.84:0.83,ispp?1.16:1.17);
       }
 
       hp_efficiency_selectiveSFapplication[centb] = (TH2Poly*)hp_sel_selectiveSFapplication[centb]->Clone("hp_efficiency_selectiveSFapplication"+(TString)((centb==0)?"":("_centBin"+(TString)to_string(centb))));
       if(!integratePtBins && !BDTuncorrFromM){ 
 	hp_efficiency_selectiveSFapplication[centb]->Divide(hp_efficiency[centb]);
-	drawEffMap(hp_efficiency_selectiveSFapplication[centb], hp_sel_selectiveSFapplication[centb], hp_acc[centb], line1, line2, line3, line4, line5, ispp, "_selectiveSFapplication_DivideNominal"+(TString)((centb==0)?"":("_centBin"+(TString)to_string(centb)))+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""), ispp?0.92:0.89,ispp?1.08:1.11);
+	drawEffMap(hp_efficiency_selectiveSFapplication[centb], hp_sel_selectiveSFapplication[centb], hp_acc[centb], line1, line2, line3, line4, line5, line6, ispp, "_selectiveSFapplication_DivideNominal"+(TString)((centb==0)?"":("_centBin"+(TString)to_string(centb)))+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""), ispp?0.92:0.89,ispp?1.08:1.11);
       }
 
       hp_efficiency_simpleAverage[centb] = (TH2Poly*)hp_sel_simpleAverage[centb]->Clone("hp_efficiency_simpleAverage"+(TString)((centb==0)?"":("_centBin"+(TString)to_string(centb))));
       if(!integratePtBins && !BDTuncorrFromM) {
 	hp_efficiency_simpleAverage[centb]->Divide(hp_efficiency[centb]);
-	drawEffMap(hp_efficiency_simpleAverage[centb], hp_sel_simpleAverage[centb], hp_acc[centb], line1, line2, line3, line4, line5, ispp, "_simpleAverage_DivideNominal"+(TString)((centb==0)?"":("_centBin"+(TString)to_string(centb)))+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""), ispp?0.9:0.84,ispp?1.1:1.16);
+	drawEffMap(hp_efficiency_simpleAverage[centb], hp_sel_simpleAverage[centb], hp_acc[centb], line1, line2, line3, line4, line5, line6, ispp, "_simpleAverage_DivideNominal"+(TString)((centb==0)?"":("_centBin"+(TString)to_string(centb)))+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):""), ispp?0.9:0.84,ispp?1.1:1.16);
       }
     }
   }
@@ -1227,7 +1230,7 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool secondStep=false, b
   
       c3->cd(1);
       hp_acceptance[centb]->Draw("COLZ");
-      line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same");
+      line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same"); line6->Draw("same");
       gPad->SetLogz();
       gPad->SetRightMargin(0.15);
       hp_acceptance[centb]->GetZaxis()->SetRangeUser(5e-5,1);
@@ -1245,15 +1248,15 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool secondStep=false, b
       hp_efficiency[centb]->SetTitle("Efficiency");
       hp_efficiency[centb]->Draw("COLZ0");
       gPad->SetRightMargin(0.15);
-      line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same");
+      line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same"); line6->Draw("same");
       c3->cd(3);
       hp_sel[centb]->Draw("COLZ0");
-      line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same");
+      line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same"); line6->Draw("same");
 
       c3->cd(4);
       hp_acceff[centb]->Draw("COLZ0");
-      line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same");
-      hp_acceff[centb]->SetTitle("Acceptance #times  Efficiency");
+      line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same"); line6->Draw("same");
+      hp_acceff[centb]->SetTitle("Acceptance #times Efficiency");
       cout<<"smallest in fid cuts acc eff = "<<hp_acceff[centb]->GetBinContent(hp_acceff[centb]->FindBin(1.32,6.05))<<endl;
       gPad->SetLogz();
       gPad->SetRightMargin(0.15);
@@ -1272,6 +1275,29 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool secondStep=false, b
 	c3->SaveAs("figs/AcceptanceEfficiencyMap_tunedBins"+(TString)(_withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):"")+".pdf");
 	c3->SaveAs("figs/AcceptanceEfficiencyMap_tunedBins"+(TString)(_withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):"")+".png");
       }
+
+      //Save AccEff Pad only
+      c3->cd(4)->SetRightMargin(0.18);
+      c3->cd(4)->SetTopMargin(0.04);
+      hp_acceff[centb]->SetTitle("");
+      hp_acceff[centb]->GetZaxis()->SetTitle("acceptance #times efficiency");
+      hp_acceff[centb]->GetZaxis()->SetTitleOffset(1.5);
+
+      TLatex CMStag;
+      CMStag.SetNDC();
+      CMStag.SetTextFont(42);
+      CMStag.SetTextSize(0.041);
+      CMStag.SetTextAlign(11);
+      CMStag.DrawLatex(0.13,0.16,"#splitline{#font[61]{CMS}}{#font[52]{Preliminary}}");
+
+      palette2->SetX1NDC(0.83);
+      palette2->SetX2NDC(0.88);
+      palette2->SetY1NDC(0.1);
+      palette2->SetY2NDC(0.96);
+      gPad->Modified();
+      gPad->Update();
+
+      c3->SaveAs("figs/AcceptanceEfficiencyMap_tunedBins"+(TString)(_withTM?"_withTrackerMu":"")+(TString)(ispp?"_pp":"_PbPb")+(TString)(secondStep?((TString)(runAEtoys?"_3rdStep":"_2ndStep")):"")+"_ForAccEffOnly.pdf");
 
       //**************************************************************
       //Draw TH2Poly for BDT efficiency

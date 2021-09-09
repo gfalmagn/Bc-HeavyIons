@@ -78,13 +78,13 @@ void RAAErrCorr(bool fromfit=true, bool fullerr=false, bool centDep=false){
   float normpp1 = centDep?normpp0:1.;//L_pp * (-_BcPtmin[1]+_BcPtmax[1]);
   float normPbPb1 = 1.;//NMB_PbPb * TAA_090 * (-_BcPtmin[1]+_BcPtmax[1]);
 
-  float norm2pp0 = L_pp * (-_BcPtmin[centDep?0:1]+_BcPtmax[centDep?0:1]) * (-_BcYmin[centDep?0:1]+_BcYmax[centDep?0:1]);
-  float norm2PbPb0 = NMB_PbPb * TAA_090 * (-_BcPtmin[1]+_BcPtmax[1]) * (-_BcYmin[1]+_BcYmax[1]) * (_Centmax[0]/100 - _Centmin[0]/100);
-  float norm2pp1 = L_pp * (-_BcPtmin[centDep?0:2]+_BcPtmax[centDep?0:2]) * (-_BcYmin[centDep?0:2]+_BcYmax[centDep?0:2]);
-  float norm2PbPb1 = NMB_PbPb * TAA_090 * (-_BcPtmin[2]+_BcPtmax[2]) * (-_BcYmin[2]+_BcYmax[2]) * (_Centmax[0]/100 - _Centmin[0]/100);
+  float norm2pp0 = L_pp * (-_BcPtmin[centDep?0:1]+_BcPtmax[centDep?0:1]) * 2*(-_BcYmin[centDep?0:1]+_BcYmax[centDep?0:1]);
+  float norm2PbPb0 = NMB_PbPb * TAA_090 * (-_BcPtmin[1]+_BcPtmax[1]) * 2*(-_BcYmin[1]+_BcYmax[1]) * (_Centmax[0]/100 - _Centmin[0]/100);
+  float norm2pp1 = L_pp * (-_BcPtmin[centDep?0:2]+_BcPtmax[centDep?0:2]) * 2*(-_BcYmin[centDep?0:2]+_BcYmax[centDep?0:2]);
+  float norm2PbPb1 = NMB_PbPb * TAA_090 * (-_BcPtmin[2]+_BcPtmax[2]) * 2*(-_BcYmin[2]+_BcYmax[2]) * (_Centmax[0]/100 - _Centmin[0]/100);
   if(centDep){
-    norm2PbPb0 = NMB_PbPb * TAA_020 * (-_BcPtmin[0]+_BcPtmax[0]) * (_BcYmax[0]-_BcYmin[0]) * (_Centmax[1]/100 - _Centmin[1]/100);
-    norm2PbPb1 = NMB_PbPb * TAA_2090 * (-_BcPtmin[0]+_BcPtmax[0]) * (_BcYmax[0]-_BcYmin[0]) * (_Centmax[2]/100 - _Centmin[2]/100);
+    norm2PbPb0 = NMB_PbPb * TAA_020 * (-_BcPtmin[0]+_BcPtmax[0]) * 2*(_BcYmax[0]-_BcYmin[0]) * (_Centmax[1]/100 - _Centmin[1]/100);
+    norm2PbPb1 = NMB_PbPb * TAA_2090 * (-_BcPtmin[0]+_BcPtmax[0]) * 2*(_BcYmax[0]-_BcYmin[0]) * (_Centmax[2]/100 - _Centmin[2]/100);
   }
   
   cout<<"pp nominal: "<<(*y_nom_pp)[centDep?0:1]/normpp0<<" "<<(*y_nom_pp)[centDep?0:2]/normpp1<<endl;

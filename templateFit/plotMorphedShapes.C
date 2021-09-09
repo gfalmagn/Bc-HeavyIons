@@ -26,7 +26,7 @@ void plotMorphedShapes(bool ispp=true){
 
   int ntrees = 9;
 
-  vector<float> BDTcut = _BDTcuts(ispp,0,false); //vector of BDT cut values put into array
+  vector<float> BDTcut = _BDTcuts(ispp,0,0,false); //vector of BDT cut values put into array
   bool ignore1stBin = BDTcut.size()>4;
   //  if(ignore1stBin) BDTcut.erase(0);
   //int nchan = BDTcut.size() -1;

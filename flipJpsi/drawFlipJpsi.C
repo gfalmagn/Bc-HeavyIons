@@ -244,7 +244,7 @@ void drawFlipJpsi(bool ispp=true, bool secondStep=true, bool highMass = false){
   h_MCtrueJ->Draw("histEsame");
 
   TLegend *leg4 = new TLegend(0.5,0.76,0.9,0.96);
-  leg4->AddEntry(h_fliptrueJ,"pivoted J/#psi");
+  leg4->AddEntry(h_fliptrueJ,"rotated J/#psi");
   leg4->AddEntry(h_MCtrueJ,"J/#psi MC (w/o B decays)");
   leg4->SetTextSize(0.04);
   leg4->Draw();

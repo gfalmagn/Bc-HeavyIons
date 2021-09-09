@@ -193,7 +193,16 @@ void CorrectPostfitYields(bool ispp = true, bool secondStep=false, TString metaf
 	  Yields_postf_cent[proc][b][k] = h_BcM_postfit_cent[proc][b][k]->Integral(1,_nbinMSR(ispp)[k-1]) ;
 	  Yields_postf_cent[proc][b][0] += Yields_postf_cent[proc][b][k];
 	}
+      }
+    }
+  }
 
+  //Correct for the tiny inefficiency of BDT cut
+  for(int proc=0; proc<nproc; proc++){
+    for(int b=0;b<=_NanaBins;b++){
+      for(int k=0;k<=_nChan(ispp);k++){
+	Yields_pref[proc][b][k] /= (1-_lowBDT_cutfraction);
+	Yields_postf[proc][b][k] /= (1-_lowBDT_cutfraction);
       }
     }
   }

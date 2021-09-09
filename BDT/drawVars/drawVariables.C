@@ -30,10 +30,10 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
   gStyle->SetOptStat(0);
 
   vector<int> tToDraw{4,1,5,(ispp?8:6)};
-  vector<TString> legends{"signal MC","J/#psi sidebands","NonPrompt J/#psi MC",(TString)(ispp?"pivoted J/#psi":"Prompt J/#psi MC")};
+  vector<TString> legends{"signal MC","J/#psi sidebands","NonPrompt J/#psi MC",(TString)(ispp?"rotated J/#psi":"Prompt J/#psi MC")};
   if(!ispp){
     tToDraw.push_back(8);
-    legends.push_back("pivoted J/#psi");
+    legends.push_back("rotated J/#psi");
   }
   Color_t cols[] = {kCyan, kMagenta+1, kGreen, kRed-2, kBlue, kOrange-7, kOrange, kGreen+4, kGreen+1};
 
@@ -59,7 +59,7 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
     j++;
   }
 
-  h[tToDraw[0]]->GetYaxis()->SetRangeUser(0,1.05*maxy);
+  h[tToDraw[0]]->GetYaxis()->SetRangeUser(0,varName=="BDT"?((ispp?1.5:1.6)*h[4]->GetMaximum()):(1.05*maxy));
   for(int i=0;i<tToDraw.size();i++) h[tToDraw[i]]->Draw((i==0)?"hist":"histsame");
   h[4]->Draw("histsame");
   
@@ -76,6 +76,15 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
     c->cd(1)->SetLeftMargin(0.12);
     c->cd(1)->SetRightMargin(0.022);
     c->cd(1)->SetBottomMargin(0.12);
+  }
+
+  TLatex CMStag;
+  if(varName=="BDT"){
+    CMStag.SetNDC();
+    CMStag.SetTextFont(42);
+    CMStag.SetTextSize(0.045);
+    CMStag.DrawLatex(0.15,0.83,"#font[61]{CMS}");
+    CMStag.DrawLatex(0.15,0.78,"#font[52]{Preliminary}");
   }
 
   if(noROC) return; 
@@ -148,6 +157,11 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
   line->SetLineColor(kGray);
   line->Draw("same");
 
+  if(varName=="BDT"){
+    CMStag.DrawLatex(0.15,0.83,"#font[61]{CMS}");
+    CMStag.DrawLatex(0.15,0.78,"#font[52]{Preliminary}");
+  }
+
   c->SaveAs(varName+(TString)(lowerCut?"_lowerCut":"_upperCut")+(TString)(step2?"_2ndStep":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");
 
 }
@@ -214,7 +228,7 @@ void drawVariables(bool ispp=true, bool secondStep=true, bool fidCuts=true){
 
   TString treeName[] = {"bkgWRONGSIGN","bkgBCMASS","bkgTRUEJPSI","sigRegion","signal_MC","bToJpsi_MC","PromptJpsi_MC","dimuonTrk","flipJpsi","CorrbToJpsi_MC","prefitBkg"};
   TString prettyName[] = {"WRONGSIGN","J/Psi sidebands","High mass control","signal region","MC signal expectation",
-			  "MC NonPromptJpsi","MC PromptJpsi","dimuon+track (misID)","pivoted J/Psi","correlated NonPrompt MC","prefit full background"};
+			  "MC NonPromptJpsi","MC PromptJpsi","dimuon+track (misID)","rotated J/Psi","correlated NonPrompt MC","prefit full background"};
   vector<TTree*> T;
   for(int itree=0;itree<ntrees;itree++){
     T.push_back((TTree*)fullFile->Get(treeName[itree]));
@@ -246,7 +260,7 @@ void drawVariables(bool ispp=true, bool secondStep=true, bool fidCuts=true){
   int nbins = 31;
   vector<TString> varName = {"VtxProb","QQVtxProb","alpha","alpha3D","TauSignif","TauSignif3D","mcorr","dca","QQMuWImbal","SumDeltaR","dRJpsiOverMuW","SumDxyMu","SumDzMu","SumDxyzMu","MinDxyMu","MinDzMu","MinDxyzMu","muWDxySig","muWDxyzSig","BDT","AllDimuDeltaR"};
   vector<bool> lowercut = {1,1,0,0,1,1,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0};
-  vector<bool> leftLeg = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0};
+  vector<bool> leftLeg = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
   for(int iT=0; iT<(int)ntrees+1; iT++){ //order is important
     h_VProb.push_back(new TH1F("h_"+varName[0]+"_"+(TString)to_string(iT),"Trimuon vertex probability;VtxProb(#mu#mu#mu);norm to 1",nbins,_vtxProb_cut,1));
     h_QQVProb.push_back(new TH1F("h_"+varName[1]+"_"+(TString)to_string(iT),"J/#psi vertex probability;VtxProb(J/#psi);norm to 1",nbins,_QQvtxProb_cut,1));
@@ -267,7 +281,7 @@ void drawVariables(bool ispp=true, bool secondStep=true, bool fidCuts=true){
     h_MinDxyzMu.push_back(new TH1F("h_"+varName[16]+"_"+(TString)to_string(iT),"Min of significances of muon 3D displacement to PV;min(d_{3D}(#mu)/#sigma);norm to 1",nbins,0,10));
     h_muWDxySig.push_back(new TH1F("h_"+varName[17]+"_"+(TString)to_string(iT),"Significance of 2D displacement to PV for non-J/#psi muon;d_{xy}(#mu_{W})/#sigma;norm to 1",nbins,0,16));
     h_muWDxyzSig.push_back(new TH1F("h_"+varName[18]+"_"+(TString)to_string(iT),"Significance of 3D displacement to PV for non-J/#psi muon;d_{3D}(#mu_{W})/#sigma;norm to 1",nbins,0,18));
-    h_BDT.push_back(new TH1F("h_"+varName[19]+"_"+(TString)to_string(iT),"BDT;BDT;norm to 1",nbins,_BDTcuts(ispp,0,0,secondStep)[0]-0.4,_BDTcuts(ispp,0,0,secondStep)[_BDTcuts(ispp,0,0,secondStep).size()-1]+0.02));
+    h_BDT.push_back(new TH1F("h_"+varName[19]+"_"+(TString)to_string(iT),"BDT;BDT;norm to 1",nbins,_BDTcuts(ispp,0,0,secondStep)[0]-(ispp?0.24:0.26),_BDTcuts(ispp,0,0,secondStep)[_BDTcuts(ispp,0,0,secondStep).size()-1]+0.03));
     h_AllDimuDeltaR.push_back(new TH1F("h_"+varName[20]+"_"+(TString)to_string(iT),"#DeltaR of all dimuon pairs of trimuon;#DeltaR(#mu_{i}#mu_{j});norm to 1",nbins,0,3.25));
   }
   int nSpeHist = 1;

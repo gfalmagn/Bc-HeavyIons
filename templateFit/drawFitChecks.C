@@ -152,6 +152,15 @@ void drawChecks(bool ispp=true, bool secondStep=true, float GOFdataval=100, stri
   gPad->Modified();
   gPad->Update();
 
+  TLatex CMStag;
+  CMStag.SetNDC();
+  CMStag.SetTextFont(42);
+  CMStag.SetTextSize(0.045);
+  CMStag.SetTextAlign(13);
+  CMStag.DrawLatex(0.135,0.955,"#font[61]{CMS}");
+  CMStag.DrawLatex(0.135,0.91,"#font[52]{Preliminary}");
+
+
   c2->SaveAs("figs/NLLscan_"+(TString)s_ispp+(TString)(secondStep?"_2ndStep":"")+".pdf");
 
   cout<<endl;
