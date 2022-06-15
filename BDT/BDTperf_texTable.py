@@ -47,7 +47,7 @@ precis = [2,3,1,3,2,3]
 
 for co in col:
     for b in range(0,2):
-        fo.write("\\multirow{3}{*}{\\"+co+", ${:.0f}<\\pt<{:.0f}\\GeV$}}\n".format(ptMin[b], ptMax[b]))
+        fo.write("\\multirow{3.2}{*}{\\shortstack{\\vspace*{1mm}\\"+co+" \\\\${:.0f}<\\pt<{:.0f}\\GeV$}}}}\n".format(ptMin[b], ptMax[b]))
         fo.write("& train half A, test half B & {:.{prec}f} & {:.{prec2}f} ({:.{prec2}f}) & {:.{prec2}f} ({:.{prec2}f})\\\\\n".format(roc[co][b][0] , float(effTest[co][b][0][0]) , float(effTest[co][b][0][1]) , float(effTest[co][b][0][2]) , float(effTest[co][b][0][3]) , prec=3, prec2=2))
         fo.write("& train B, test A & {:.{prec}f} & {:.{prec2}f} ({:.{prec2}f}) & {:.{prec2}f} ({:.{prec2}f})\\\\\n".format(roc[co][b][1] , float(effTest[co][b][1][0]) , float(effTest[co][b][1][1]) , float(effTest[co][b][1][2]) , float(effTest[co][b][1][3]) , prec=3, prec2=2))
         fo.write("& average & \\textbf{{{:.{prec}f}}} & \\textbf{{{:.{prec2}f} ({:.{prec2}f})}} & \\textbf{{{:.{prec2}f} ({:.{prec2}f})}}\\\\\n".format((roc[co][b][0]+roc[co][b][1])/2 , (float(effTest[co][b][0][0])+float(effTest[co][b][1][0]))/2 , (float(effTest[co][b][0][1])+float(effTest[co][b][1][1]))/2 , (float(effTest[co][b][0][2])+float(effTest[co][b][1][2]))/2 , (float(effTest[co][b][0][3])+float(effTest[co][b][1][3]))/2 , prec=3, prec2=2))

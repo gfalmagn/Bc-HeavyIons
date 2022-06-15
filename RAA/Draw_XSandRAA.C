@@ -12,8 +12,10 @@
 #include "../helpers/nicePalette.h"
 #include "YaoRAA.C" //after TGraphErrors.h
 
-void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
+void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false, bool Gauss2Dtest=false){
   bool NpartPlot=true && centDep;
+  bool RAAnotation=true;
+  TString AA = (TString)(RAAnotation?"AA":"PbPb");
   
   gInterpreter->GenerateDictionary("vector<vector<vector<float> > >", "vector");
 
@@ -299,6 +301,8 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
     }
   }
   
+  vector<vector<vector<float> > > XSRAA(nGr, vector<vector<float> >(4, vector<float>(nbins, 0))); //dimension1: pp,PbPb,RAA. dimension2: value, errlo, errhi, errsym. dimension3: pt bins
+  vector<vector<vector<float> > > metafitRelerr(4, vector<vector<float> >(3, vector<float>(nbins, 0)));//same, without value for dimension2
   if(!theoryPred){
     if(!centDep){
       float RAApTsubtr = H.Ycorr.RAA_pt.Val[1] - H.Ycorr.RAA_pt.Val[2];
@@ -307,8 +311,6 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
     }
 
     //Record final results
-    vector<vector<vector<float> > > XSRAA(nGr, vector<vector<float> >(4, vector<float>(nbins, 0))); //dimension1: pp,PbPb,RAA. dimension2: value, errlo, errhi, errsym. dimension3: pt bins
-    vector<vector<vector<float> > > metafitRelerr(4, vector<vector<float> >(3, vector<float>(nbins, 0)));//same, without value for dimension2
     for(int b=0;b<nbins;b++){
       for(int p=0;p<nGr;p++){
 	XSRAA[p][0][b] = y[p][0][b];
@@ -343,7 +345,7 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
   // vector<Color_t> Mcol = {kBlue+2  , kSpring-7 , kAzure+4};
   // vector<Color_t> Lcol = {kAzure-2 , kSpring-6 , kAzure+5};
   // vector<Color_t> Fcol = {kCyan-6  , kSpring+9 , kCyan};
-  vector<Width_t> Lwidth = {3,3,4};
+  vector<Width_t> Lwidth = {2,2,2};
 
   vector<vector<TGraphMultiErrors*> > gr(nGr);
   vector<vector<TH1F*> > histleg(nGr);
@@ -367,10 +369,12 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
 	gr[igr][b]->GetAttLine(p)->SetLineWidth(Lwidth[igr]);
       }
 
-      gr[igr][b]->GetAttFill(0)->SetFillStyle(3001); //full error, draw boxes
+      gr[igr][b]->GetAttFill(0)->SetFillStyle(0); //full error, draw boxes //was 3001 
       gr[igr][b]->GetAttFill(0)->SetFillColor(Fcol[igr]); 
       gr[igr][b]->GetAttFill(1)->SetFillStyle(1001); //fit/uncorrelated error only, draw boxes
       gr[igr][b]->GetAttFill(1)->SetFillColor(Fcol[igr]); 
+      gr[igr][b]->GetAttLine(1)->SetLineColor(Fcol[igr]); //invisible box of same color than fill
+      gr[igr][b]->GetAttLine(1)->SetLineWidth(Lwidth[igr]+1);
       gr[igr][b]->GetAttLine(2)->SetLineStyle(2);
       gr[igr][b]->GetAttLine(3)->SetLineStyle(1);
 
@@ -388,14 +392,14 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
   
   //Draw XS and RAA
   TCanvas *c1 = new TCanvas("c1","XS",2000,2000);
-  c1->SetBottomMargin(0.11);
-  c1->SetLeftMargin(0.16);
+  c1->SetBottomMargin(0.12);
+  c1->SetLeftMargin(0.15);
   c1->SetTopMargin(0.08);
-  c1->SetRightMargin(0.05);
+  c1->SetRightMargin(0.04);
   gr[1][0]->SetTitle("");//Cross-sections
   gr[1][0]->GetYaxis()->SetRangeUser(0.5*y[1][0][1],5.7*y[1][0][0]);
   if(theoryPred) gr[1][0]->GetYaxis()->SetRangeUser(0.16*y[1][0][1],7*y[1][0][0]);
-  if(!centDep) gr[1][0]->GetXaxis()->SetLimits(0,_BcPtmax[0]+0.95);
+  if(!centDep) gr[1][0]->GetXaxis()->SetLimits(0,_BcPtmax[0]+0.96);
   if(centDep){
     c1->SetBottomMargin(0.09);
     gr[1][0]->GetYaxis()->SetRangeUser(0.5*y[0][0][0],2.3*y[0][0][1]);
@@ -404,24 +408,27 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
     gr[1][0]->GetXaxis()->SetBinLabel(2,"pp");
     gr[1][0]->GetXaxis()->SetLabelSize(0.045);
   }
-  gr[1][0]->GetYaxis()->SetTitleOffset(1.7);
+  gr[1][0]->GetYaxis()->SetTitleOffset(1.45);
   gr[1][0]->GetXaxis()->SetTitleOffset(1.05);
-  gr[1][0]->GetXaxis()->SetTitleSize(0.046);
-  gr[1][0]->GetXaxis()->SetTitle(centDep?"":"#font[52]{p}_{T}^{#mu#mu#mu} [GeV]");
-  gr[1][0]->GetYaxis()->SetTitle(centDep?"BF  #times  #left(#sigma_{pp}^{B_{c}}    or    #frac{1}{#font[52]{N}_{MB} #font[52]{T}_{PbPb}} #font[52]{N}_{PbPb}^{B_{c}}#right)  [pb]":"BF  #times  #left(#frac{d#sigma_{pp}^{B_{c}}}{d#font[52]{p}_{T}^{#mu#mu#mu} d#font[52]{y}^{#mu#mu#mu}}    or    #frac{1}{#font[52]{N}_{MB} #font[52]{T}_{PbPb}} #frac{d#font[52]{N}_{PbPb}^{B_{c}}}{d#font[52]{p}_{T}^{#mu#mu#mu} d#font[52]{y}^{#mu#mu#mu}}#right)  [pb/GeV]");
+  gr[1][0]->GetXaxis()->SetTitleSize(0.048);
+  gr[1][0]->GetYaxis()->SetTitleSize(0.041);
+  if(!centDep) gr[1][0]->GetXaxis()->SetLabelSize(0.043);
+  gr[1][0]->GetYaxis()->SetLabelSize(0.04);
+  gr[1][0]->GetXaxis()->SetTitle(centDep?"":"#font[52]{p}_{T}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}} [GeV]");
+  gr[1][0]->GetYaxis()->SetTitle(centDep?"BF #times #left(#sigma   or   #frac{1}{#font[52]{N}_{MB}#font[52]{T}_{"+AA+"}} #font[52]{N}#right)  [pb]":"BF #times #left(#frac{d^{#kern[0.13]{2}}#sigma}{d#font[52]{p}_{T}#scale[0.5]{ }d#font[52]{y}}   or   #frac{1}{#font[52]{N}_{MB}#font[52]{T}_{"+AA+"}} #frac{d^{#kern[0.13]{2}}#font[52]{N}}{d#font[52]{p}_{T}#scale[0.5]{ }d#font[52]{y}}#right) [pb/GeV]#kern[-0.99]{    }");//centDep?"BF #times #left(#sigma   or   #frac{1}{#font[52]{N}_{MB}#font[52]{T}_{"+AA+"}} #font[52]{N}#right)  [pb]":"BF #times #left(#frac{d^{#kern[0.13]{2}}#sigma}{d#font[52]{p}_{T}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}}#scale[0.5]{ }d#font[52]{y}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}}}   or   #frac{1}{#font[52]{N}_{MB}#font[52]{T}_{"+AA+"}} #frac{d^{#kern[0.13]{2}}#font[52]{N}}{d#font[52]{p}_{T}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}}#scale[0.5]{ }d#font[52]{y}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}}}#right) [pb/GeV]#kern[-0.99]{    }");
   gr[1][0]->SetMarkerColor(kWhite);
   gr[1][0]->SetLineColor(kWhite);
   gr[1][0]->Draw("APX");
   if(!centDep){
-    gr[1][1]->Draw("PX s same; 2; 2; P s=0; P s=0"); //"general; yfullerr; yfiterr;"
-    gr[1][2]->Draw("PX s same; 2; 2; P s=0; P s=0"); //"general; yfullerr; yfiterr;"
+    gr[1][1]->Draw("PX s same; 5; 5; P s=0; P s=0"); //"general; yfullerr; yfiterr;"
+    gr[1][2]->Draw("PX s same; 5; 5; P s=0; P s=0"); //"general; yfullerr; yfiterr;"
   }
-  gr[0][1]->Draw("PX s same; 2; 2; P s=0; P s=0"); //"general; yfullerr; yfiterr;"
-  gr[0][2]->Draw("PX s same; 2; 2; P s=0; P s=0"); //"general; yfullerr; yfiterr;"
+  gr[0][1]->Draw("PX s same; 5; 5; P s=0; P s=0"); //"general; yfullerr; yfiterr;"
+  gr[0][2]->Draw("PX s same; 5; 5; P s=0; P s=0"); //"general; yfullerr; yfiterr;"
     
   vector<TLegend*> leg;
   for(int b=0;b<2*nYregions;b++){ //b =0,1 are the two bins with fill in legend entry, b=2,3 are the point and line in legend entry
-    leg.push_back(new TLegend((b==0 || b==nYregions)?0.53:0.76,0.6,(b==0 || b==nYregions)?0.87:1.1,0.75));
+    leg.push_back(new TLegend((b==0 || b==nYregions)?0.52:0.76,0.58,(b==0 || b==nYregions)?0.86:1.1,0.73));
     TH1F* histlegtemp0 = (TH1F*)histleg[0][(b%nYregions)+1]->Clone(  histleg[0][(b%nYregions)+1]->GetName()+(TString)to_string(b) );
     TH1F* histlegtemp1 = (TH1F*)histleg[1][(b%nYregions)+1]->Clone(  histleg[1][(b%nYregions)+1]->GetName()+(TString)to_string(b) );
     histlegtemp0->SetLineWidth((b>=nYregions)?Lwidth[0]:0);
@@ -429,7 +436,7 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
     
     leg[b]->AddEntry(histlegtemp0,(b>=nYregions)?"  ":"pp",(b>=nYregions)?"pe":"f");
     leg[b]->AddEntry(histlegtemp1,(b>=nYregions)?"    ":"PbPb",(b>=nYregions)?"pe":"f");
-    leg[b]->SetTextSize(0.039);
+    leg[b]->SetTextSize(0.043);
     leg[b]->SetBorderSize(0);
     leg[b]->SetFillStyle(0);
     if(!centDep) leg[b]->Draw("same");
@@ -438,13 +445,13 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
   TLatex legEntry;
   legEntry.SetNDC();
   legEntry.SetTextFont(42);
-  legEntry.SetTextSize(0.035);
+  legEntry.SetTextSize(0.038);
   if(centDep){
-    legEntry.DrawLatex(0.415,0.8,"6 < #font[52]{p}_{T}^{#mu#mu#mu} < 11 GeV & 1.3 < |#font[52]{y}^{#mu#mu#mu}| < 2.3");    
-    legEntry.DrawLatex(0.43,0.745,"#font[52]{or} 11 < #font[52]{p}_{T}^{#mu#mu#mu} < 35 GeV & |#font[52]{y}^{#mu#mu#mu}| < 2.3");
+    legEntry.DrawLatex(0.33,0.795,"6 < #font[52]{p}_{T}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}} < 11 GeV & 1.3 < |#font[52]{y}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}}| < 2.3");    
+    legEntry.DrawLatex(0.353,0.74,"#font[52]{or} 11 < #font[52]{p}_{T}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}} < 35 GeV & |#font[52]{y}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}}| < 2.3");
   } else {
-    legEntry.DrawLatex(0.49,0.76,"1.3 < |#font[52]{y}^{#mu#mu#mu}| < 2.3");
-    legEntry.DrawLatex(0.76,0.76,"|#font[52]{y}^{#mu#mu#mu}| < 2.3");
+    legEntry.DrawLatex(0.467,0.745,"1.3 < |#font[52]{y}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}}| < 2.3");
+    legEntry.DrawLatex(0.765,0.745,"|#font[52]{y}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}}| < 2.3");
     legEntry.DrawLatex(0.7,theoryPred?0.47:0.46,Form("#rho_{1-2}^{pp} = %.2f",corrtot[0][0]));
     legEntry.DrawLatex(0.7,theoryPred?0.4:0.39,Form("#rho_{1-2}^{PbPb} = %.2f",corrtot[1][0]));
     legEntry.DrawLatex(0.58,0.81,"Centrality 0-90%");
@@ -483,23 +490,23 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
   TLatex lumitag;
   lumitag.SetNDC();
   lumitag.SetTextFont(42);
-  lumitag.SetTextSize(0.035);
-  lumitag.DrawLatex(0.35,0.935, Form("PbPb (%.2f nb^{-1}) + pp (%.0f pb^{-1}), 5.02 TeV",L_PbPb*1e3,L_pp));
+  lumitag.SetTextSize(0.04);
+  lumitag.DrawLatex(0.27,0.935, Form("PbPb (%.2f nb^{-1}) + pp (%.0f pb^{-1}), 5.02 TeV",L_PbPb*1e3,L_pp));
 
   //DRAW CHANNEL                                                                                                                                                                                                 
   TLatex channel;
   channel.SetNDC();
   channel.SetTextFont(42);
   channel.SetTextSize(0.047);
-  channel.DrawLatex(0.485,0.865,"#font[42]{B_{c}^{+}#scale[0.8]{ }#rightarrow (J/#psi#scale[0.5]{ }#rightarrow#scale[0.5]{ }#mu#scale[0.55]{#lower[-0.95]{#font[122]{\55}}}#scale[0.5]{ }#mu^{+})#scale[0.5]{ }#mu^{+}#scale[0.5]{ }#nu_{#mu} }");
+  channel.DrawLatex(0.49,0.865,"#font[42]{B_{c}^{+}#scale[0.8]{ }#rightarrow (J/#psi#scale[0.5]{ }#rightarrow#scale[0.5]{ }#mu#scale[0.55]{#lower[-0.95]{#font[122]{\55}}}#scale[0.5]{ }#mu^{+})#scale[0.5]{ }#mu^{+}#scale[0.5]{ }#nu_{#mu} }");
 
   //DRAW wide-legend box
   TLine *legline = new TLine();
   legline->SetLineWidth(1);
   legline->SetLineStyle(1);
   if(!centDep){
-    legline->DrawLineNDC(0.475,theoryPred?0.525:0.59,0.475,0.92);
-    legline->DrawLineNDC(0.475,theoryPred?0.525:0.59,0.95,theoryPred?0.525:0.59);
+    legline->DrawLineNDC(0.46,theoryPred?0.505:0.57,0.46,0.92);
+    legline->DrawLineNDC(0.46,theoryPred?0.505:0.57,0.96,theoryPred?0.505:0.57);
   }
 
   if(!(theoryPred && centDep)){
@@ -509,30 +516,32 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
 
   TCanvas *c2 = new TCanvas("c2","RAA",2000,2000);
   c2->SetLeftMargin(0.11);
-  c2->SetBottomMargin(0.11);
+  c2->SetBottomMargin(0.12);
   c2->SetTopMargin(0.08);
   c2->SetRightMargin(0.05);
   gr[2][0]->SetTitle("");//R_{PbPb}
   gr[2][0]->SetMarkerColor(kWhite);
   gr[2][0]->SetLineColor(kWhite);
-  gr[2][0]->GetYaxis()->SetTitleOffset(0.93);
+  gr[2][0]->GetYaxis()->SetTitleOffset(0.84);
   gr[2][0]->GetXaxis()->SetTitleOffset(1.05);
-  gr[2][0]->GetXaxis()->SetTitleSize(0.046);
-  gr[2][0]->GetYaxis()->SetTitleSize(0.05);
+  gr[2][0]->GetXaxis()->SetTitleSize(0.048);
+  gr[2][0]->GetYaxis()->SetTitleSize(0.058);
+  gr[2][0]->GetXaxis()->SetLabelSize(0.043);
+  gr[2][0]->GetYaxis()->SetLabelSize(0.043);
   gr[2][0]->GetYaxis()->SetRangeUser(0,3.2);
   gr[2][0]->GetXaxis()->SetLimits(0,_BcPtmax[0]+0.95);
   if(centDep) gr[2][0]->GetXaxis()->SetLimits(NpartPlot?0:(_Centmin[0]-3.),NpartPlot?430:(_Centmax[0]+3.));
-  gr[2][0]->GetXaxis()->SetTitle(centDep?((TString)(NpartPlot?"#font[52]{N}_{part}":"Centrality [%]")):((TString)(theoryPred?"#font[52]{p}_{T}^{#mu#mu#mu} [GeV]":"#font[52]{p}_{T}^{#mu#mu#mu} [GeV]")));// or #font[52]{p}_{T}^{B_{c}}
-  gr[2][0]->GetYaxis()->SetTitle("#font[52]{R}_{PbPb}");//(B_{c}^{+})
+  gr[2][0]->GetXaxis()->SetTitle(centDep?((TString)(NpartPlot?"#font[52]{N}_{#scale[1.2]{#lower[-0.1]{part}}}":"Centrality [%]")):((TString)(theoryPred?"#font[52]{p}_{T}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}} [GeV]":"#font[52]{p}_{T}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}} [GeV]")));// or #font[52]{p}_{T}^{B_{c}}
+  gr[2][0]->GetYaxis()->SetTitle("#font[52]{R}_{"+(TString)(RAAnotation?"AA":"PbPb")+"}");//(B_{c}^{+})
   gr[2][0]->Draw("AP");
   gr[2][1]->Draw("PX s same; 2; 2; P s=0; P s=0"); //"general; yfullerr; yfiterr;"
   gr[2][2]->Draw("PX s same; 2; 2; P s=0; P s=0");
 
   float lx1,lx2,ly1,ly2;
-  if(!theoryPred){ lx1 = 0.55; lx2 = 0.94; ly1 = 0.62; ly2 = 0.78;}
-  else if(!centDep){ lx1 = 0.47; lx2 = 0.94; ly1 = 0.55; ly2 = 0.79;} //theoryPred + pT dep
+  if(!theoryPred){ lx1 = 0.51; lx2 = 0.92; ly1 = 0.62; ly2 = 0.78;}
+  else if(!centDep){ lx1 = 0.45; lx2 = 0.93; ly1 = 0.55; ly2 = 0.79;} //theoryPred + pT dep
   else if(NpartPlot){ lx1 = 0.14; lx2 = 0.53; ly1 = 0.685; ly2 = 0.83;} //theoryPred + centDep + NpartPlot
-  else { lx1 = 0.47; lx2 = 0.94; ly1 = 0.6; ly2 = 0.73;} //theoryPred + centDep + !NpartPlot
+  else { lx1 = 0.45; lx2 = 0.93; ly1 = 0.6; ly2 = 0.73;} //theoryPred + centDep + !NpartPlot
 
   vector<TLegend*> leg2;
   for(int l=0;l<2;l++){ //l=0 is the fill in legend entry, l=1 is the point and line in legend entry
@@ -543,13 +552,13 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
     histlegtemp2->SetLineWidth((l==1)?Lwidth[2]:0);
 
     if(!theoryPred || !centDep){
-      leg2[l]->AddEntry(histlegtemp1, (l==0)?((TString)(theoryPred?"CMS, ":"")+"1.3 < |#font[52]{y}^{#mu#mu#mu}| < 2.3"):"",(l==0)?"f":"pe");
-      leg2[l]->AddEntry(histlegtemp2, (l==0)?((TString)(theoryPred?"CMS, ":"")+"|#font[52]{y}^{#mu#mu#mu}| < 2.3"):"",      (l==0)?"f":"pe");
+      leg2[l]->AddEntry(histlegtemp1, (l==0)?((TString)(theoryPred?"CMS, ":"")+"1.3 < |#font[52]{y}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}}| < 2.3"):"",(l==0)?"f":"pe");
+      leg2[l]->AddEntry(histlegtemp2, (l==0)?((TString)(theoryPred?"CMS, ":"")+"|#font[52]{y}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}}| < 2.3"):"",      (l==0)?"f":"pe");
     }
     else{
       leg2[l]->AddEntry(histlegtemp1, (l==0)?"CMS":"",(l==0)?"f":"pe");
     }
-    leg2[l]->SetTextSize(theoryPred?0.036:0.039);
+    leg2[l]->SetTextSize(theoryPred?0.037:0.041);
     leg2[l]->SetBorderSize(0);
     leg2[l]->SetFillStyle(0);
 
@@ -559,8 +568,8 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
   }
 
   if(centDep){
-    legEntry.DrawLatex((theoryPred && !centDep)?0.145:0.415,(theoryPred && !centDep)?0.73:(NpartPlot?0.8:0.81),"6 < #font[52]{p}_{T}^{#mu#mu#mu} < 11 GeV & 1.3 < |#font[52]{y}^{#mu#mu#mu}| < 2.3");    
-    legEntry.DrawLatex((theoryPred && !centDep)?0.145:0.43,(theoryPred && !centDep)?0.68:(NpartPlot?0.75:0.76),"#font[52]{or} 11 < #font[52]{p}_{T}^{#mu#mu#mu} < 35 GeV & |#font[52]{y}^{#mu#mu#mu}| < 2.3");
+    legEntry.DrawLatex((theoryPred && !centDep)?0.14:0.33,(theoryPred && !centDep)?0.725:(NpartPlot?0.795:0.805),"6 < #font[52]{p}_{T}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}} < 11 GeV & 1.3 < |#font[52]{y}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}}| < 2.3");   
+    legEntry.DrawLatex((theoryPred && !centDep)?0.14:0.353,(theoryPred && !centDep)?0.67:(NpartPlot?0.74:0.75),"#font[52]{or} 11 < #font[52]{p}_{T}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}} < 35 GeV & |#font[52]{y}^{#kern[0.06]{#lower[0.1]{#scale[1.35]{#mu#mu#mu}}}}| < 2.3");
   } else {
     legEntry.DrawLatex(0.55,0.81,"Centrality 0-90%");
   }
@@ -568,16 +577,16 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
 
   CMStag.DrawLatex(0.15,0.86,"#font[61]{CMS}");
   //CMStag.DrawLatex(0.14,0.82,"#font[52]{Preliminary}");
-  lumitag.DrawLatex(0.35,0.935, Form("PbPb (%.2f nb^{-1}) + pp (%.0f pb^{-1}), 5.02 TeV",L_PbPb*1e3,L_pp));
+  lumitag.DrawLatex(0.27,0.935, Form("PbPb (%.2f nb^{-1}) + pp (%.0f pb^{-1}), 5.02 TeV",L_PbPb*1e3,L_pp));
   channel.DrawLatex(0.48,0.865,"#font[42]{B_{c}^{+}#scale[0.8]{ }#rightarrow (J/#psi#scale[0.5]{ }#rightarrow#scale[0.5]{ }#mu#scale[0.55]{#lower[-0.95]{#font[122]{\55}}}#scale[0.5]{ }#mu^{+})#scale[0.5]{ }#mu^{+}#scale[0.5]{ }#nu_{#mu} }");
 
   TLatex CentTag;
   if(NpartPlot){
     CentTag.SetTextFont(42);
-    CentTag.SetTextSize(0.034);
+    CentTag.SetTextSize(0.036);
     CentTag.SetTextAlign(21);
-    CentTag.DrawLatex(_NpartCentBins[1]+4, 0.68, Form("Cent. %.0f-%.0f%%",_Centmin[1],_Centmax[1]));
-    CentTag.DrawLatex(_NpartCentBins[2], 0.68, Form("Cent. %.0f-%.0f%%",_Centmin[2],_Centmax[2]));
+    CentTag.DrawLatex(_NpartCentBins[1]+4, 0.675, Form("Cent. %.0f-%.0f%%",_Centmin[1],_Centmax[1]));
+    CentTag.DrawLatex(_NpartCentBins[2], 0.675, Form("Cent. %.0f-%.0f%%",_Centmin[2],_Centmax[2]));
   }
 
   TLine *one = new TLine(centDep?(NpartPlot?0:(_Centmin[0]-3)):0 , 1, centDep?(NpartPlot?430:(_Centmax[0]+3)):(_BcPtmax[0]+0.95),1);
@@ -610,7 +619,41 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
 
   c2->SaveAs("RAA"+(TString)(centDep?"_centralityBins":"")+(TString)((centDep && NpartPlot)?"_vsNpart":"")+(TString)(theoryPred?"_theoryComp":"")+".pdf");
   c2->SaveAs("RAA"+(TString)(centDep?"_centralityBins":"")+(TString)((centDep && NpartPlot)?"_vsNpart":"")+(TString)(theoryPred?"_theoryComp":"")+".C");
-  
+
+  //Test hypothesis on RAA in both bins, with a 2D gaussian describing errors+bin correlation
+  if(Gauss2Dtest){
+
+    int nit = 2e5;
+    int nIn = 0;
+    bool bin1above=true, bin2above=true; //testing proba of being above or below the test values
+    double y1test=0.5, y2test=0.5;
+    
+    double rho=corrtot[2][0];
+    double yval1 = XSRAA[2][0][0], yval2 = XSRAA[2][0][1];
+    double yerrL1 = XSRAA[2][1][0], yerrL2 = XSRAA[2][1][1];
+    double yerrH1 = XSRAA[2][2][0], yerrH2 = XSRAA[2][2][1];
+    //    cout<<"rho, yval1,yval2,yerrL1,yerrL2,yerrH1,yerrH2 = "<<rho<<" "<< yval1<<" "<<yval2<<" "<<yerrL1<<" "<<yerrL2<<" "<<yerrH1<<" "<<yerrH2<<endl;
+
+    for(int i=0;i<nit;i++){
+      double z1 = gRandom->Gaus(),z2 = gRandom->Gaus();
+
+      double yerr1,yerr2;
+      if(z1>0) yerr1=yerrH1; else yerr1=yerrL1;
+      if(z2>0) yerr2=yerrH2; else yerr2=yerrL2;
+
+      double y1 = yerr1 * z1 + yval1; //correlate the X1 and X2 with rho_pp 
+      double y2 = yerr2 * ( rho*z1+sqrt(1-pow(rho,2))*z2 ) + yval2;
+      //if(i<40) cout<<y1<<" "<<y2<<endl;
+      if(   ((y1<y1test && bin1above) || (y1>=y1test && !bin1above))
+         && ((y2<y2test && bin2above) || (y2>=y2test && !bin2above))) nIn += 1;
+    }
+    
+    double fractionIn = (double)nIn / nit;
+    cout<<"fraction of trials that got RAA out of the hypothesis 2-bin region (y1"<<(TString)(bin1above?">":"<")<<y1test<<",y2"<<(TString)(bin2above?">":"<")<<y2test<<") = "<<fractionIn<<endl;
+
+  }
+
+
   ///////////////////////////////////////
   // Draw all systematics
   ///////////////////////////////////////
@@ -695,10 +738,10 @@ void XSandRAA(Hub H, bool centDep=false, bool theoryPred=false){
 	S[e][idx]->GetXaxis()->SetBinLabel(centDep?1:2,centDep?"pp integrated":"pp bin2");
 	S[e][idx]->GetXaxis()->SetBinLabel(3,"PbPb bin1");
 	S[e][idx]->GetXaxis()->SetBinLabel(4,"PbPb bin2");
-	S[e][idx]->GetXaxis()->SetBinLabel(5,"#font[52]{R}_{PbPb} bin1");
-	S[e][idx]->GetXaxis()->SetBinLabel(6,"#font[52]{R}_{PbPb} bin2");
+	S[e][idx]->GetXaxis()->SetBinLabel(5,"#font[52]{R}_{"+AA+"} bin1");
+	S[e][idx]->GetXaxis()->SetBinLabel(6,"#font[52]{R}_{"+AA+"} bin2");
 	if(centDep)
-	  S[e][idx]->GetXaxis()->SetBinLabel(7,"#font[52]{R}_{PbPb} integrated");      
+	  S[e][idx]->GetXaxis()->SetBinLabel(7,"#font[52]{R}_{"+AA+"} integrated");      
 	S[e][idx]->GetXaxis()->SetLabelSize(0.05);
 	S[e][idx]->GetYaxis()->SetTitle("relative error");
 	S[e][idx]->GetYaxis()->SetTitleSize(0.055);
@@ -773,9 +816,9 @@ void Draw_XSandRAA(){
   H.ScaleByLumi();
 
   cout<<"\npT dependence\n\n"<<endl;
-  XSandRAA(H,false);
+  XSandRAA(H,false,false,true);
   cout<<"\ncentrality dependence\n\n"<<endl;
-  XSandRAA(H,true);
+  XSandRAA(H,true,false,true);
   cout<<"\npT dependence + theory comparison\n\n"<<endl;
   XSandRAA(H,false,true);
   cout<<"\ncentrality dependence + theory comparison\n\n"<<endl;

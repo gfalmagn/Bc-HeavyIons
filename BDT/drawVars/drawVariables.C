@@ -84,7 +84,7 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
     CMStag.SetTextFont(42);
     CMStag.SetTextSize(0.045);
     CMStag.DrawLatex(0.15,0.83,"#font[61]{CMS}");
-    CMStag.DrawLatex(0.15,0.78,"#font[52]{Preliminary}");
+    //CMStag.DrawLatex(0.15,0.78,"#font[52]{Preliminary}");
   }
 
   if(noROC) return; 
@@ -159,7 +159,7 @@ void DrawVar(vector<TH1F*> h, int ntrees, TString varName, bool ispp, bool lower
 
   if(varName=="BDT"){
     CMStag.DrawLatex(0.15,0.83,"#font[61]{CMS}");
-    CMStag.DrawLatex(0.15,0.78,"#font[52]{Preliminary}");
+    //CMStag.DrawLatex(0.15,0.78,"#font[52]{Preliminary}");
   }
 
   c->SaveAs(varName+(TString)(lowerCut?"_lowerCut":"_upperCut")+(TString)(step2?"_2ndStep":"")+(TString)(ispp?"_pp":"_PbPb")+".pdf");

@@ -76,13 +76,13 @@ corrTnPerr = float(re.findall("\d+\.\d*" , (re.findall("_corrTnPerr = \d+\.\d*;"
 #Final results table
 fo = open("ResultsTable.tex", "w")
 precis = [2,3,1,1,3,0,0,0,2,2,2,2,2]
-ptrange = '${:.0f}<\\pt<{:.0f}\\GeV$'
+ptrange = '${:.0f}<\\ptvis<{:.0f}\\GeV$'
 centrange = 'centrality ${:.0f}\\textnormal{{-}}{:.0f}$\\%'
-quantities = ['\\multirow{{2}}{{*}}{{$BF \\times \\frac{{\\textrm{{d}}\\sigma_{{\\pp}}}}{{\\textrm{{d}}p_{{T}}\\textrm{{d}}y}}$ [pb/\\GeV]}}',
+quantities = ['\\multirow{{2}}{{*}}{{$BF \\times \\frac{{\\textrm{{d}}\\sigma_{{\\pp}}}}{{\\textrm{{d}}\\ptvis\\textrm{{d}}\\yvis}}$ [pb/GeV]}}',
               '$BF \\times \\sigma_{{\\pp}}$ [pb]',
-              '\\multirow{{2}}{{*}}{{$BF \\times \\frac{{1}}{{N_{{\\rm MB}}^{{\\mathcal{{C}}}} T_{{\\PbPb}}^{{\\mathcal{{C}}}}}} \\frac{{\\textrm{{d}}N_{{\\PbPb}}^{{\\rm B_c}}}}{{\\textrm{{d}}p_{{T}} \\textrm{{d}}y}}$ [pb/\\GeV]}}',
-              '\\multirow{{3}}{{*}}{{$BF \\times \\frac{{1}}{{N_{{\\rm MB}}^{{\\mathcal{{C}}}} T_{{\\PbPb}}^{{\\mathcal{{C}}}}}} N_{{\\PbPb}}^{{\\rm B_c}}(\\mathcal{{C}})$ [pb/$\\mathcal{{C}}$]}}',
-              '\\multirow{{2}}{{*}}{{\\RAA(\\pt)}}', 
+              '\\multirow{{2}}{{*}}{{\\makecell{{\\vspace*{{1.5mm}}$BF \\times \\frac{{1}}{{N_{{\\rm MB}}^{{\\mathcal{{C}}}} T_{{\\PbPb}}^{{\\mathcal{{C}}}}}} \\frac{{\\textrm{{d}}N_{{\\PbPb}}^{{\\rm B_c}}}}{{\\textrm{{d}}\\ptvis \\textrm{{d}}\\yvis}}$ \\\\{{[pb/GeV]}}}}}}',
+              '\\multirow{{3}}{{*}}{{\\makecell{{\\vspace*{{2mm}}$BF \\times \\frac{{1}}{{N_{{\\rm MB}}^{{\\mathcal{{C}}}} T_{{\\PbPb}}^{{\\mathcal{{C}}}}}} N_{{\\PbPb}}^{{\\rm B_c}}(\\mathcal{{C}})$ \\\\{{[pb/$\\mathcal{{C}}$]}}}}}}',
+              '\\multirow{{2}}{{*}}{{$\\RAA(\\ptvis)$}}', 
               '\\multirow{{2}}{{*}}{{$\\RAA(\\mathcal{{C}})$}}',
               '\\RAA','']
 quantidx = [0,7,1,2,7,3,7,7,4,7,5,7,6]
@@ -125,13 +125,13 @@ fo.close()
 #Final results table, paper version
 fo6 = open("ResultsTable_paper.tex", "w")
 precis = [2,3,1,3,0,0,2,2,2,2]
-ptrange = '${:.0f}<\\pt<{:.0f}\\GeV$'
+ptrange = '${:.0f}<\\ptvis<{:.0f}\\GeV$'
 centrange = 'centrality ${:.0f}\\textnormal{{-}}{:.0f}$\\%'
-quantities = ['\\multirow{{2}}{{*}}{{$BF \\times \\frac{{\\textrm{{d}}\\sigma_{{\\pp}}}}{{\\textrm{{d}}p_{{T}}\\textrm{{d}}y}}$ [pb/\\GeV]}}',
+quantities = ['\\multirow{{2}}{{*}}{{$BF \\times \\frac{{\\textrm{{d}}\\sigma_{{\\pp}}}}{{\\textrm{{d}}\\ptvis\\textrm{{d}}\\yvis}}$ [pb/GeV]}}',
               '$BF \\times \\sigma_{{\\pp}}$ [pb]',
-              '\\multirow{{2}}{{*}}{{$BF \\times \\frac{{1}}{{N_{{\\rm MB}}^{{\\mathcal{{C}}}} T_{{\\PbPb}}^{{\\mathcal{{C}}}}}} \\frac{{\\textrm{{d}}N_{{\\PbPb}}^{{\\rm B_c}}}}{{\\textrm{{d}}p_{{T}} \\textrm{{d}}y}}$ [pb/\\GeV]}}',
-              '\\multirow{{2}}{{*}}{{$BF \\times \\frac{{1}}{{N_{{\\rm MB}}^{{\\mathcal{{C}}}} T_{{\\PbPb}}^{{\\mathcal{{C}}}}}} N_{{\\PbPb}}^{{\\rm B_c}}(\\mathcal{{C}})$ [pb/$\\mathcal{{C}}$]}}',
-              '\\multirow{{2}}{{*}}{{\\RAA(\\pt)}}', 
+              '\\multirow{{2}}{{*}}{{\\makecell{{\\vspace*{{1.5mm}}$BF \\times \\frac{{1}}{{N_{{\\rm MB}}^{{\\mathcal{{C}}}} T_{{\\PbPb}}^{{\\mathcal{{C}}}}}} \\frac{{\\textrm{{d}}N_{{\\PbPb}}^{{\\rm B_c}}}}{{\\textrm{{d}}\\ptvis \\textrm{{d}}\\yvis}}$ \\\\{{[pb/GeV]}}}}}}',
+              '\\multirow{{2}}{{*}}{{\\makecell{{\\vspace*{{1.5mm}}$BF \\times \\frac{{1}}{{N_{{\\rm MB}}^{{\\mathcal{{C}}}} T_{{\\PbPb}}^{{\\mathcal{{C}}}}}} N_{{\\PbPb}}^{{\\rm B_c}}(\\mathcal{{C}})$ \\\\{{[pb/$\\mathcal{{C}}$]}}}}}}',
+              '\\multirow{{2}}{{*}}{{$\\RAA(\\ptvis)$}}', 
               '\\multirow{{2}}{{*}}{{$\\RAA(\\mathcal{{C}})$}}',
               '\\RAA','']
 quantidx = [0,7,2,7,3,7,4,7,5,7]
@@ -192,12 +192,12 @@ fo2.close()
 
 #Metafit errors table
 fo3 = open("MetaFitErrorTable.tex", "w")
-fo3.write((ptrange+" &{:.1f}\\%&{:.1f}\\%&{:.1f}\\%\\\\\n").format(ptMin[0], ptMax[0], 100*metafitRelErr[0][0][0], 100*metafitRelErr[1][0][0], 100*metafitRelErr[2][0][0]) )
-fo3.write((ptrange+" &{:.1f}\\%&{:.1f}\\%&{:.1f}\\%\\\\\n").format(ptMin[1], ptMax[1], 100*metafitRelErr[0][0][1], 100*metafitRelErr[1][0][1], 100*metafitRelErr[2][0][1]) )
+fo3.write((ptrange+" &{:.1f}\\%&{:.1f}\\%&\\textbf{{{:.1f}\\%}}\\\\\n").format(ptMin[0], ptMax[0], 100*metafitRelErr[0][0][0], 100*metafitRelErr[1][0][0], 100*metafitRelErr[2][0][0]) )
+fo3.write((ptrange+" &{:.1f}\\%&{:.1f}\\%&\\textbf{{{:.1f}\\%}}\\\\\n").format(ptMin[1], ptMax[1], 100*metafitRelErr[0][0][1], 100*metafitRelErr[1][0][1], 100*metafitRelErr[2][0][1]) )
 fo3.write("correlation $\\rho_{{1,2}}$&{:.2f} & {:.2f} & {:.2f}\\\\\n".format(rhometaf_pp[0],rhometaf_PbPb[0],rhometaf_RAA[0]) )
 fo3.write("\\hline\n")
-fo3.write((centrange+" &$-$&{:.1f}\\%&{:.1f}\\%\\\\\n").format(centMin[0], centMax[0], 100*metafitRelErr_cent[1][0][0], 100*metafitRelErr_cent[2][0][0]) )
-fo3.write((centrange+" &$-$&{:.1f}\\%&{:.1f}\\%\\\\\n").format(centMin[1], centMax[1], 100*metafitRelErr_cent[1][0][1], 100*metafitRelErr_cent[2][0][1]) )
+fo3.write((centrange+" &$-$&{:.1f}\\%&\\textbf{{{:.1f}\\%}}\\\\\n").format(centMin[0], centMax[0], 100*metafitRelErr_cent[1][0][0], 100*metafitRelErr_cent[2][0][0]) )
+fo3.write((centrange+" &$-$&{:.1f}\\%&\\textbf{{{:.1f}\\%}}\\\\\n").format(centMin[1], centMax[1], 100*metafitRelErr_cent[1][0][1], 100*metafitRelErr_cent[2][0][1]) )
 fo3.write("correlation $\\rho_{{1,2}}$& $-$ & {:.2f} & {:.2f}\\\\\n".format(rhometaf_PbPbcent[0],rhometaf_RAAcent[0]) )
 fo3.write("\\hline\n")
 fo3.write("integrated &{:.1f}\\%&{:.1f}\\%&{:.1f}\\%\\\\\n".format(100*metafitRelErr_cent[0][0][1], 100*metafitRelErr_cent[0][0][0], 100*metafitRelErr_cent[3][0][0]) )

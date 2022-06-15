@@ -94,7 +94,7 @@ void RAAErrCorr(bool fromfit=true, bool fullerr=false, bool centDep=false){
 
   TH2D* h_pp = new TH2D("h_pp","pp",300,(*y_nom_pp)[centDep?0:1]/normpp0 - 4*yErr_pp[0]/normpp0,(*y_nom_pp)[centDep?0:1]/normpp0 + 4*yErr_pp[0]/normpp0,300,(*y_nom_pp)[centDep?0:2]/normpp1 - 4*yErr_pp[centDep?0:1]/normpp1,(*y_nom_pp)[centDep?0:2]/normpp1 + 4*yErr_pp[centDep?0:1]/normpp1);
   TH2D* h_PbPb = new TH2D("h_PbPb","PbPb",300,max((float)0.,(*y_nom_PbPb)[1]/normPbPb0 - 4*yErr_PbPb[0]/normPbPb0),(*y_nom_PbPb)[1]/normPbPb0 + 4*yErr_PbPb[0]/normPbPb0,300,max((float)0.,(*y_nom_PbPb)[2]/normPbPb1 - 4*yErr_PbPb[1]/normPbPb1),(*y_nom_PbPb)[2]/normPbPb1 + 4*yErr_PbPb[1]/normPbPb1);
-  TH2D* h_RAA = new TH2D("h_RAA","RAA",300,0.,3.,300,0.,1.3);
+  TH2D* h_RAA = new TH2D("h_RAA","RAA",300,0.,3.,300,0.,2.5);
   
   for(int i=0;i<n;i++){
     //    rengine.Gaussian2D((*y_fitErr_pp)[0],(*y_fitErr_pp)[1],rho_pp,&(x1_pp[i]),&(x2_pp[i]));
@@ -155,13 +155,13 @@ void RAAErrCorr(bool fromfit=true, bool fullerr=false, bool centDep=false){
 
 void RAAfitErrCorr(){
   cout<<"\ntotal\n"<<endl;
-  RAAErrCorr(false,true,false);
+  // RAAErrCorr(false,true,false);
   cout<<"\nfit\n"<<endl;
-  RAAErrCorr(true,false,false);
+  // RAAErrCorr(true,false,false);
   cout<<"\nacceptance*efficiency\n"<<endl;
-  RAAErrCorr(false,false,false);
+  //RAAErrCorr(false,false,false);
   cout<<"\nfit centrality-dep\n"<<endl;
   RAAErrCorr(true,false,true);
   cout<<"\nacceptance*efficiency centrality-dep\n"<<endl;
-  RAAErrCorr(false,false,true);
+  //RAAErrCorr(false,false,true);
 }

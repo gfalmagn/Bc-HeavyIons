@@ -21,7 +21,8 @@ const float TAA_090 = 6.27e-9; //pb-1 //6.27+-0.14 mb-1 (2.2%), HIN-19-007-pas-v
 const float TAA_020 = 18.79e-9; //pb-1 //18.79+-0.36 mb-1 (2.3%), from PbPb/Utilities/EVENTUTILS.h for central value and HIN-19-007-pas-v5 & https://twiki.cern.ch/twiki/bin/viewauth/CMS/Glauber5TeVPbPbNewParameters for uncertainty
 const float TAA_2090 = 2.70e-9; //pb-1 //2.700+-0.098 mb-1 (3.8%), from PbPb/Utilities/EVENTUTILS.h for central value and HIN-19-007-pas-v5 & https://twiki.cern.ch/twiki/bin/viewauth/CMS/Glauber5TeVPbPbNewParameters for uncertainty
 const float Ncoll_MB = 382;
-vector<float> _NpartCentBins = {126.0, 309.9, 73.5};
+vector<float> _NpartCentBins = {126.0, 309.6, 73.6};
+vector<float> _NpartCentBinsErr = {0.8, 1.0, 0.9};
 
 //Some XS MC scalings
 //1.21 comes from a deficit of events in the full pp signal MC. Obtained comparing the accepted events in a fiducial bin, in the acceptance VS in the full signal MC. To be checked again when the signal MC oniatree is rerun.

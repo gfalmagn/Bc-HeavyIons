@@ -51,7 +51,7 @@ void Classifier(bool ispp = true, bool firstHalf=true, int kinBin=0, bool second
   if(_withTM) loader.AddVariable("QQ_log_dca := TMath::Log(QQ_dca+1e-2)","J/#psi dca","mm",'F');
   if(useVar_CorrWMass){
     loader.AddVariable("dR_sum","Sum(#Delta R(#mu_{i}#mu_{j}) )","",'F');//Different from Bc_CorrM only for bkgType==2 //_BcMcorr
-    loader.AddVariable("dR_jpsiOverMuW","#Delta R (J/#psi) / (#Delta R (#mu_{W}#mu^{-}) + #Delta R (#mu_{W}#mu^{+}))","",'F');
+    loader.AddVariable("dR_jpsiOverMuW","#DeltaR(J/#psi)/(#DeltaR(#mu_{W}#mu^{-})+#DeltaR(#mu_{W}#mu^{+}))","",'F');
     loader.AddSpectator("dR_jpsiMuW","#Delta R(J/#psi,#mu_{W})","",'F');
   }
   if(_withTM){

@@ -72,7 +72,7 @@ void plotCombineOutput(bool ispp=true, bool secondStep=false, bool bkgOnly=false
   //************************ Tree names, and which trees do we draw in the plots
   TString treeName[] = {"bkgWRONGSIGN","bkgBCMASS","bkgTRUEJPSI","sigRegion","signal_MC","bToJpsi_MC","PromptJpsi_MC","dimuonTrk","flipJpsi"};
   TString prettyName[] = {"Wrong-sign","Fake J/#psi + X","high-mass control","Data","Signal",
-  			  "B #rightarrow J/#psi X","MC PromptJpsi","dimuon+track (misID)","Rotated J/#psi + X"};
+  			  "B #rightarrow J/#psi X","MC PromptJpsi","dimuon+track (misID)","J/#psi + random X"};
   TString procNameDef[] = {"Wrongsign","FakeJpsi","TrueJpsi","data_obs","BcSig",(ispp?"JpsiMC":"NPJpsi"),"PromptJpsi","dimuTrk","flipJpsi"};
 
   bool drawShape[] = {true,true,false,true,true,true,//nonprompt
@@ -169,7 +169,7 @@ void plotCombineOutput(bool ispp=true, bool secondStep=false, bool bkgOnly=false
 	  h_BcM[i][b][cb][k]->SetFillStyle(usedForFit[i]?1001:0);
 	  h_BcM[i][b][cb][k]->SetFillColor(cols[i]);
 	  h_BcM[i][b][cb][k]->SetLineColor(((i==4)?kBlack:(cols[i]+((i==3)?0:2))));
-	  h_BcM[i][b][cb][k]->SetLineWidth(3);
+	  h_BcM[i][b][cb][k]->SetLineWidth(1);//png:3
 	}
 
 	//Building the PILED (summed) histograms
@@ -183,23 +183,23 @@ void plotCombineOutput(bool ispp=true, bool secondStep=false, bool bkgOnly=false
 	}
 
 	//DRAW data signal region
-	h_BcM[3][b][cb][k]->GetXaxis()->SetLabelSize(0.05);
-	h_BcM[3][b][cb][k]->GetYaxis()->SetLabelSize(0.045);
-	h_BcM[3][b][cb][k]->GetXaxis()->SetTitleSize(0.057);
-	h_BcM[3][b][cb][k]->GetYaxis()->SetTitleSize(0.05);
+	h_BcM[3][b][cb][k]->GetXaxis()->SetLabelSize(0.06);
+	h_BcM[3][b][cb][k]->GetYaxis()->SetLabelSize(0.056);
+	h_BcM[3][b][cb][k]->GetXaxis()->SetTitleSize(0.071);
+	h_BcM[3][b][cb][k]->GetYaxis()->SetTitleSize(0.06);
 	h_BcM[3][b][cb][k]->SetTitle("");//"B_{c} candidates mass, "+(TString)((k==0)?"no BDT cuts":( (TString)((k==1)?"low":((k==2)?"medium":"high")) + " BDT"//#in "+(TString)((k==1)?"]-#infty":("["+_BDTcut_s(ispp,b,cb,secondStep,(metafitSyst=="_BDTuncorrFromM"),varyBDTbin)[k-1]))+","+(TString)((k==_nChan(ispp))?"+#infty[":(_BDTcut_s(ispp,b,cb,secondStep,(metafitSyst=="_BDTuncorrFromM"),varyBDTbin)[k]+"]"))
 	//) ));
-	h_BcM[3][b][cb][k]->GetXaxis()->SetTitle("#font[52]{m^{#mu#mu#mu}} [GeV]");
+	h_BcM[3][b][cb][k]->GetXaxis()->SetTitle("#font[52]{#lower[-0.1]{m_{#lower[-0.1]{#scale[1.35]{#mu#mu#mu}}}}} [GeV]");
 	h_BcM[3][b][cb][k]->GetYaxis()->SetTitle("candidates / "+(TString)Form("%.2f",(_mBcMax-_mBcMin)/_nbinMSR(ispp)[(k>0)?(k-1):0]) +" GeV");
 	h_BcM[3][b][cb][k]->GetYaxis()->SetRangeUser(1e-4, 1.15*((h_BcM[3][b][cb][k]->GetMaximum() > h_BcM_prefit[nPiled-1][b][cb][k]->GetMaximum())?h_BcM[3][b][cb][k]->GetMaximum():h_BcM_prefit[nPiled-1][b][cb][k]->GetMaximum())  );
-	h_BcM[3][b][cb][k]->GetYaxis()->SetTitleOffset(1.05);
+	h_BcM[3][b][cb][k]->GetYaxis()->SetTitleOffset(1.03);
 	h_BcM[3][b][cb][k]->SetMarkerStyle(20);
-	h_BcM[3][b][cb][k]->SetMarkerSize(2.7);
+	h_BcM[3][b][cb][k]->SetMarkerSize(3.2);
 	h_BcM[3][b][cb][k]->SetMarkerColor(cols[3]);
 	h_BcM[3][b][cb][k]->Draw("EP");
       
 	//Data first in legend
-	auto legend = new TLegend(0.65,0.57,0.98,0.92);
+	auto legend = new TLegend(0.62,0.54,0.98,0.92);
 	legend->AddEntry(h_BcM[3][b][cb][k], prettyName[3] ,"lp");
 	//DRAW PILED histos
 	THStack *hs_BcM_prefit = new THStack("hs_BcM_prefit","");
@@ -219,31 +219,31 @@ void plotCombineOutput(bool ispp=true, bool secondStep=false, bool bkgOnly=false
 	for(int i=0; i<ntrees; i++){
 	  if(drawShape[i] && !usedForFit[i]){
 	    //cout<<"--- Drawing other (non-piled) background: "<<prettyName[i]<<endl;
-	    h_BcM[i][b][cb][k]->SetLineWidth(5);      
-	    h_BcM[i][b][cb][k]->SetLineStyle(9);      
+	    h_BcM[i][b][cb][k]->SetLineWidth(2);//png:5   
+	    h_BcM[i][b][cb][k]->SetLineStyle(2);//png:9      
 	    h_BcM[i][b][cb][k]->Draw("histsame");      
 	    legend->AddEntry(h_BcM[i][b][cb][k],  prettyName[i], "l");
 	  }
 	}
 
-	legend->SetTextSize(0.043);
+	legend->SetTextSize(0.0465);
 	legend->Draw("same");
       
-	char s_bdtbin[100]; sprintf(s_bdtbin,"%s",(const char*)((k==0)?"no BDT cuts":( (TString)((k==1)?"low":((k==2)?"medium":"high")) + " BDT")));
+	char s_bdtbin[100]; sprintf(s_bdtbin,"%s",(const char*)((k==0)?"no BDT cuts":( (TString)((k==1)?"Low":((k==2)?"Medium":"High")) + " BDT")));
 	TLatex t_bdtbin;
 	t_bdtbin.SetNDC();
 	t_bdtbin.SetTextFont(42);
-	t_bdtbin.SetTextSize(0.049);
+	t_bdtbin.SetTextSize(0.055);
 	t_bdtbin.SetTextAlign(31);
-	t_bdtbin.DrawLatex(0.6,0.8,s_bdtbin);
+	t_bdtbin.DrawLatex(0.605,0.83,s_bdtbin);
 
 	//DRAW CMS Preliminary
 	TLatex CMStag;
 	CMStag.SetNDC();
 	CMStag.SetTextFont(42);
-	CMStag.SetTextSize(0.045);
-	CMStag.DrawLatex(0.15,0.85,"#scale[1.2]{#font[61]{CMS}}");
-	CMStag.DrawLatex(ispp?0.6:0.56,0.94,"#font[61]{"+(TString)(ispp?Form("pp} (%.0f pb^{-1}, 5.02 TeV)",L_pp):Form("PbPb} (%.2f nb^{-1}, 5.02 TeV)",L_PbPb*1e3)));
+	CMStag.SetTextSize(0.049);
+	CMStag.DrawLatex(0.17,0.85,"#scale[1.2]{#font[61]{CMS}}");
+	CMStag.DrawLatex(ispp?0.6:0.54,0.94,"#scale[1.2]{"+(TString)(ispp?Form("pp} (%.0f pb^{-1}, 5.02 TeV)",L_pp):Form("PbPb} (%.2f nb^{-1}, 5.02 TeV)",L_PbPb*1e3)));//#font[61]{"+(TString)(ispp?Form("pp} (%.0f pb^{-1}, 5.02 TeV)",L_pp):Form("PbPb} (%.2f nb^{-1}, 5.02 TeV)
 	//CMStag.DrawLatex(0.15,0.80,"#font[52]{Preliminary}");
 
 	//Save canvas
@@ -410,10 +410,10 @@ void plotCombineOutput(bool ispp=true, bool secondStep=false, bool bkgOnly=false
 	  if(!seen) {h_BcM_exp[b][cb][k] = (TH1F*) h_BcM_postfit[i][b][cb][k]->Clone();
 	    seen=true;}
 	  else h_BcM_exp[b][cb][k]->Add(h_BcM_postfit[i][b][cb][k]); 
-	  h_BcM_exp[b][cb][k]->GetXaxis()->SetLabelSize(0.048);
-	  h_BcM_exp[b][cb][k]->GetYaxis()->SetLabelSize(0.048);
-	  h_BcM_exp[b][cb][k]->GetXaxis()->SetTitleSize(0.057);
-	  h_BcM_exp[b][cb][k]->GetYaxis()->SetTitleSize(0.052);
+	  h_BcM_exp[b][cb][k]->GetXaxis()->SetLabelSize(0.06);
+	  h_BcM_exp[b][cb][k]->GetYaxis()->SetLabelSize(0.056);
+	  h_BcM_exp[b][cb][k]->GetXaxis()->SetTitleSize(0.071);
+	  h_BcM_exp[b][cb][k]->GetYaxis()->SetTitleSize(0.06);
 	}
 
 	for(int bin=1; bin<=n; bin++){
@@ -433,29 +433,31 @@ void plotCombineOutput(bool ispp=true, bool secondStep=false, bool bkgOnly=false
 	h_BcM_pull[b][cb][k] = new TGraphErrors(n,x,y);
 	h_BcM_pull[b][cb][k]->SetMarkerColor(kBlack);    
 	h_BcM_pull[b][cb][k]->SetFillColor(kBlack);    
+	h_BcM_pull[b][cb][k]->SetLineColor(kBlack);    
 	h_BcM_pull[b][cb][k]->SetMarkerSize(1.);    
       }
     }
   }
 
   //dummy histo to draw axis in the pull graph's pad
-  float padratio = 4.7, padcorr=0.9;
+  float padratio = 4.2, padcorr=0.9;
   vector<TH1F*> dummy;
   for(int k=0;k<=_nChan(ispp);k++){
     dummy.push_back( new TH1F("dummy"+(TString)to_string(k), "", _nbinM(ispp)[(k>0)?(k-1):0], _Mbinning(ispp,(k>0)?(k-1):0)) );
     dummy[k]->GetXaxis()->SetTickLength(padcorr*padratio * h_BcM_exp[1][0][1]->GetXaxis()->GetTickLength());
     dummy[k]->GetXaxis()->SetLabelSize(padcorr*padratio * h_BcM_exp[1][0][1]->GetLabelSize("X"));
-    dummy[k]->GetYaxis()->SetLabelSize(0.85*padcorr*padratio * h_BcM_exp[1][0][1]->GetLabelSize("Y"));
+    dummy[k]->GetYaxis()->SetLabelSize(0);//0.8*padcorr*padratio * h_BcM_exp[1][0][1]->GetLabelSize("Y"));
     dummy[k]->GetYaxis()->SetRangeUser(-pullMax,pullMax);  
     dummy[k]->GetYaxis()->SetNdivisions(205);//7
     //  dummy[k]->GetXaxis()->SetRangeUser(h_BcM_exp[1][1]->GetBinLowEdge(1), h_BcM_exp[1][1]->GetBinLowEdge(n+1));
-    dummy[k]->GetXaxis()->SetTitle("#font[52]{m^{#mu#mu#mu}} [GeV]");    
+    dummy[k]->GetXaxis()->SetTitle("#font[52]{#lower[-0.1]{m_{#lower[-0.1]{#scale[1.35]{#mu#mu#mu}}}}} [GeV]");    
     dummy[k]->GetYaxis()->SetTitle("pull");    
     dummy[k]->GetYaxis()->SetTitleSize(padcorr*padratio * h_BcM_exp[1][0][1]->GetXaxis()->GetTitleSize()); 
     dummy[k]->GetXaxis()->SetTitleSize(padcorr*padratio * h_BcM_exp[1][0][1]->GetXaxis()->GetTitleSize()); 
-    dummy[k]->GetYaxis()->SetTitleOffset(0.15); 
-    dummy[k]->GetXaxis()->SetTitleOffset(0.9); 
+    dummy[k]->GetYaxis()->SetTitleOffset(0.18); 
+    dummy[k]->GetXaxis()->SetTitleOffset(0.89); 
     dummy[k]->GetXaxis()->SetLabelOffset(0.03); 
+    dummy[k]->SetLineColor(kBlack);
   }
 
   //********************************************************
@@ -471,26 +473,39 @@ void plotCombineOutput(bool ispp=true, bool secondStep=false, bool bkgOnly=false
       TCanvas* c7 = new TCanvas("c7", "Bc mass, no BDT cuts, postfit", 1500, 1500);
       c7->Divide(1,2);
 
+      //custom labels for pull y-axis
+      TLatex t_yPullLab;
+      t_yPullLab.SetNDC();
+      t_yPullLab.SetTextFont(42);
+      t_yPullLab.SetTextSize(0.24);
+      t_yPullLab.SetTextAlign(32);
+      
       for(int k=0;k<=_nChan(ispp);k++){
 
 	if(k==0) {  
 	  c7->cd(2)->SetPad(0.,0.,1.,1/padratio);//lower pad for pull
 	  gPad->SetTickx(2);
 	  gPad->SetGridy();
-	  gPad->SetMargin(0.11,0.02, 0.47,0.);//left,right,bottom,top
+	  gPad->SetMargin(0.13,0.02, 0.55,0.);//left,right,bottom,top
 	  dummy[k]->DrawClone();
+	  t_yPullLab.DrawLatex(0.125,0.65,"#minus2");
+	  t_yPullLab.DrawLatex(0.125,0.91,"2");
+	  
 	  c7->cd(1)->SetPad(0.,1/padratio,1.,1.); //upper pad for trimuon mass distro
-	  gPad->SetMargin(0.11,0.02, 0.,0.08);
+	  gPad->SetMargin(0.13,0.02, 0.,0.08);
 	  c7->cd(1);
 	}
 	else {
 	  c6->cd(_nChan(ispp)+k)->SetPad((k-1)/(float)_nChan(ispp),0.,k/(float)_nChan(ispp),1/(padratio+1));//lower pad for pull
 	  gPad->SetTickx(2);
 	  gPad->SetGridy();
-	  gPad->SetMargin(0.11,0.02, 0.47,0.);//left,right,bottom,top
+	  gPad->SetMargin(0.13,0.02, 0.55,0.);//left,right,bottom,top
 	  dummy[k]->DrawClone();
+	  t_yPullLab.DrawLatex(0.125,0.65,"#minus2");
+	  t_yPullLab.DrawLatex(0.125,0.91,"2");
+
 	  c6->cd(k)->SetPad((k-1)/(float)_nChan(ispp),1/(padratio+1),k/(float)_nChan(ispp),1.);//upper pad for trimuon mass distro
-	  gPad->SetMargin(0.11,0.02, 0.,0.08);
+	  gPad->SetMargin(0.13,0.02, 0.,0.08);
 	  c6->cd(k);
 	}
 
@@ -502,7 +517,7 @@ void plotCombineOutput(bool ispp=true, bool secondStep=false, bool bkgOnly=false
 	if(!bkgOnly) cout<<"Theoretical significance S/sqrt(S+B) = "<<sigSignif[b][cb]->GetBinContent(k+1)<<endl;
 	if(!bkgOnly) cout<<"Theoretical significance (Asimov improved) S/sqrt(S+B) = "<<sigSignifAsim[b][cb]->GetBinContent(k+1)<<endl;
 
-	auto legend = new TLegend(0.65,0.57,0.98,0.92);
+	auto legend = new TLegend(0.64,0.53,0.98,0.92);
 
 	//DRAW data signal region
 	h_BcM[3][b][cb][k]->Draw("EP");
@@ -538,49 +553,49 @@ void plotCombineOutput(bool ispp=true, bool secondStep=false, bool bkgOnly=false
 	for(int i=0; i<ntrees; i++){
 	  if(drawShape[i] && !usedForFit[i]){
 	    //cout<<"--- Drawing other (non-piled) background: "<<prettyName[i]<<endl;
-	    h_BcM[i][b][cb][k]->SetLineWidth(5);      
-	    h_BcM[i][b][cb][k]->SetLineStyle(9);
+	    h_BcM[i][b][cb][k]->SetLineWidth(2);//png:5
+	    h_BcM[i][b][cb][k]->SetLineStyle(2);//png:9
 	    h_BcM[i][b][cb][k]->Draw("histsame");      
 	    legend->AddEntry(h_BcM[i][b][cb][k],  prettyName[i], "l");
 	  }
 	}
 
-	legend->SetTextSize(0.043);
+	legend->SetTextSize(0.046);
 	legend->Draw("same");
 
 	//DRAW values of efficiencies and significance
-	char eff1[100]; sprintf(eff1,"#font[52]{f}_{signal} = %.3f",effSig[b][cb]->GetBinContent(k+1));
-	char eff2[100]; sprintf(eff2,"#font[52]{f}_{background} = %.3f",1-rejBkg[b][cb]->GetBinContent(k+1));
+	//	char eff1[100]; sprintf(eff1,"#font[52]{f}_{#scale[1.3]{signal}} = %.3f",effSig[b][cb]->GetBinContent(k+1));
+	//char eff2[100]; sprintf(eff2,"#font[52]{f}_{#scale[1.3]{background}} = %.3f",1-rejBkg[b][cb]->GetBinContent(k+1));
 	char eff3[100]; sprintf(eff3,"#font[52]{S/#sqrt{S+B}} = %.1f",sigSignif[b][cb]->GetBinContent(k+1));
 	char eff5[100]; sprintf(eff5,"purity = %.3f",sigPurity[b][cb]->GetBinContent(k+1));
-	char eff4[100]; sprintf(eff4,"#font[52]{N}_{signal}^{postfit} = %.0f",nSig[b][cb][k]);
+	char eff4[100]; sprintf(eff4,"#font[52]{N}(B_{#scale[1.3]{c}}) = %.0f",nSig[b][cb][k]);//#font[52]{N}_{#scale[1.3]{signal}}^{#scale[1.3]{postfit}}
 	char s_chi2[100]; sprintf(s_chi2,"#chi^{2}/ndf = %.2f",chi2[b][cb][k]/ndf[b][cb][k]);
 	TLatex eAndSignif;
 	eAndSignif.SetNDC();
 	eAndSignif.SetTextFont(42);
-	eAndSignif.SetTextSize(0.039);
-	//eAndSignif.DrawLatex(0.72,0.275,s_chi2);
-	if(!bkgOnly) eAndSignif.DrawLatex(0.72,0.275,eff4);
-	if(!bkgOnly) eAndSignif.DrawLatex(0.72,0.35,eff5);
-	//if(!bkgOnly) eAndSignif.DrawLatex(0.72,0.35,eff3);
-	eAndSignif.DrawLatex(0.72,bkgOnly?0.33:0.425,eff2);
-	if(!bkgOnly) eAndSignif.DrawLatex(0.72,0.5,eff1);
+	eAndSignif.SetTextSize(0.047);
+	//eAndSignif.DrawLatex(0.685,0.275,s_chi2);
+	if(!bkgOnly) eAndSignif.DrawLatex(0.685,bkgOnly?0.315:0.36,eff4);//0.255
+	if(!bkgOnly) eAndSignif.DrawLatex(0.685,0.45,eff5);//0.34
+	//if(!bkgOnly) eAndSignif.DrawLatex(0.685,0.35,eff3);
+	//	eAndSignif.DrawLatex(0.685,bkgOnly?0.33:0.425,eff2);
+	//if(!bkgOnly) eAndSignif.DrawLatex(0.685,0.51,eff1);
       
-	char s_bdtbin[100]; sprintf(s_bdtbin,"%s",(const char*)((k==0)?"no BDT cuts":( (TString)((k==1)?"low":((k==2)?"medium":"high")) + " BDT")));
+	char s_bdtbin[100]; sprintf(s_bdtbin,"%s",(const char*)((k==0)?"no BDT cuts":( (TString)((k==1)?"Low":((k==2)?"Medium":"High")) + " BDT")));
 	TLatex t_bdtbin;
 	t_bdtbin.SetNDC();
 	t_bdtbin.SetTextFont(42);
-	t_bdtbin.SetTextSize(0.049);
+	t_bdtbin.SetTextSize(0.057);
 	t_bdtbin.SetTextAlign(31);
-	t_bdtbin.DrawLatex(0.6,0.8,s_bdtbin);	
+	t_bdtbin.DrawLatex(0.605,0.83,s_bdtbin);	
 	
 	//DRAW CMS Preliminary
 	TLatex CMStag;
 	CMStag.SetNDC();
 	CMStag.SetTextFont(42);
-	CMStag.SetTextSize(0.045);
-	CMStag.DrawLatex(0.15,0.85,"#scale[1.2]{#font[61]{CMS}}");
-	CMStag.DrawLatex(ispp?0.6:0.56,0.94,"#font[61]{"+(TString)(ispp?Form("pp} (%.0f pb^{-1}, 5.02 TeV)",L_pp):Form("PbPb} (%.2f nb^{-1}, 5.02 TeV)",L_PbPb*1e3)));
+	CMStag.SetTextSize(0.049);
+	CMStag.DrawLatex(0.17,0.85,"#scale[1.35]{#font[61]{CMS}}");
+	CMStag.DrawLatex(ispp?0.6:0.54,0.94,"#scale[1.2]{"+(TString)(ispp?Form("pp} (%.0f pb^{-1}, 5.02 TeV)",L_pp):Form("PbPb} (%.2f nb^{-1}, 5.02 TeV)",L_PbPb*1e3)));//#font[61]{"+(TString)(ispp?Form("pp} (%.0f pb^{-1}, 5.02 TeV)",L_pp):Form("PbPb} (%.2f nb^{-1}, 5.02 TeV)
 	//CMStag.DrawLatex(0.15,0.80,"#font[52]{Preliminary}");
 
 	//DRAW PULL histos

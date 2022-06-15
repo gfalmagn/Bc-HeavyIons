@@ -191,7 +191,7 @@ void metafitSyst(bool secondStep, bool centDep, bool integrated){
     if(ispp<2 && !integrated){
       TCanvas *c1 = new TCanvas("c1"+(TString)ispp,"c1",2000,2000);
 
-      TLegend *leg = new TLegend(0.37,0.4,0.9,0.89);
+      TLegend *leg = new TLegend(0.37,0.4,0.9,0.905);
       for(int isys=0;isys<=_nMetafitSyst;isys++){
 	if(!doNominalAverage && isys==0) continue;
     	leg->AddEntry(gSyst[ispp][isys],((!doNominalAverage && isys==_nMetafitSyst)?"nominal":systPrettyName[isys]),"lp");
@@ -208,7 +208,7 @@ void metafitSyst(bool secondStep, bool centDep, bool integrated){
       if(!ispp) gPad->SetLogy();
 
       CMStag.DrawLatex(0.19,0.85,"#font[61]{CMS "+(TString)((ispp==1)?"pp":((ispp==0)?"PbPb":""))+"}");
-      CMStag.DrawLatex(0.19,0.80,"#font[52]{Preliminary}");
+      //CMStag.DrawLatex(0.19,0.80,"#font[52]{Preliminary}");
 
       c1->SetLeftMargin(0.15);
       TString centStr = "";
@@ -304,6 +304,7 @@ void metafitSyst(bool secondStep, bool centDep, bool integrated){
     if(!(centDep && (ispp==1)) && !integrated){
       outf->WriteObject(&y_systCorr[ispp],(TString)((ispp<2)?"CorrectedYields":"RAA")+"_MetafitSyst_LinearizedCorrelationMatrix"+(TString)(centDep?"_CentralityDep":((ispp==1)?"pp":((ispp==0)?"PbPb":""))));
     }
+    
     //  outf->WriteObject(&y_fitErr,"FinalCorrectedYield_fitError"+(TString)((ispp==1)?"_pp":"_PbPb"));
     outf->Close();
   }
@@ -361,7 +362,7 @@ void metafitSyst(bool secondStep, bool centDep, bool integrated){
 
       if(ican==2){
 	CMStag.SetTextSize(integrated?0.06:0.07);
-	CMStag.DrawLatex(0.05,0.97,"#font[61]{CMS}#font[52]{ Preliminary}");
+	CMStag.DrawLatex(0.05,0.97,"#font[61]{CMS}");//#font[52]{ Preliminary}
       }
 
       bool lastPad = (ican==ncan);

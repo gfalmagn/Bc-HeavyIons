@@ -199,9 +199,9 @@ void drawFlipJpsi(bool ispp=true, bool secondStep=true, bool highMass = false){
   h_oppEta->Draw("histE");
   h_samEta->Draw("histEsame");
 
-  TLegend *leg2 = new TLegend(0.5,0.76,0.9,0.96);
-  leg2->AddEntry(h_oppEta,"opposite #eta rotation");
-  leg2->AddEntry(h_samEta,"same #eta rotation");
+  TLegend *leg2 = new TLegend(0.48,0.76,0.9,0.96);
+  leg2->AddEntry(h_oppEta,"opposite #eta rotations");
+  leg2->AddEntry(h_samEta,"same #eta rotations");
   leg2->SetTextSize(0.04);
   leg2->Draw();
 
@@ -220,7 +220,7 @@ void drawFlipJpsi(bool ispp=true, bool secondStep=true, bool highMass = false){
   h_oppPhi->Draw("histE");
   h_otherPhi->Draw("histEsame");
 
-  TLegend *leg3 = new TLegend(0.5,0.76,0.9,0.96);
+  TLegend *leg3 = new TLegend(0.48,0.76,0.9,0.96);
   leg3->AddEntry(h_oppPhi,"opposite #phi rotations");
   leg3->AddEntry(h_otherPhi,"other #phi rotations");
   leg3->SetTextSize(0.04);

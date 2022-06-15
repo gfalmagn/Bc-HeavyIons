@@ -69,8 +69,9 @@ void drawEffMap(TH2Poly* hpEff, TH2Poly* hpSel, TH2Poly* hpAcc, TLine* l1, TLine
   c2->cd(1);
   //  gPad->SetLogz();
   //hpSel->GetZaxis()->SetRangeUser(1,200);
-  hpSel->GetXaxis()->SetTitle("|y^{#mu#mu#mu}(B_{c})|");
-  hpSel->GetYaxis()->SetTitle("p_{T}^{#mu#mu#mu}(B_{c})");
+  hpSel->GetXaxis()->SetTitle("|y^{#mu#mu#mu}|");
+  hpSel->GetYaxis()->SetTitle("p_{T}^{#mu#mu#mu} [GeV]");
+  hpSel->GetZaxis()->SetTitle("N(B_{c})");
   hpSel->SetTitle("Selected B_{c}'s");
   hpSel->Draw("COLZ0");
   l1->Draw("same"); l2->Draw("same"); l3->Draw("same"); l4->Draw("same"); l5->Draw("same"); l6->Draw("same");
@@ -79,8 +80,8 @@ void drawEffMap(TH2Poly* hpEff, TH2Poly* hpSel, TH2Poly* hpAcc, TLine* l1, TLine
   //gPad->SetLogz();
   hpEff->Divide(hpAcc);
   hpEff->GetZaxis()->SetRangeUser(zmin,zmax);
-  hpEff->GetXaxis()->SetTitle("|y^{#mu#mu#mu}(B_{c})|");
-  hpEff->GetYaxis()->SetTitle("p_{T}^{#mu#mu#mu}(B_{c})");
+  hpEff->GetXaxis()->SetTitle("|y^{#mu#mu#mu}|");
+  hpEff->GetYaxis()->SetTitle("p_{T}^{#mu#mu#mu} [GeV]");
   hpEff->SetTitle("Efficiency "+nameSuf);
   hpEff->Draw("COLZ0");
   l1->Draw("same"); l2->Draw("same"); l3->Draw("same"); l4->Draw("same"); l5->Draw("same"); l6->Draw("same");
@@ -1229,6 +1230,8 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool secondStep=false, b
       c3->Divide(2,2);
   
       c3->cd(1);
+      hp_acceptance[centb]->GetXaxis()->SetTitle("|y^{#mu#mu#mu}|");
+      hp_acceptance[centb]->GetYaxis()->SetTitle("p_{T}^{#mu#mu#mu} [GeV]");
       hp_acceptance[centb]->Draw("COLZ");
       line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same"); line6->Draw("same");
       gPad->SetLogz();
@@ -1236,7 +1239,6 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool secondStep=false, b
       hp_acceptance[centb]->GetZaxis()->SetRangeUser(5e-5,1);
 
       TPaletteAxis *palette = (TPaletteAxis*)hp_acceptance[centb]->GetListOfFunctions()->FindObject("palette");
-      // the following lines moe the paletter. Choose the values you need for the position.
       palette->SetX1NDC(0.86);
       palette->SetX2NDC(0.91);
       palette->SetY1NDC(0.1);
@@ -1251,7 +1253,17 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool secondStep=false, b
       line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same"); line6->Draw("same");
       c3->cd(3);
       hp_sel[centb]->Draw("COLZ0");
+      gPad->SetRightMargin(0.15);
       line1->Draw("same"); line2->Draw("same"); line3->Draw("same"); line4->Draw("same"); line5->Draw("same"); line6->Draw("same");
+      hp_sel[centb]->GetZaxis()->SetTitleOffset(1.24);
+
+      TPaletteAxis *palette3 = (TPaletteAxis*)hp_sel[centb]->GetListOfFunctions()->FindObject("palette");
+      palette3->SetX1NDC(0.86);
+      palette3->SetX2NDC(0.91);
+      palette3->SetY1NDC(0.1);
+      palette3->SetY2NDC(0.9);
+      gPad->Modified();
+      gPad->Update();
 
       c3->cd(4);
       hp_acceff[centb]->Draw("COLZ0");
@@ -1264,8 +1276,8 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool secondStep=false, b
 
       TPaletteAxis *palette2 = (TPaletteAxis*)hp_acceff[centb]->GetListOfFunctions()->FindObject("palette");
       // the following lines moe the paletter. Choose the values you need for the position.
-      palette2->SetX1NDC(0.86);
-      palette2->SetX2NDC(0.91);
+      palette2->SetX1NDC(0.84);
+      palette2->SetX2NDC(0.89);
       palette2->SetY1NDC(0.1);
       palette2->SetY2NDC(0.9);
       gPad->Modified();
@@ -1282,13 +1294,15 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool secondStep=false, b
       hp_acceff[centb]->SetTitle("");
       hp_acceff[centb]->GetZaxis()->SetTitle("acceptance #times efficiency");
       hp_acceff[centb]->GetZaxis()->SetTitleOffset(1.5);
+      hp_acceff[centb]->GetXaxis()->SetTitle("|y^{#mu#mu#mu}|");
+      hp_acceff[centb]->GetYaxis()->SetTitle("p_{T}^{#mu#mu#mu} [GeV]");
 
       TLatex CMStag;
       CMStag.SetNDC();
       CMStag.SetTextFont(42);
       CMStag.SetTextSize(0.041);
       CMStag.SetTextAlign(11);
-      CMStag.DrawLatex(0.13,0.16,"#splitline{#font[61]{CMS}}{#font[52]{Preliminary}}");
+      CMStag.DrawLatex(0.14,0.14,"#font[61]{CMS}");//#splitline{#font[61]{CMS}}{#font[52]{Preliminary}}2
 
       palette2->SetX1NDC(0.83);
       palette2->SetX2NDC(0.88);
@@ -1306,22 +1320,44 @@ void BuildEffMap(bool ispp = true, bool runAEtoys=true, bool secondStep=false, b
 
       c4->cd(1);
       hpcoarse_inBDT23[centb]->GetZaxis()->SetRangeUser(eff_BDT23-0.2, eff_BDT23+0.2);
-      hpcoarse_inBDT23[centb]->SetTitle("Efficiency for BDT bin 2-3;|Y|;p_{T} [GeV]");
+      hpcoarse_inBDT23[centb]->SetTitle("Efficiency for BDT bin 2-3;|y^{#mu#mu#mu}|;p_{T}^{#mu#mu#mu} [GeV]");
       hpcoarse_inBDT23[centb]->Draw("COLZ");
+      gPad->SetRightMargin(0.15);
+      gPad->Modified();
+      gPad->Update();
+
+      TPaletteAxis *palette5 = (TPaletteAxis*)hpcoarse_inBDT23[centb]->GetListOfFunctions()->FindObject("palette");
+      palette5->SetX1NDC(0.86);
+      palette5->SetX2NDC(0.91);
+      palette5->SetY1NDC(0.1);
+      palette5->SetY2NDC(0.9);
+      gPad->Modified();
+      gPad->Update();
 
       c4->cd(2);
       hpcoarse_inBDT3[centb]->GetZaxis()->SetRangeUser(eff_BDT3-0.2, eff_BDT3+0.2);
-      hpcoarse_inBDT3[centb]->SetTitle("Efficiency for BDT bin 3;|Y|;p_{T} [GeV]");
+      hpcoarse_inBDT3[centb]->SetTitle("Efficiency for BDT bin 3;|y^{#mu#mu#mu}|;p_{T}^{#mu#mu#mu} [GeV]");
       hpcoarse_inBDT3[centb]->Draw("COLZ");
+      gPad->SetRightMargin(0.15);
+      gPad->Modified();
+      gPad->Update();
+
+      TPaletteAxis *palette4 = (TPaletteAxis*)hpcoarse_inBDT3[centb]->GetListOfFunctions()->FindObject("palette");
+      palette4->SetX1NDC(0.86);
+      palette4->SetX2NDC(0.91);
+      palette4->SetY1NDC(0.1);
+      palette4->SetY2NDC(0.9);
+      gPad->Modified();
+      gPad->Update();
 
       c4->cd(3);
       BDT23effVsPt->GetYaxis()->SetRangeUser(eff_BDT23-0.2, eff_BDT23+0.2);
-      BDT23effVsPt->SetTitle("Efficiency for BDT bin 2-3;p_{T} [GeV]");
+      BDT23effVsPt->SetTitle("Efficiency for BDT bin 2-3;p_{T}^{#mu#mu#mu} [GeV]");
       BDT23effVsPt->Draw("E");
 
       c4->cd(4);
       BDT3effVsPt->GetYaxis()->SetRangeUser(eff_BDT3-0.2, eff_BDT3+0.2);
-      BDT3effVsPt->SetTitle("Efficiency for BDT bin 3;p_{T} [GeV]");
+      BDT3effVsPt->SetTitle("Efficiency for BDT bin 3;p_{T}^{#mu#mu#mu} [GeV]");
       BDT3effVsPt->Draw("E");
 
       if(centb==0)

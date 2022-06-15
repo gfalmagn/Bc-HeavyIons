@@ -221,6 +221,10 @@ RAAcent2.add_qualifier("ABS(RAP)", "1.3-2.3 if (PT<11 GeV) else 0-2.3")
 RAAcent2.add_qualifier("bin-to-bin correlation factor", float(rho12_raacent))
 
 # Uncertainties
+npartraaE = Uncertainty("", is_symmetric=True)
+npartraaE.values = [ abs(data_raanpart[0][1] - data_raanpart[0][0]) , abs(data_raanpart[1][1] - data_raanpart[1][0]) ]
+npartraa.add_uncertainty(npartraaE)
+
 RAAcent1totE = Uncertainty("total", is_symmetric=False)
 RAAcent1totE.values = [ (data_raacent[0][5],data_raacent[0][4]) , (0,0) ]
 RAAcent1.add_uncertainty(RAAcent1totE)

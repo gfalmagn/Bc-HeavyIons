@@ -187,6 +187,7 @@ void drawSimpleSgMuon(){
   
   //***** Some histograms
   TH1D *h_softestMu = new TH1D("h_softestMu","pT of the softest muon from the Gen Bc",80,0,5);
+  TH1D *h_hardestMu = new TH1D("h_hardestMu","pT of the hardest muon from the Gen Bc",100,0,12);
   TH2D *h2D_softestMu = new TH2D("h2D_softestMu","pT of the softest muon from the Gen Bc",30,0,3.0,50,0,5);
   TH2D *h2D_otherMu = new TH2D("h2D_otherMu","pT of the softest muon from the Gen Bc",30,0,3.0,50,0,5);
   TH2D *h2D_otherMu2 = new TH2D("h2D_otherMu2","pT of the softest muon from the Gen Bc",30,0,3.0,50,0,5);
@@ -254,6 +255,36 @@ void drawSimpleSgMuon(){
 
       if(!genOnly){
 
+	//hardest muon
+	Short_t muhardidx = Gen_Bc_muW_idx[BcNb]; Short_t muh1idx = mumiidx; Short_t muh2idx = muplidx;
+	if(genmumi->Pt()>genmuW->Pt() && genmumi->Pt()>genmupl->Pt()) {
+	  muhardidx = mumiidx;
+	  muh1idx = Gen_Bc_muW_idx[BcNb];}
+	if(genmupl->Pt()>genmuW->Pt() && genmupl->Pt()>genmumi->Pt()) {
+	  muhardidx = muplidx;
+	  muh2idx = Gen_Bc_muW_idx[BcNb];}
+
+	Short_t recmuh1idx = Gen_mu_whichRec[muh1idx];
+	Short_t recmuh2idx = Gen_mu_whichRec[muh2idx];      
+	Short_t recmuhardidx = Gen_mu_whichRec[muhardidx];      
+
+	if(recmuh1idx>-1 && recmuh2idx>-1){
+	  if((recmu_SelType[muh1idx]&2)>0 && (recmu_SelType[muh2idx]&2)>0 &&
+	     (recmu_SelType[muh1idx]&8)>0 && (recmu_SelType[muh2idx]&8)>0 &&
+	     Reco_mu_nPixWMea[recmuh1idx]>0 && Reco_mu_nPixWMea[recmuh2idx]>0 &&
+	     Reco_mu_nTrkWMea[recmuh1idx]>5 && Reco_mu_nTrkWMea[recmuh2idx]>5 &&
+	     fabs(Reco_mu_dxy[recmuh1idx])<0.3 && fabs(Reco_mu_dxy[recmuh2idx])<0.3 &&
+	     fabs(Reco_mu_dz[recmuh1idx])<20 && fabs(Reco_mu_dz[recmuh2idx])<20 &&
+	     looseAcc(((TLorentzVector*) Reco_mu_4mom->At(recmuh1idx))->Pt(),((TLorentzVector*) Reco_mu_4mom->At(recmuh1idx))->Eta()) && looseAcc(((TLorentzVector*) Reco_mu_4mom->At(recmuh2idx))->Pt(),((TLorentzVector*) Reco_mu_4mom->At(recmuh2idx))->Eta()) &&
+	     (tightAcc(((TLorentzVector*) Reco_mu_4mom->At(recmuh1idx))->Pt(),((TLorentzVector*) Reco_mu_4mom->At(recmuh1idx))->Eta()) || tightAcc(((TLorentzVector*) Reco_mu_4mom->At(recmuh2idx))->Pt(),((TLorentzVector*) Reco_mu_4mom->At(recmuh2idx))->Eta())) &&
+	     fabs(((TLorentzVector*) Gen_mu_4mom->At(muhardidx))->Eta())<2.4
+	     ){
+	    h_hardestMu->Fill(((TLorentzVector*) Gen_mu_4mom->At(muhardidx))->Pt());
+	  }
+
+	}
+
+	//softest muon
 	Short_t musoftidx = Gen_Bc_muW_idx[BcNb]; Short_t mu1idx = mumiidx; Short_t mu2idx = muplidx;
 	if(genmumi->Pt()<genmuW->Pt() && genmumi->Pt()<genmupl->Pt()) {
 	  musoftidx = mumiidx;
@@ -323,6 +354,14 @@ void drawSimpleSgMuon(){
     // h_softestMu3->SetLineColor(kGreen+3);
     // h_softestMu3->Draw("Esame");
     c2->SaveAs("pT_softestMuon_otherMuonsAreHybridSoft.pdf");
+
+    TCanvas * c3 = new TCanvas("c3","c3",1500,1500);  
+    c3->SetLeftMargin(0.12);
+    c3->SetTopMargin(0.04);
+    h_hardestMu->SetTitle(";p_{T}(#mu) [GeV];counts");
+    h_hardestMu->SetLineWidth(3);
+    h_hardestMu->Draw("E");
+    c3->SaveAs("pT_hardestMuon_otherMuonsAreHybridSoftAndInLooseAcc_oneMuInTightAcc.pdf");
   }
     
   gStyle->SetPalette(kBlueRedYellow);

@@ -109,7 +109,7 @@ TH1F* CloneAndDivide(TF1* fct, TH1F* h, TString name){
 
 TH1F* CloneAndDivide(TF1* fct, TF1* denom, TString name, int npts=700){
   
-  TH1F *res = new TH1F(name,name+";p_{T} [GeV];MC ratio biased/default",npts,_BcPtmin[0],_BcPtmax[0]);
+  TH1F *res = new TH1F(name,name+";p_{T}^{#mu#mu#mu} [GeV];MC ratio biased/default",npts,_BcPtmin[0],_BcPtmax[0]);
   for(int b=1;b<=npts;b++){
     res->SetBinContent(b,fct->Eval(res->GetBinCenter(b))/denom->Eval(res->GetBinCenter(b)));
   }
@@ -296,8 +296,8 @@ void MakeToyBiases(bool secondStep=false, bool plotOnly=false, int MCclos=-1){
 
   int nbins = 150;
   vector<TH1F*> h_pTMC_cont;
-  h_pTMC_cont.push_back(new TH1F("h_pTMC_cont_pp","h_pTMC_cont;p_{T} [GeV];#frac{dN_{MC}}{dp_{T} dy}",nbins,_BcPtmin[0],_BcPtmax[0]));
-  h_pTMC_cont.push_back(new TH1F("h_pTMC_cont_PbPb","h_pTMC_cont;p_{T} [GeV];#frac{dN_{MC}}{dp_{T} dy}",nbins,_BcPtmin[0],_BcPtmax[0]));
+  h_pTMC_cont.push_back(new TH1F("h_pTMC_cont_pp","h_pTMC_cont;p_{T}^{#mu#mu#mu} [GeV];#frac{dN_{MC}}{dp_{T}^{#mu#mu#mu} dy^{#mu#mu#mu}}",nbins,_BcPtmin[0],_BcPtmax[0]));
+  h_pTMC_cont.push_back(new TH1F("h_pTMC_cont_PbPb","h_pTMC_cont;p_{T}^{#mu#mu#mu} [GeV];#frac{dN_{MC}}{dp_{T}^{#mu#mu#mu} dy^{#mu#mu#mu}}",nbins,_BcPtmin[0],_BcPtmax[0]));
   float bwpt_cont = (_BcPtmax[0]-_BcPtmin[0])/nbins;
   float anabins[] = {_BcPtmin[1], _BcPtmin[2],_BcPtmax[2]};
   vector<TH1F*> h_pTMC;
@@ -839,7 +839,7 @@ void MakeToyBiases(bool secondStep=false, bool plotOnly=false, int MCclos=-1){
       yehi[0] = 0; yehi[1] = 0;
     }
     TGraphAsymmErrors* nomi = new TGraphAsymmErrors(_NanaBins, x,y, xelo, xehi, yelo, yehi);
-    nomi->SetTitle(";p_{T} [GeV];#frac{dN_{corr}}{dp_{T} dy}");
+    nomi->SetTitle(";p_{T}^{#mu#mu#mu} [GeV];#frac{dN_{corr}}{dp_{T}^{#mu#mu#mu} dy^{#mu#mu#mu}}");
     nomi->SetMarkerStyle(20);
     nomi->SetMarkerSize(3);
     nomi->SetMarkerColor(kCyan+3);
@@ -903,8 +903,8 @@ void MakeToyBiases(bool secondStep=false, bool plotOnly=false, int MCclos=-1){
     h_pTMC[col]->Draw("hist][same");
     for(int m=0;m<_biasNmeth;m++){
       if(MCclos>-1 && m!=_nomMethVar) continue;
-      if(m==2) mcfit[col][m][0]->Draw("same"); //Exact fit of the MC, with continuous spectrum
-      mcfit[col][m][1]->Draw("same");
+      //if(m==2) mcfit[col][m][0]->Draw("same"); //Exact fit of the MC, with 2 bins
+      mcfit[col][m][1]->Draw("same"); //Exact fit of the MC, with continuous spectrum
     }
 
     //Re-draw data and nominal correction

@@ -32,6 +32,7 @@ fraa.close()
 XY_ct = []
 YerrTot_ct = []
 YerrUnco_ct = []
+NpartErr = [1.0,0.9] # from https://twiki.cern.ch/twiki/bin/viewauth/CMS/Glauber5TeVPbPbNewParameters
 
 for i in range(0, len(re.findall("->SetPoint\(0, \d+\.\d*, \d+\.\d*\)",traa_ct))):
     XY_ct.append( [ float(re.findall(" \d+\.\d*, " , re.findall("->SetPoint\(0, \d+\.\d*, \d+\.\d*\)",traa_ct)[i] )[0][1:-2]),
@@ -103,8 +104,8 @@ fo.write("# x xmin xmax ycenter +stat_u -stat_d +syst_u -syst_d\n")
 fo.write("# correlation factor between bins 1 and 2")
 fo.write("# 'stat' uncertainty is the part of the total uncertainty that is not bin-to-bin correlated (mostly statistical). 'syst' uncertainty is such that total uncertainty is (stat^2+syst^2) \n")
 for i in range(0,len(XY_ct)):
-    fo.write( "{:.3f} {:.3f} {:.3f} {:.3f} +{:.3f} -{:.3f} +{:.3f} -{:.3f} +{:.3f} -{:.3f}\n".format(XY_ct[i][0], XY_ct[i][0]-1, XY_ct[i][0]+1,
-                                                                                     XY_ct[i][1], YerrTot_ct[i][1], YerrTot_ct[i][0], YerrUnco_ct[i][1], YerrUnco_ct[i][0], math.sqrt(YerrTot_ct[i][1] ** 2 - YerrUnco_ct[i][1] ** 2), math.sqrt(YerrTot_ct[i][0] ** 2 - YerrUnco_ct[i][0] ** 2) ))
+    fo.write( "{:.3f} {:.3f} {:.3f} {:.3f} +{:.3f} -{:.3f} +{:.3f} -{:.3f} +{:.3f} -{:.3f}\n".format(XY_ct[i][0], XY_ct[i][0]-NpartErr[i], XY_ct[i][0]+NpartErr[i], #here: Npart uncertainties from https://twiki.cern.ch/twiki/bin/viewauth/CMS/Glauber5TeVPbPbNewParameters
+                                                                                                     XY_ct[i][1], YerrTot_ct[i][1], YerrTot_ct[i][0], YerrUnco_ct[i][1], YerrUnco_ct[i][0], math.sqrt(YerrTot_ct[i][1] ** 2 - YerrUnco_ct[i][1] ** 2), math.sqrt(YerrTot_ct[i][0] ** 2 - YerrUnco_ct[i][0] ** 2) ))
 fo.write( "{:.2f}\n".format(rho12_ct) )
 
 fo.write("\n# RAA(Bc) versus centrality, with CMS 2017 pp and 2018 PbPb data\n")

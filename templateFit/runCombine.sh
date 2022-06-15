@@ -167,5 +167,7 @@ combine -M MultiDimFit datacard_PbPb_2bins_2ndStep.root --algo random --points 1
 combine -M MultiDimFit datacard_pp_2bins.root --algo random --points 3000 --setParameterRanges r1=0.75,1.3:r2=0.85,1.4 -n _pp_POIfromNLL
 combine -M MultiDimFit datacard_pp_2bins_2ndStep.root --algo random --points 15000 --setParameterRanges r1=0.75,1.3:r2=0.85,1.4 -n _pp_POIfromNLL_2ndStep
 
+combine -M MultiDimFit datacard_PbPb_2bins_2ndStep.root --algo fixed --fixedPointPOIs r1=0:r2=0 -n _PbPb_NLL0_2ndStep
+
 END
 

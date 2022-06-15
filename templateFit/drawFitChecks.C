@@ -84,6 +84,24 @@ void drawChecks(bool ispp=true, bool secondStep=true, float GOFdataval=100, stri
   //NLL SCAN
   gStyle->SetOptStat(0);
 
+  //NLL at 0,0
+  float NLL0;
+  double p0,fitsignif;
+  if(!ispp){
+    auto filename5 = "/home/llr/cms/falmagne/Bc/templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/higgsCombine_PbPb_NLL0_2ndStep.MultiDimFit.mH120.root";
+    cout<<"NLL at (r1=0,r2=0) : read file "<<filename5<<endl;
+    auto f5 = new TFile(filename5,"read");
+    TTree* T = (TTree*)f5->Get("limit"); 
+
+    T->SetBranchAddress("deltaNLL",&NLL0);
+    T->GetEntry(1);
+    cout<<"2*NLL at (r1=0,r2=0) = "<<2*NLL0<<endl;
+    p0 = TMath::Prob(2*NLL0,2)/2;
+    fitsignif = ROOT::Math::gaussian_quantile(1-p0,1);//sigma=1
+    cout<<"associated 1-sided pvalue and significance of non-zero signal (assuming gaussian likelihood) (fit only) = "<<p0<<" "<<fitsignif<<endl;
+  }
+
+  //NLL Scan
   auto filename2 = "/home/llr/cms/falmagne/Bc/templateFit/CMSSW_10_3_4/src/HiggsAnalysis/CombinedLimit/test/higgsCombine_"+s_ispp+".MultiDimFit.mH120.root";
   cout<<"NLL SCAN : read file "<<filename2<<endl;
   ROOT::RDataFrame d_toys("limit", filename2); //filename cannot handle TString pfffrr....
@@ -98,46 +116,42 @@ void drawChecks(bool ispp=true, bool secondStep=true, float GOFdataval=100, stri
 
   //NLL scan
   auto d2_toys = d_toys.Define("chi2", "2*deltaNLL").Define("scaledr1",(const char*)TString::Format("r1/%.4f",xBF[0])).Define("scaledr2",(const char*)TString::Format("r2/%.4f",yBF[0]));
-  auto NLL = d2_toys.Filter("chi2<25").Profile2D({"nll","",30,static_cast<double>(ispp?0.75:0.)/xBF[0],static_cast<double>(ispp?1.65:3.)/xBF[0],
+  auto NLL = d2_toys.Filter("chi2<28.7").Profile2D({"nll","",30,static_cast<double>(ispp?0.75:0.)/xBF[0],static_cast<double>(ispp?1.65:3.)/xBF[0],
 	                                                   30,static_cast<double>(ispp?0.6:0.15)/yBF[0],static_cast<double>(ispp?1.5:2.3)/yBF[0]},
                                                   "scaledr1","scaledr2","chi2");
-  auto NLLv2 = d2_toys.Profile2D(                {"nll","",30,static_cast<double>(ispp?0.75:0.)/xBF[0],static_cast<double>(ispp?1.65:3.)/xBF[0],
-	                                                   30,static_cast<double>(ispp?0.6:0.15)/yBF[0],static_cast<double>(ispp?1.5:2.3)/yBF[0]},
-                                                  "scaledr1","scaledr2","chi2");
+
 
   //Extract the contribution of metafit error to the significance
   vector<double> metafitRErrLo = {H.metafit.PbPb_pt.RelErrLo[1], H.metafit.PbPb_pt.RelErrLo[2]};
   double metafitCorr = H.metafit.PbPb_pt.Corr[0];
-  double metafitNLL = (1/(1-pow(metafitCorr,2))) * ( 1/pow(metafitRErrLo[0],2) + 1/pow(metafitRErrLo[1],2) - 2*metafitCorr/(metafitRErrLo[0]*metafitRErrLo[1]) );
+  double metafitNLL = (1/(1-pow(metafitCorr,2))) * ( 1/pow(metafitRErrLo[0],2) + 1/pow(metafitRErrLo[1],2) - 2*metafitCorr/(metafitRErrLo[0]*metafitRErrLo[1]) ); //2*NLL(r1,r2=0,0) //actually just -2log(Gaussian2D)
+  double metafitP0 = TMath::Prob(metafitNLL,2)/2;
   if(!ispp){
     cout<<"metafit relative uncertainty (low) for PbPb, pT bin 1,2 = "<<metafitRErrLo[0]<<" "<<metafitRErrLo[1]<<endl;
     cout<<"        bin-to-bin correlation = "<<metafitCorr<<endl;
-    cout<<"metafit error significance ; contribution to the sqrt(2*NLL) = "<<sqrt(metafitNLL)<<endl;
+    cout<<"metafit error gives (2*NLL) = "<<metafitNLL<<endl;
+
+    cout<<"p-value of fit and from metafit = "<<p0<<" "<<metafitP0<<endl;
+    double p0Comb = 1-(1-p0)*(1-metafitP0);
+    cout<<"combined p-value = "<<p0Comb<<endl;
+    cout<<"significance of non-zero signal (assuming gaussian likelihood) including metafit uncertainty from pT dependence = "<<ROOT::Math::gaussian_quantile(1-p0Comb,1)<<endl;
+    //    cout<<"significance of non-zero signal (assuming gaussian likelihood) including metafit uncertainty from pT dependence = "<<1/sqrt(1/nllAt0+1/metafitNLL)<<endl;
   }
 
-  //Evaluate significance by extrapolating NLL to (r1=0,r2=0)
-  double x1 = (NLLv2->GetXaxis())->GetBinCenter(1); double y1 = (NLLv2->GetYaxis())->GetBinCenter(1); double z1 = NLLv2->GetBinContent(1,1);
-  double x2 = (NLLv2->GetXaxis())->GetBinCenter(2); double y2 = (NLLv2->GetYaxis())->GetBinCenter(2); double z2 = NLLv2->GetBinContent(2,2);
-  //cout<<"1st bin from 0, center x, center y, nll value = "<<x1<<" "<<y1<<" "<<z1<<endl;
-  //cout<<"2nd bin from 0, center x, center y, nll value = "<<x2<<" "<<y2<<" "<<z2<<endl;
-  double nllAt0v1 = z1 + (z1-z2) * x1/(x2-x1);
-  double nllAt0v2 = z1 + (z1-z2) * y1/(y2-y1); //  f(x0) = f(x1) + (x0-x1) * (f(x2)-f(x1)) / x2-x1
-  double nllAt0 = (nllAt0v1+nllAt0v2)/2;
-  cout<<"nll at (r1=0,r2=0) v1,v2,average = "<<nllAt0v1<<" "<<nllAt0v2<<" "<<nllAt0<<endl;
-  cout<<"significance of non-zero signal (assuming gaussian likelihood) = "<<sqrt(nllAt0)<<endl;
-  if(!ispp) cout<<"significance of non-zero signal (assuming gaussian likelihood) including metafit uncertainty from pT dependence = "<<1/sqrt(1/nllAt0+1/metafitNLL)<<endl;
+  gStyle->SetPalette(kLightTemperature);
 
   //Draw NLL scan
   TCanvas *c2 = new TCanvas("c2","c2",1500,1500);
-  c2->SetRightMargin(0.16);
+  c2->SetRightMargin(0.17);
   c2->SetTopMargin(0.03);
 
   NLL->GetXaxis()->SetTitle("r1/r1_{best}");
   NLL->GetYaxis()->SetTitle("r2/r2_{best}");
   if(!ispp) NLL->GetYaxis()->SetRangeUser(0,2.3);
-  NLL->GetZaxis()->SetTitle("2 #times #DeltaNLL");
-  NLL->SetMaximum(25);
-  NLL->SetContour(25);
+  NLL->GetZaxis()->SetTitle("2 #times #DeltaNLL   ");
+  NLL->GetZaxis()->SetTitleOffset(1.4);
+  NLL->SetMaximum(28.7);
+  NLL->SetContour(100);
 
   NLL->Draw("COLZ");
   bestFit->Draw("p same");
@@ -145,8 +159,8 @@ void drawChecks(bool ispp=true, bool secondStep=true, float GOFdataval=100, stri
   //moving z color palette
   gPad->Update();
   TPaletteAxis *palette = (TPaletteAxis*)NLL->GetListOfFunctions()->FindObject("palette");
-  palette->SetX1NDC(0.85);
-  palette->SetX2NDC(0.9);
+  palette->SetX1NDC(0.84);
+  palette->SetX2NDC(0.89);
   palette->SetY1NDC(0.1);
   palette->SetY2NDC(0.97);
   gPad->Modified();
@@ -158,8 +172,29 @@ void drawChecks(bool ispp=true, bool secondStep=true, float GOFdataval=100, stri
   CMStag.SetTextSize(0.045);
   CMStag.SetTextAlign(13);
   CMStag.DrawLatex(0.135,0.955,"#font[61]{CMS}");
-  CMStag.DrawLatex(0.135,0.91,"#font[52]{Preliminary}");
+  //  CMStag.DrawLatex(0.135,0.91,"#font[52]{Preliminary}");
 
+  TLatex tsigma;
+  tsigma.SetNDC();
+  tsigma.SetTextFont(42);
+  tsigma.SetTextSize(0.035);
+  tsigma.SetTextAlign(12);
+  tsigma.DrawLatex(0.92,0.1+(2.3/28.7)*(0.97-0.1) +0.015,"#font[61]{1#sigma}");
+  tsigma.DrawLatex(0.92,0.1+(2.3/28.7)*(0.97-0.1) -0.019,"#font[61]{#scale[0.8]{(68%)}}");
+  tsigma.DrawLatex(0.92,0.1+(6.2/28.7)*(0.97-0.1) +0.015,"#font[61]{2#sigma}");
+  tsigma.DrawLatex(0.92,0.1+(6.2/28.7)*(0.97-0.1) -0.019,"#font[61]{#scale[0.8]{(95%)}}");
+  tsigma.DrawLatex(0.92,0.1+(11.8/28.7)*(0.97-0.1), "#font[61]{3#sigma}");
+  tsigma.DrawLatex(0.92,0.1+(19.3/28.7)*(0.97-0.1), "#font[61]{ 4#sigma}");
+  tsigma.DrawLatex(0.92,0.97,"#font[61]{5#sigma}");
+
+  TLine *hor = new TLine;
+  hor->SetLineWidth(3);
+  hor->SetLineStyle(2);
+  hor->DrawLineNDC(0.84,0.1+(2.3/28.7)*(0.97-0.1),0.91,0.1+(2.3/28.7)*(0.97-0.1));
+  hor->DrawLineNDC(0.84,0.1+(6.2/28.7)*(0.97-0.1),0.91,0.1+(6.2/28.7)*(0.97-0.1));
+  hor->DrawLineNDC(0.84,0.1+(11.8/28.7)*(0.97-0.1),0.91,0.1+(11.8/28.7)*(0.97-0.1));
+  hor->DrawLineNDC(0.84,0.1+(19.3/28.7)*(0.97-0.1),0.91,0.1+(19.3/28.7)*(0.97-0.1));
+  hor->DrawLineNDC(0.84,0.97,0.91,0.97);
 
   c2->SaveAs("figs/NLLscan_"+(TString)s_ispp+(TString)(secondStep?"_2ndStep":"")+".pdf");
 

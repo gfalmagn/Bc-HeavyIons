@@ -205,7 +205,7 @@ void BDTweight(bool ispp=true, bool step2=true, bool step3=false, bool inCentBin
     CMStag.SetTextFont(42);
     CMStag.SetTextSize(0.065);
     CMStag.DrawLatex(0.75,0.62,"#font[61]{CMS}");
-    CMStag.DrawLatex(0.75,0.54,"#font[52]{Preliminary}");
+    //CMStag.DrawLatex(0.75,0.54,"#font[52]{Preliminary}");
     TLatex lumitag;
     lumitag.SetNDC();
     lumitag.SetTextFont(42);
